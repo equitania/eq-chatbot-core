@@ -105,6 +105,52 @@ class TestMCPLive:
                 print(f"  - {tool.get('name', 'unnamed')}")
 
     @skip_if_no_mcp_server
+    def test_list_tools_detailed(self, mcp_url):
+        """Test listing all tools with detailed information."""
+        from eq_chatbot_core.mcp import get_mcp_client
+
+        client = get_mcp_client(
+            transport="sse",
+            url=mcp_url,
+            timeout=10.0,
+        )
+
+        with client:
+            tools = client.list_tools()
+
+            assert isinstance(tools, list)
+            assert len(tools) > 0, "Server should have at least one tool"
+
+            print(f"\n{'=' * 70}")
+            print(f"MCP Server: {mcp_url}")
+            print(f"Total Tools: {len(tools)}")
+            print(f"{'=' * 70}\n")
+
+            for i, tool in enumerate(tools, 1):
+                name = tool.get("name", "N/A")
+                desc = tool.get("description", "No description")
+                schema = tool.get("inputSchema", {})
+                properties = schema.get("properties", {})
+                required = schema.get("required", [])
+
+                # Truncate description for display
+                desc_short = desc[:70] + "..." if len(desc) > 70 else desc
+
+                print(f"{i:2}. {name}")
+                print(f"    Description: {desc_short}")
+
+                if properties:
+                    param_info = []
+                    for param_name, param_schema in properties.items():
+                        param_type = param_schema.get("type", "any")
+                        is_required = "required" if param_name in required else "optional"
+                        param_info.append(f"{param_name}:{param_type}({is_required})")
+                    print(f"    Parameters: {', '.join(param_info)}")
+                else:
+                    print("    Parameters: none")
+                print()
+
+    @skip_if_no_mcp_server
     def test_call_tool_live(self, mcp_url):
         """Test calling a tool on real MCP server."""
         from eq_chatbot_core.mcp import get_mcp_client
