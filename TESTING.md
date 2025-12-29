@@ -92,6 +92,7 @@ tests/
 ├── unit/                    # Mocked unit tests
 │   ├── test_openai.py       # OpenAI provider tests
 │   ├── test_anthropic.py    # Anthropic provider tests
+│   ├── test_langdock.py     # LangDock provider tests
 │   ├── test_local.py        # Local provider tests
 │   ├── test_factory.py      # Provider factory tests
 │   └── test_exceptions.py   # Exception handling tests
@@ -118,6 +119,7 @@ pytest tests/unit/ -v --cov=eq_chatbot_core --cov-report=html
 # Specific provider
 pytest tests/unit/test_openai.py -v
 pytest tests/unit/test_anthropic.py -v
+pytest tests/unit/test_langdock.py -v
 
 # Specific test class
 pytest tests/unit/test_openai.py::TestOpenAIChatCompletion -v
@@ -404,6 +406,7 @@ jobs:
 | All integration tests | `pytest tests/integration/ -v -m integration` |
 | OpenAI unit tests | `pytest tests/unit/test_openai.py -v` |
 | Anthropic unit tests | `pytest tests/unit/test_anthropic.py -v` |
+| LangDock unit tests | `pytest tests/unit/test_langdock.py -v` |
 | OpenAI live tests | `pytest tests/integration/test_openai_live.py::TestOpenAILive -v` |
 | Anthropic live tests | `pytest tests/integration/test_openai_live.py::TestAnthropicLive -v` |
 | LangDock live tests | `pytest tests/integration/test_openai_live.py::TestLangDockLive -v` |
