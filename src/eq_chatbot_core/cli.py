@@ -26,19 +26,25 @@ def main():
     pass
 
 
+# Available providers for CLI choices
+CLOUD_PROVIDERS = ["openai", "anthropic", "langdock"]
+LOCAL_PROVIDERS = ["local", "lm_studio", "ollama"]
+ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
+
+
 @main.command("test-provider")
 @click.option(
     "--provider",
     "-p",
-    type=click.Choice(["openai", "anthropic", "langdock"], case_sensitive=False),
+    type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to test",
+    help="LLM provider to test (cloud: openai, anthropic, langdock; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
     "-k",
     envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable)",
+    help="API key (or set LLM_API_KEY environment variable). Not required for local providers.",
 )
 @click.option(
     "--model",
@@ -56,7 +62,8 @@ def main():
     "--base-url",
     "-u",
     default=None,
-    help="Custom base URL for the provider",
+    help="Custom base URL for the provider. "
+    "For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
 )
 def test_provider(provider: str, api_key: str, model: str, message: str, base_url: str):
     """Test connection to an LLM provider.
@@ -65,16 +72,26 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
 
     Examples:
 
+        # Cloud providers
         eq-chatbot test-provider -p openai -k sk-...
 
         eq-chatbot test-provider -p anthropic -k sk-ant-... -m claude-3-5-sonnet-20241022
 
         LLM_API_KEY=sk-... eq-chatbot test-provider -p openai
+
+        # Local providers (no API key needed)
+        eq-chatbot test-provider -p lm_studio
+
+        eq-chatbot test-provider -p ollama -m llama3.2:latest
+
+        eq-chatbot test-provider -p local -u http://localhost:1234/v1
     """
-    if not api_key:
+    # Check API key requirement (not needed for local providers)
+    is_local = provider.lower() in LOCAL_PROVIDERS
+    if not api_key and not is_local:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required. Use --api-key or set LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
             err=True,
         )
         sys.exit(1)
@@ -123,15 +140,21 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
 @click.option(
     "--provider",
     "-p",
-    type=click.Choice(["openai", "anthropic", "langdock"], case_sensitive=False),
+    type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to query",
+    help="LLM provider to query (cloud: openai, anthropic, langdock; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
     "-k",
     envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable)",
+    help="API key (or set LLM_API_KEY environment variable). Not required for local providers.",
+)
+@click.option(
+    "--base-url",
+    "-u",
+    default=None,
+    help="Custom base URL for the provider",
 )
 @click.option(
     "--json",
@@ -144,7 +167,7 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
     is_flag=True,
     help="Show only models with vision support",
 )
-def list_models(provider: str, api_key: str, as_json: bool, vision_only: bool):
+def list_models(provider: str, api_key: str, base_url: str, as_json: bool, vision_only: bool):
     """List available models from a provider.
 
     Queries the provider's API and displays all available models
@@ -152,16 +175,26 @@ def list_models(provider: str, api_key: str, as_json: bool, vision_only: bool):
 
     Examples:
 
+        # Cloud providers
         eq-chatbot list-models -p openai -k sk-...
 
         eq-chatbot list-models -p langdock -k YOUR_KEY --json
 
         eq-chatbot list-models -p anthropic -k sk-ant-... --vision-only
+
+        # Local providers (no API key needed)
+        eq-chatbot list-models -p lm_studio
+
+        eq-chatbot list-models -p ollama
+
+        eq-chatbot list-models -p local -u http://localhost:1234/v1
     """
-    if not api_key:
+    # Check API key requirement (not needed for local providers)
+    is_local = provider.lower() in LOCAL_PROVIDERS
+    if not api_key and not is_local:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required. Use --api-key or set LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
             err=True,
         )
         sys.exit(1)
@@ -169,7 +202,7 @@ def list_models(provider: str, api_key: str, as_json: bool, vision_only: bool):
     from eq_chatbot_core.providers import ProviderError, get_provider
 
     try:
-        provider_instance = get_provider(provider, api_key=api_key)
+        provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
         models = provider_instance.list_models()
 
         if vision_only:
@@ -222,9 +255,14 @@ def info():
     click.echo()
 
     click.echo(click.style("Supported Providers:", fg="blue"))
-    click.echo("  • openai    - GPT-4, GPT-4o, o1, o3, o4 series")
-    click.echo("  • anthropic - Claude 3, Claude 3.5, Claude 4")
-    click.echo("  • langdock  - Multi-provider gateway (EU/US regions)")
+    click.echo("  Cloud:")
+    click.echo("    • openai    - GPT-4, GPT-4o, o1, o3, o4 series")
+    click.echo("    • anthropic - Claude 3, Claude 3.5, Claude 4")
+    click.echo("    • langdock  - Multi-provider gateway (EU/US regions)")
+    click.echo("  Local:")
+    click.echo("    • lm_studio - LM Studio (localhost:1234)")
+    click.echo("    • ollama    - Ollama (localhost:11434)")
+    click.echo("    • local     - Generic OpenAI-compatible API")
     click.echo()
 
     click.echo(click.style("Features:", fg="blue"))

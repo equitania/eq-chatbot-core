@@ -45,6 +45,7 @@ dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "pytest-asyncio>=0.21.0",
+    "python-dotenv>=1.0.0",  # For loading .env.test in tests
     "ruff>=0.1.0",
     "black>=23.0.0",
     "mypy>=1.0.0",
@@ -110,6 +111,16 @@ python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
+markers = [
+    "unit: Unit tests (mocked, fast, no external dependencies)",
+    "integration: Integration tests (real API calls, requires API keys)",
+    "local: Local LLM server tests (requires running LM Studio or Ollama)",
+    "expensive: Tests with expensive models (skip in CI by default)",
+    "slow: Slow-running tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
 
 [tool.coverage.run]
 source = ["src/eq_chatbot_core"]
