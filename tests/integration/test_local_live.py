@@ -241,16 +241,25 @@ class TestLocalProviderGeneric:
         else:
             pytest.skip("No local LLM server available")
 
+    @pytest.fixture
+    def model(self, provider, test_config):
+        """Get first available model from provider."""
+        models = provider.list_models()
+        if not models:
+            pytest.skip("No models available on local server")
+        return test_config.get("local_model", models[0]["id"])
+
     def test_provider_properties(self, provider):
         """Test provider has correct properties."""
         assert provider.provider_name == "local"
         assert provider.timeout == LocalLLMProvider.DEFAULT_TIMEOUT
         assert provider.is_server_available()
 
-    def test_chat_completion_returns_llm_response(self, provider, test_config):
+    def test_chat_completion_returns_llm_response(self, provider, model, test_config):
         """Test that chat_completion returns proper LLMResponse object."""
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Hi"}],
+            model=model,
             max_tokens=test_config.get("max_tokens", 10),
         )
 
@@ -265,11 +274,12 @@ class TestLocalProviderGeneric:
         assert isinstance(response.content, str)
         assert len(response.content) > 0
 
-    def test_stream_completion_yields_chunks(self, provider, test_config):
+    def test_stream_completion_yields_chunks(self, provider, model, test_config):
         """Test that stream_completion yields StreamChunk objects."""
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Hi"}],
+                model=model,
                 max_tokens=test_config.get("max_tokens", 10),
             )
         )
@@ -280,17 +290,19 @@ class TestLocalProviderGeneric:
             assert hasattr(chunk, "content")
             assert hasattr(chunk, "is_final")
 
-    def test_temperature_parameter(self, provider, test_config):
+    def test_temperature_parameter(self, provider, model, test_config):
         """Test that temperature parameter works."""
         # Low temperature should give more consistent results
         response1 = provider.chat_completion(
             messages=[{"role": "user", "content": "What is 1+1?"}],
+            model=model,
             temperature=0.0,
             max_tokens=test_config.get("max_tokens", 10),
         )
 
         response2 = provider.chat_completion(
             messages=[{"role": "user", "content": "What is 1+1?"}],
+            model=model,
             temperature=0.0,
             max_tokens=test_config.get("max_tokens", 10),
         )
