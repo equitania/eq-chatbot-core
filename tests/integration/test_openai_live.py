@@ -1,7 +1,10 @@
 """
-Integration tests for OpenAI provider.
+Integration tests for OpenAI, Anthropic, and LangDock providers.
 
-These tests require a valid OPENAI_API_KEY in .env.test
+These tests require valid API keys in .env.test:
+- OPENAI_API_KEY for OpenAI tests
+- ANTHROPIC_API_KEY for Anthropic tests
+- LANGDOCK_API_KEY for LangDock tests
 
 Run with: pytest -m integration tests/integration/test_openai_live.py
 
@@ -60,7 +63,11 @@ class TestOpenAILive:
         assert len(models) > 0
 
         # Should include common models
-        model_ids = [m.model_id for m in models]
+        # list_models() returns ModelInfo dataclass or dict depending on provider
+        if hasattr(models[0], "model_id"):
+            model_ids = [m.model_id for m in models]
+        else:
+            model_ids = [m.get("model_id", m.get("id", "")) for m in models]
         # gpt-4o-mini should be available
         assert any("gpt" in m.lower() for m in model_ids)
 
@@ -171,7 +178,11 @@ class TestAnthropicLive:
         assert isinstance(models, list)
         assert len(models) > 0
 
-        model_ids = [m.model_id for m in models]
+        # list_models() returns ModelInfo dataclass or dict depending on provider
+        if hasattr(models[0], "model_id"):
+            model_ids = [m.model_id for m in models]
+        else:
+            model_ids = [m.get("model_id", m.get("id", "")) for m in models]
         # Should include Claude models
         assert any("claude" in m.lower() for m in model_ids)
 
@@ -212,6 +223,164 @@ class TestAnthropicLive:
 
         assert response.content
         assert "4" in response.content
+
+
+# =============================================================================
+# LangDock Integration Tests
+# =============================================================================
+
+
+@pytest.mark.integration
+class TestLangDockLive:
+    """Live integration tests for LangDock provider (OpenAI backend)."""
+
+    @pytest.fixture
+    def provider(self, langdock_api_key):
+        """Create LangDock provider with OpenAI backend (skips if no API key)."""
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+        return get_provider("langdock", api_key=langdock_api_key, backend="openai", region="eu")
+
+    def test_simple_completion(self, provider, test_config):
+        """Test simple chat completion via LangDock."""
+        model = test_config.get("langdock_model", "gpt-4o-mini")
+
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Say 'test' only."}],
+            model=model,
+            max_tokens=test_config.get("max_tokens", 10),
+            temperature=0.0,
+        )
+
+        assert response.content
+        assert "test" in response.content.lower()
+        assert response.model
+        assert response.input_tokens > 0
+        assert response.output_tokens > 0
+
+        print(f"\n  Model: {response.model}")
+        print(f"  Response: {response.content}")
+        print(f"  Tokens: {response.input_tokens} in / {response.output_tokens} out")
+
+    def test_list_models(self, provider):
+        """Test listing available models via LangDock."""
+        models = provider.list_models()
+
+        assert isinstance(models, list)
+        assert len(models) > 0
+
+        # Should include GPT models
+        model_ids = [m.get("id", "") for m in models]
+        assert any("gpt" in m.lower() for m in model_ids)
+
+        print(f"\n  Found {len(models)} models")
+        print(f"  Sample: {model_ids[:5]}")
+
+    def test_streaming_completion(self, provider, test_config):
+        """Test streaming chat completion via LangDock."""
+        model = test_config.get("langdock_model", "gpt-4o-mini")
+
+        chunks = list(
+            provider.stream_completion(
+                messages=[{"role": "user", "content": "Count: 1, 2, 3"}],
+                model=model,
+                max_tokens=test_config.get("max_tokens", 20),
+            )
+        )
+
+        assert len(chunks) > 0
+
+        full_content = "".join(c.content for c in chunks if c.content)
+        assert len(full_content) > 0
+        print(f"\n  Streamed: {full_content[:100]}")
+
+    def test_system_message(self, provider, test_config):
+        """Test completion with system message via LangDock."""
+        model = test_config.get("langdock_model", "gpt-4o-mini")
+
+        response = provider.chat_completion(
+            messages=[
+                {"role": "system", "content": "You only respond with the word 'ACKNOWLEDGED'."},
+                {"role": "user", "content": "Hello!"},
+            ],
+            model=model,
+            max_tokens=test_config.get("max_tokens", 10),
+            temperature=0.0,
+        )
+
+        assert response.content
+        assert "acknowledged" in response.content.lower()
+
+    def test_eu_region(self, langdock_api_key, test_config):
+        """Test that EU region is used for GDPR compliance."""
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+
+        provider = get_provider(
+            "langdock",
+            api_key=langdock_api_key,
+            backend="openai",
+            region="eu",
+        )
+
+        # Verify region is set correctly
+        assert provider.region == "eu"
+
+        # Make a simple API call to verify it works
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Hi"}],
+            model=test_config.get("langdock_model", "gpt-4o-mini"),
+            max_tokens=5,
+        )
+
+        assert response.content
+
+
+@pytest.mark.integration
+class TestLangDockAnthropicBackend:
+    """Live integration tests for LangDock with Anthropic backend."""
+
+    @pytest.fixture
+    def provider(self, langdock_api_key):
+        """Create LangDock provider with Anthropic backend."""
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+        return get_provider(
+            "langdock",
+            api_key=langdock_api_key,
+            backend="anthropic",
+            region="eu",
+        )
+
+    def test_anthropic_completion(self, provider, test_config):
+        """Test completion via LangDock Anthropic backend."""
+        # Use claude-haiku-4-5 which is available via LangDock
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Say 'test' only."}],
+            model="claude-haiku-4-5-20251001",
+            max_tokens=test_config.get("max_tokens", 10),
+            temperature=0.0,
+        )
+
+        assert response.content
+        assert "test" in response.content.lower()
+        assert response.model
+
+        print(f"\n  Model: {response.model}")
+        print(f"  Response: {response.content}")
+
+    def test_anthropic_list_models(self, provider):
+        """Test listing Anthropic models via LangDock."""
+        models = provider.list_models()
+
+        assert isinstance(models, list)
+        assert len(models) > 0
+
+        model_ids = [m.get("id", "") for m in models]
+        assert any("claude" in m.lower() for m in model_ids)
+
+        print(f"\n  Found {len(models)} Anthropic models")
+        print(f"  Sample: {model_ids[:5]}")
 
 
 # =============================================================================

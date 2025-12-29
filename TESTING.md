@@ -131,7 +131,7 @@ pytest tests/unit/test_openai.py::TestOpenAIChatCompletion::test_simple_completi
 **Caution**: These tests make real API calls and incur costs!
 
 ```bash
-# All integration tests (OpenAI + Anthropic)
+# All integration tests (OpenAI + Anthropic + LangDock)
 pytest tests/integration/ -v -m integration
 
 # OpenAI tests only
@@ -139,6 +139,12 @@ pytest tests/integration/test_openai_live.py::TestOpenAILive -v
 
 # Anthropic tests only
 pytest tests/integration/test_openai_live.py::TestAnthropicLive -v
+
+# LangDock tests only (OpenAI backend)
+pytest tests/integration/test_openai_live.py::TestLangDockLive -v
+
+# LangDock Anthropic backend tests
+pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v
 
 # Cost-effective pattern tests
 pytest tests/integration/test_openai_live.py::TestCostEffectivePatterns -v
@@ -400,6 +406,8 @@ jobs:
 | Anthropic unit tests | `pytest tests/unit/test_anthropic.py -v` |
 | OpenAI live tests | `pytest tests/integration/test_openai_live.py::TestOpenAILive -v` |
 | Anthropic live tests | `pytest tests/integration/test_openai_live.py::TestAnthropicLive -v` |
+| LangDock live tests | `pytest tests/integration/test_openai_live.py::TestLangDockLive -v` |
+| LangDock Anthropic | `pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v` |
 | With coverage | `pytest tests/ -v --cov=eq_chatbot_core --cov-report=html` |
 | Stop on failure | `pytest tests/ -v -x` |
 | Show prints | `pytest tests/ -v -s` |
