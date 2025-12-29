@@ -1,0 +1,126 @@
+"""
+LLM cost calculation service.
+"""
+
+from typing import TypedDict
+
+
+class ModelPricing(TypedDict):
+    """Pricing structure for a model."""
+
+    input: float  # USD per 1K input tokens
+    output: float  # USD per 1K output tokens
+
+
+# Pricing table (USD per 1K tokens)
+# Last updated: December 2024
+PRICING: dict[str, ModelPricing] = {
+    # OpenAI
+    "gpt-4-turbo": {"input": 0.01, "output": 0.03},
+    "gpt-4o": {"input": 0.005, "output": 0.015},
+    "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
+    "gpt-4": {"input": 0.03, "output": 0.06},
+    "o1": {"input": 0.015, "output": 0.06},
+    "o1-mini": {"input": 0.003, "output": 0.012},
+    "o1-preview": {"input": 0.015, "output": 0.06},
+    "o3-mini": {"input": 0.0011, "output": 0.0044},
+
+    # Anthropic
+    "claude-3-5-sonnet-latest": {"input": 0.003, "output": 0.015},
+    "claude-3-5-sonnet-20241022": {"input": 0.003, "output": 0.015},
+    "claude-3-5-haiku-latest": {"input": 0.001, "output": 0.005},
+    "claude-3-opus-latest": {"input": 0.015, "output": 0.075},
+    "claude-3-sonnet-20240229": {"input": 0.003, "output": 0.015},
+    "claude-3-haiku-20240307": {"input": 0.00025, "output": 0.00125},
+
+    # Embeddings
+    "text-embedding-3-small": {"input": 0.00002, "output": 0.0},
+    "text-embedding-3-large": {"input": 0.00013, "output": 0.0},
+    "text-embedding-ada-002": {"input": 0.0001, "output": 0.0},
+}
+
+# Default pricing for unknown models
+DEFAULT_PRICING: ModelPricing = {"input": 0.01, "output": 0.03}
+
+
+def calculate_cost(
+    model: str,
+    input_tokens: int,
+    output_tokens: int = 0,
+) -> float:
+    """
+    Calculate cost in USD for API usage.
+
+    Args:
+        model: Model name
+        input_tokens: Number of input tokens
+        output_tokens: Number of output tokens
+
+    Returns:
+        Cost in USD (6 decimal places)
+    """
+    # Try exact match
+    pricing = PRICING.get(model)
+
+    # Try prefix match if no exact match
+    if pricing is None:
+        for key, p in PRICING.items():
+            if model.startswith(key):
+                pricing = p
+                break
+
+    # Use default if still not found
+    if pricing is None:
+        pricing = DEFAULT_PRICING
+
+    cost = (
+        (input_tokens / 1000) * pricing["input"]
+        + (output_tokens / 1000) * pricing["output"]
+    )
+
+    return round(cost, 6)
+
+
+def estimate_monthly_cost(
+    model: str,
+    requests_per_day: int,
+    avg_input_tokens: int,
+    avg_output_tokens: int,
+) -> float:
+    """
+    Estimate monthly cost for a usage pattern.
+
+    Args:
+        model: Model name
+        requests_per_day: Average requests per day
+        avg_input_tokens: Average input tokens per request
+        avg_output_tokens: Average output tokens per request
+
+    Returns:
+        Estimated monthly cost in USD
+    """
+    cost_per_request = calculate_cost(model, avg_input_tokens, avg_output_tokens)
+    daily_cost = cost_per_request * requests_per_day
+    monthly_cost = daily_cost * 30
+
+    return round(monthly_cost, 2)
+
+
+def get_model_pricing(model: str) -> ModelPricing:
+    """
+    Get pricing for a model.
+
+    Args:
+        model: Model name
+
+    Returns:
+        ModelPricing dict with input/output rates
+    """
+    pricing = PRICING.get(model)
+
+    if pricing is None:
+        for key, p in PRICING.items():
+            if model.startswith(key):
+                return p
+
+    return pricing or DEFAULT_PRICING

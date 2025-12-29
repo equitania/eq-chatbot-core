@@ -1,0 +1,124 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "eq-chatbot-core"
+dynamic = ["version"]
+description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock)"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Equitania Software GmbH", email = "info@equitania.de" },
+]
+keywords = [
+    "chatbot", "llm", "openai", "anthropic", "langdock",
+    "rag", "mcp", "odoo", "ai", "nlp", "embedding", "encryption"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "openai>=1.12.0",
+    "anthropic>=0.18.0",
+    "qdrant-client>=1.7.0",
+    "tiktoken>=0.5.0",
+    "cryptography>=41.0.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+    "click>=8.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-asyncio>=0.21.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+local = [
+    "sentence-transformers>=2.2.0",  # For local embeddings
+]
+security = [
+    "python-magic>=0.4.27",  # For MIME type verification in file uploads
+]
+pdf = [
+    "pymupdf>=1.24.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
+]
+
+[project.scripts]
+eq-chatbot = "eq_chatbot_core.cli:main"
+
+[project.urls]
+Homepage = "https://www.ownerp.com"
+Documentation = "https://github.com/equitania/eq-chatbot-core"
+Repository = "https://github.com/equitania/eq-chatbot-core.git"
+Changelog = "https://github.com/equitania/eq-chatbot-core/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "src/eq_chatbot_core/version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/eq_chatbot_core"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes
+    "I",    # isort
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "UP",   # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.isort]
+known-first-party = ["eq_chatbot_core"]
+
+[tool.black]
+line-length = 120
+target-version = ["py310", "py311", "py312"]
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/eq_chatbot_core"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+]
