@@ -1017,5 +1017,5 @@ class TestMCPClientVersion:
         """Test that client sends correct version in initialize request."""
         from eq_chatbot_core.version import __version__
 
-        # Version should be 0.8.0, not 0.3.0
-        assert __version__ == "0.8.0"
+        # Version should match current package version
+        assert __version__ == "0.9.1"

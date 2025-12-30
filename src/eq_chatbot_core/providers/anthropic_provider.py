@@ -216,6 +216,11 @@ class AnthropicProvider(BaseLLMProvider):
             final_input_tokens = 0
             final_output_tokens = 0
 
+            # Accumulate tool calls from stream events
+            # Key: content block index, Value: tool call data
+            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+            current_block_index = 0
+
             with self.client.messages.stream(**params) as stream:
                 for event in stream:
                     # Capture input tokens from message_start event
@@ -228,18 +233,77 @@ class AnthropicProvider(BaseLLMProvider):
                         if hasattr(event, "usage"):
                             final_output_tokens = event.usage.output_tokens or 0
 
+                    # Track content block index
+                    elif event.type == "content_block_start":
+                        current_block_index = getattr(event, "index", 0)
+                        # Check if this is a tool_use block
+                        if hasattr(event, "content_block"):
+                            block = event.content_block
+                            if hasattr(block, "type") and block.type == "tool_use":
+                                # Initialize tool call accumulator
+                                accumulated_tool_calls[current_block_index] = {
+                                    "id": getattr(block, "id", ""),
+                                    "type": "function",
+                                    "function": {
+                                        "name": getattr(block, "name", ""),
+                                        "arguments": "",
+                                    },
+                                }
+                                # Emit tool_call_delta for the start
+                                yield StreamChunk(
+                                    content="",
+                                    is_final=False,
+                                    tool_call_delta={
+                                        "index": current_block_index,
+                                        "id": getattr(block, "id", ""),
+                                        "function": {
+                                            "name": getattr(block, "name", ""),
+                                            "arguments": None,
+                                        },
+                                    },
+                                )
+
                     elif event.type == "content_block_delta":
-                        if hasattr(event.delta, "text"):
+                        delta = event.delta
+                        if hasattr(delta, "text"):
                             yield StreamChunk(
-                                content=event.delta.text,
+                                content=delta.text,
                                 is_final=False,
                             )
+                        # Handle tool input JSON deltas
+                        elif hasattr(delta, "type") and delta.type == "input_json_delta":
+                            partial_json = getattr(delta, "partial_json", "")
+                            if current_block_index in accumulated_tool_calls:
+                                # Accumulate the JSON arguments
+                                accumulated_tool_calls[current_block_index]["function"]["arguments"] += partial_json
+                                # Emit tool_call_delta
+                                yield StreamChunk(
+                                    content="",
+                                    is_final=False,
+                                    tool_call_delta={
+                                        "index": current_block_index,
+                                        "id": None,
+                                        "function": {
+                                            "name": None,
+                                            "arguments": partial_json,
+                                        },
+                                    },
+                                )
 
                     elif event.type == "message_stop":
+                        # Build complete tool calls list
+                        complete_tool_calls = None
+                        if accumulated_tool_calls:
+                            complete_tool_calls = [
+                                accumulated_tool_calls[idx]
+                                for idx in sorted(accumulated_tool_calls.keys())
+                            ]
+
                         yield StreamChunk(
                             content="",
                             is_final=True,
                             finish_reason="end_turn",
+                            tool_calls=complete_tool_calls,
                             input_tokens=final_input_tokens,
                             output_tokens=final_output_tokens,
                         )

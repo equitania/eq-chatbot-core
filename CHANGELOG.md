@@ -5,6 +5,31 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2025-12-30
+
+### Fixed
+
+- LangDock Provider: Added tool call accumulation for Anthropic backend streaming
+  - Handles content_block_start events for tool_use blocks
+  - Handles input_json_delta events for tool arguments
+  - Returns complete tool_calls on final StreamChunk
+- MCP tool execution now works correctly with LangDock Anthropic backend
+
+## [0.9.0] - 2025-12-30
+
+### Added
+
+- `StreamChunk.tool_calls` field for complete tool call data on final streaming chunk
+- Tool call accumulation in streaming for all providers:
+  - OpenAI Provider: Accumulates tool_call_delta into complete tool_calls
+  - LangDock Provider: Same accumulation for OpenAI-compatible streaming
+  - Anthropic Provider: Handles content_block_start/input_json_delta events
+
+### Fixed
+
+- Streaming with function calling now properly returns accumulated tool calls
+- Tool execution loop can now access complete tool call data from final StreamChunk
+
 ## [0.6.0] - 2025-12-29
 
 ### Added

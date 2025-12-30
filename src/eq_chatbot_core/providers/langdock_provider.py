@@ -13,18 +13,19 @@ Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 
 import json
 import logging
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import httpx
 
 from eq_chatbot_core.providers.base import (
+    AuthenticationError,
     BaseLLMProvider,
+    ContextLengthError,
     LLMResponse,
-    StreamChunk,
     ProviderError,
     RateLimitError,
-    AuthenticationError,
-    ContextLengthError,
+    StreamChunk,
 )
 
 _logger = logging.getLogger(__name__)
@@ -123,9 +124,7 @@ class LangDockProvider(BaseLLMProvider):
 
         # Validate backend
         if self.backend not in self.BACKENDS:
-            raise ValueError(
-                f"Invalid backend '{backend}'. Must be one of: {list(self.BACKENDS.keys())}"
-            )
+            raise ValueError(f"Invalid backend '{backend}'. Must be one of: {list(self.BACKENDS.keys())}")
 
         # Agent backend requires agent_id
         if self.backend == "agent" and not self.agent_id:
@@ -182,9 +181,7 @@ class LangDockProvider(BaseLLMProvider):
             try:
                 from openai import OpenAI
             except ImportError as e:
-                raise ImportError(
-                    "OpenAI package not installed. Install with: pip install openai"
-                ) from e
+                raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
 
             self._openai_client = OpenAI(
                 api_key=self.api_key,
@@ -201,9 +198,7 @@ class LangDockProvider(BaseLLMProvider):
             try:
                 from anthropic import Anthropic
             except ImportError as e:
-                raise ImportError(
-                    "Anthropic package not installed. Install with: pip install anthropic"
-                ) from e
+                raise ImportError("Anthropic package not installed. Install with: pip install anthropic") from e
 
             self._anthropic_client = Anthropic(
                 api_key=self.api_key,
@@ -218,9 +213,7 @@ class LangDockProvider(BaseLLMProvider):
         model_lower = model.lower()
         return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODELS)
 
-    def _extract_system_prompt(
-        self, messages: list[dict[str, Any]]
-    ) -> tuple[str | None, list[dict[str, Any]]]:
+    def _extract_system_prompt(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
         """Extract system prompt for Anthropic backend."""
         system_prompt = None
         filtered_messages = []
@@ -255,25 +248,17 @@ class LangDockProvider(BaseLLMProvider):
         model = model or self.default_model
 
         if self.backend == "agent":
-            return self._agent_chat_completion(
-                messages, max_tokens, **kwargs
-            )
+            return self._agent_chat_completion(messages, max_tokens, **kwargs)
         elif self.backend == "openai":
             return self._openai_chat_completion(
                 messages, model, temperature, max_tokens, tools, reasoning_effort, **kwargs
             )
         elif self.backend == "anthropic":
-            return self._anthropic_chat_completion(
-                messages, model, temperature, max_tokens, tools, **kwargs
-            )
+            return self._anthropic_chat_completion(messages, model, temperature, max_tokens, tools, **kwargs)
         elif self.backend == "google":
-            return self._google_chat_completion(
-                messages, model, temperature, max_tokens, **kwargs
-            )
+            return self._google_chat_completion(messages, model, temperature, max_tokens, **kwargs)
         elif self.backend == "codestral":
-            return self._codestral_completion(
-                messages, model, max_tokens, **kwargs
-            )
+            return self._codestral_completion(messages, model, max_tokens, **kwargs)
         else:
             raise ValueError(f"Unsupported backend: {self.backend}")
 
@@ -351,7 +336,11 @@ class LangDockProvider(BaseLLMProvider):
         """Check if model uses max_completion_tokens instead of max_tokens."""
         model_lower = model.lower()
         new_api_prefixes = (
-            "gpt-4o", "gpt-5", "o1", "o3", "o4",
+            "gpt-4o",
+            "gpt-5",
+            "o1",
+            "o3",
+            "o4",
         )
         return any(model_lower.startswith(prefix) for prefix in new_api_prefixes)
 
@@ -367,7 +356,7 @@ class LangDockProvider(BaseLLMProvider):
             if role in ("user", "assistant", "tool"):
                 filtered.append(msg)
             elif role == "system":
-                _logger.debug(f"Skipping system message for agent (configured in LangDock)")
+                _logger.debug("Skipping system message for agent (configured in LangDock)")
             else:
                 _logger.warning(f"Unknown message role '{role}' - skipping")
         return filtered
@@ -516,7 +505,7 @@ class LangDockProvider(BaseLLMProvider):
             if not content:
                 choices = data.get("choices", [])
                 if choices:
-                    _logger.info(f"Agent sync: Found 'choices' format")
+                    _logger.info("Agent sync: Found 'choices' format")
                     choice = choices[0]
                     message = choice.get("message", {})
                     content = message.get("content", "")
@@ -567,11 +556,13 @@ class LangDockProvider(BaseLLMProvider):
                 for tool in tools:
                     if tool.get("type") == "function":
                         func = tool.get("function", {})
-                        anthropic_tools.append({
-                            "name": func.get("name"),
-                            "description": func.get("description", ""),
-                            "input_schema": func.get("parameters", {}),
-                        })
+                        anthropic_tools.append(
+                            {
+                                "name": func.get("name"),
+                                "description": func.get("description", ""),
+                                "input_schema": func.get("parameters", {}),
+                            }
+                        )
                 if anthropic_tools:
                     params["tools"] = anthropic_tools
 
@@ -587,14 +578,16 @@ class LangDockProvider(BaseLLMProvider):
                 if block.type == "text":
                     content += block.text
                 elif block.type == "tool_use":
-                    tool_calls.append({
-                        "id": block.id,
-                        "type": "function",
-                        "function": {
-                            "name": block.name,
-                            "arguments": str(block.input),
-                        },
-                    })
+                    tool_calls.append(
+                        {
+                            "id": block.id,
+                            "type": "function",
+                            "function": {
+                                "name": block.name,
+                                "arguments": str(block.input),
+                            },
+                        }
+                    )
 
             return LLMResponse(
                 content=content,
@@ -630,17 +623,13 @@ class LangDockProvider(BaseLLMProvider):
                 if role == "system":
                     # System instruction must be a string
                     if isinstance(content, list):
-                        system_instruction = " ".join(
-                            p.get("text", "") for p in content if p.get("type") == "text"
-                        )
+                        system_instruction = " ".join(p.get("text", "") for p in content if p.get("type") == "text")
                     else:
                         system_instruction = content
                 elif role == "assistant":
                     # Assistant messages are always text
                     if isinstance(content, list):
-                        text = " ".join(
-                            p.get("text", "") for p in content if p.get("type") == "text"
-                        )
+                        text = " ".join(p.get("text", "") for p in content if p.get("type") == "text")
                         contents.append({"role": "model", "parts": [{"text": text}]})
                     else:
                         contents.append({"role": "model", "parts": [{"text": content}]})
@@ -670,9 +659,7 @@ class LangDockProvider(BaseLLMProvider):
 
             # Log error details before raising
             if response.status_code >= 400:
-                _logger.error(
-                    f"Google API error {response.status_code}: {response.text}"
-                )
+                _logger.error(f"Google API error {response.status_code}: {response.text}")
 
             response.raise_for_status()
 
@@ -786,21 +773,15 @@ class LangDockProvider(BaseLLMProvider):
         model = model or self.default_model
 
         if self.backend == "agent":
-            yield from self._agent_stream_completion(
-                messages, max_tokens, **kwargs
-            )
+            yield from self._agent_stream_completion(messages, max_tokens, **kwargs)
         elif self.backend == "openai":
             yield from self._openai_stream_completion(
                 messages, model, temperature, max_tokens, tools, reasoning_effort, **kwargs
             )
         elif self.backend == "anthropic":
-            yield from self._anthropic_stream_completion(
-                messages, model, temperature, max_tokens, tools, **kwargs
-            )
+            yield from self._anthropic_stream_completion(messages, model, temperature, max_tokens, tools, **kwargs)
         elif self.backend == "google":
-            yield from self._google_stream_completion(
-                messages, model, temperature, max_tokens, **kwargs
-            )
+            yield from self._google_stream_completion(messages, model, temperature, max_tokens, **kwargs)
         elif self.backend == "codestral":
             # Codestral doesn't support streaming well for FIM
             # Fall back to non-streaming
@@ -857,6 +838,10 @@ class LangDockProvider(BaseLLMProvider):
             final_input_tokens = 0
             final_output_tokens = 0
 
+            # Accumulate tool calls from deltas
+            # Key: tool call index, Value: accumulated tool call data
+            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+
             for chunk in stream:
                 if hasattr(chunk, "usage") and chunk.usage:
                     final_input_tokens = chunk.usage.prompt_tokens or 0
@@ -873,21 +858,49 @@ class LangDockProvider(BaseLLMProvider):
 
                 tool_call_delta = None
                 if delta.tool_calls:
-                    tc = delta.tool_calls[0]
-                    tool_call_delta = {
-                        "index": tc.index,
-                        "id": tc.id,
-                        "function": {
-                            "name": tc.function.name if tc.function else None,
-                            "arguments": tc.function.arguments if tc.function else None,
-                        },
-                    }
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        tool_call_delta = {
+                            "index": idx,
+                            "id": tc.id,
+                            "function": {
+                                "name": tc.function.name if tc.function else None,
+                                "arguments": tc.function.arguments if tc.function else None,
+                            },
+                        }
+
+                        # Accumulate tool call data
+                        if idx not in accumulated_tool_calls:
+                            accumulated_tool_calls[idx] = {
+                                "id": tc.id or "",
+                                "type": "function",
+                                "function": {
+                                    "name": "",
+                                    "arguments": "",
+                                },
+                            }
+
+                        # Update with new data (deltas send partial data)
+                        if tc.id:
+                            accumulated_tool_calls[idx]["id"] = tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                accumulated_tool_calls[idx]["function"]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                accumulated_tool_calls[idx]["function"]["arguments"] += tc.function.arguments
+
+                # On final chunk, include accumulated tool calls
+                complete_tool_calls = None
+                if is_final and accumulated_tool_calls:
+                    # Convert dict to sorted list by index
+                    complete_tool_calls = [accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())]
 
                 yield StreamChunk(
                     content=content,
                     is_final=is_final,
                     finish_reason=choice.finish_reason,
                     tool_call_delta=tool_call_delta,
+                    tool_calls=complete_tool_calls,
                     input_tokens=final_input_tokens if is_final else 0,
                     output_tokens=final_output_tokens if is_final else 0,
                 )
@@ -917,7 +930,9 @@ class LangDockProvider(BaseLLMProvider):
                 content = msg.get("content", "")
                 content_type = type(content).__name__
                 content_preview = str(content)[:100] if content else "(empty)"
-                _logger.info(f"Agent ORIGINAL[{i}]: role={role}, content_type={content_type}, preview='{content_preview}'")
+                _logger.info(
+                    f"Agent ORIGINAL[{i}]: role={role}, content_type={content_type}, preview='{content_preview}'"
+                )
 
             # Filter messages - Agent API doesn't support system role
             filtered_messages = self._filter_agent_messages(messages)
@@ -1132,10 +1147,14 @@ class LangDockProvider(BaseLLMProvider):
                             delta = choice.get("delta", {})
                             content = delta.get("content", "")
                             finish_reason = choice.get("finish_reason")
-                            _logger.debug(f"Agent delta: content='{content[:50] if content else ''}', finish={finish_reason}")
+                            _logger.debug(
+                                f"Agent delta: content='{content[:50] if content else ''}', finish={finish_reason}"
+                            )
 
                             if content or finish_reason:
-                                _logger.info(f"Agent yielding chunk: '{content[:30] if content else ''}...' final={finish_reason is not None}")
+                                _logger.info(
+                                    f"Agent yielding chunk: '{content[:30] if content else ''}...' final={finish_reason is not None}"
+                                )
                                 yield StreamChunk(
                                     content=content,
                                     is_final=finish_reason is not None,
@@ -1186,41 +1205,109 @@ class LangDockProvider(BaseLLMProvider):
                 for tool in tools:
                     if tool.get("type") == "function":
                         func = tool.get("function", {})
-                        anthropic_tools.append({
-                            "name": func.get("name"),
-                            "description": func.get("description", ""),
-                            "input_schema": func.get("parameters", {}),
-                        })
+                        anthropic_tools.append(
+                            {
+                                "name": func.get("name"),
+                                "description": func.get("description", ""),
+                                "input_schema": func.get("parameters", {}),
+                            }
+                        )
                 if anthropic_tools:
                     params["tools"] = anthropic_tools
 
             params.update(kwargs)
 
+            # Track usage for final chunk
             final_input_tokens = 0
             final_output_tokens = 0
 
+            # Accumulate tool calls from stream events
+            # Key: content block index, Value: tool call data
+            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+            current_block_index = 0
+
             with self.anthropic_client.messages.stream(**params) as stream:
                 for event in stream:
+                    # Capture input tokens from message_start event
                     if event.type == "message_start":
                         if hasattr(event, "message") and hasattr(event.message, "usage"):
                             final_input_tokens = event.message.usage.input_tokens or 0
 
+                    # Capture output tokens from message_delta event
                     elif event.type == "message_delta":
                         if hasattr(event, "usage"):
                             final_output_tokens = event.usage.output_tokens or 0
 
+                    # Track content block index and handle tool_use blocks
+                    elif event.type == "content_block_start":
+                        current_block_index = getattr(event, "index", 0)
+                        # Check if this is a tool_use block
+                        if hasattr(event, "content_block"):
+                            block = event.content_block
+                            if hasattr(block, "type") and block.type == "tool_use":
+                                # Initialize tool call accumulator
+                                accumulated_tool_calls[current_block_index] = {
+                                    "id": getattr(block, "id", ""),
+                                    "type": "function",
+                                    "function": {
+                                        "name": getattr(block, "name", ""),
+                                        "arguments": "",
+                                    },
+                                }
+                                # Emit tool_call_delta for the start
+                                yield StreamChunk(
+                                    content="",
+                                    is_final=False,
+                                    tool_call_delta={
+                                        "index": current_block_index,
+                                        "id": getattr(block, "id", ""),
+                                        "function": {
+                                            "name": getattr(block, "name", ""),
+                                            "arguments": None,
+                                        },
+                                    },
+                                )
+
                     elif event.type == "content_block_delta":
-                        if hasattr(event.delta, "text"):
+                        delta = event.delta
+                        if hasattr(delta, "text"):
                             yield StreamChunk(
-                                content=event.delta.text,
+                                content=delta.text,
                                 is_final=False,
                             )
+                        # Handle tool input JSON deltas
+                        elif hasattr(delta, "type") and delta.type == "input_json_delta":
+                            partial_json = getattr(delta, "partial_json", "")
+                            if current_block_index in accumulated_tool_calls:
+                                # Accumulate the JSON arguments
+                                accumulated_tool_calls[current_block_index]["function"]["arguments"] += partial_json
+                                # Emit tool_call_delta
+                                yield StreamChunk(
+                                    content="",
+                                    is_final=False,
+                                    tool_call_delta={
+                                        "index": current_block_index,
+                                        "id": None,
+                                        "function": {
+                                            "name": None,
+                                            "arguments": partial_json,
+                                        },
+                                    },
+                                )
 
                     elif event.type == "message_stop":
+                        # Build complete tool calls list
+                        complete_tool_calls = None
+                        if accumulated_tool_calls:
+                            complete_tool_calls = [
+                                accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())
+                            ]
+
                         yield StreamChunk(
                             content="",
                             is_final=True,
                             finish_reason="end_turn",
+                            tool_calls=complete_tool_calls,
                             input_tokens=final_input_tokens,
                             output_tokens=final_output_tokens,
                         )
@@ -1262,12 +1349,14 @@ class LangDockProvider(BaseLLMProvider):
                         # Format: data:<mime>;base64,<data>
                         header, data = url.split(",", 1)
                         mime_type = header.split(":")[1].split(";")[0]
-                        parts.append({
-                            "inlineData": {
-                                "mimeType": mime_type,
-                                "data": data,
+                        parts.append(
+                            {
+                                "inlineData": {
+                                    "mimeType": mime_type,
+                                    "data": data,
+                                }
                             }
-                        })
+                        )
                     except (ValueError, IndexError) as e:
                         _logger.warning(f"Failed to parse image data URL: {e}")
                 else:
@@ -1301,17 +1390,13 @@ class LangDockProvider(BaseLLMProvider):
                     # System instruction must be a string
                     if isinstance(content, list):
                         # Extract text from multimodal content
-                        system_instruction = " ".join(
-                            p.get("text", "") for p in content if p.get("type") == "text"
-                        )
+                        system_instruction = " ".join(p.get("text", "") for p in content if p.get("type") == "text")
                     else:
                         system_instruction = content
                 elif role == "assistant":
                     # Assistant messages are always text
                     if isinstance(content, list):
-                        text = " ".join(
-                            p.get("text", "") for p in content if p.get("type") == "text"
-                        )
+                        text = " ".join(p.get("text", "") for p in content if p.get("type") == "text")
                         contents.append({"role": "model", "parts": [{"text": text}]})
                     else:
                         contents.append({"role": "model", "parts": [{"text": content}]})
@@ -1496,7 +1581,12 @@ class LangDockProvider(BaseLLMProvider):
 
         # LangDock-supported OpenAI models
         supported_prefixes = (
-            "gpt-4-turbo", "gpt-4o", "gpt-5", "o1", "o3", "o4",
+            "gpt-4-turbo",
+            "gpt-4o",
+            "gpt-5",
+            "o1",
+            "o3",
+            "o4",
         )
 
         result = []
@@ -1504,16 +1594,18 @@ class LangDockProvider(BaseLLMProvider):
             model_id = model.id.lower()
             if any(model_id.startswith(prefix) for prefix in supported_prefixes):
                 constraints = self._get_model_constraints(model.id)
-                result.append({
-                    "id": model.id,
-                    "name": model.id,
-                    "created": getattr(model, "created", None),
-                    "owned_by": getattr(model, "owned_by", "langdock"),
-                    "provider": self.provider_name,
-                    "backend": self.backend,
-                    "region": self.region,
-                    **constraints,
-                })
+                result.append(
+                    {
+                        "id": model.id,
+                        "name": model.id,
+                        "created": getattr(model, "created", None),
+                        "owned_by": getattr(model, "owned_by", "langdock"),
+                        "provider": self.provider_name,
+                        "backend": self.backend,
+                        "region": self.region,
+                        **constraints,
+                    }
+                )
 
         result.sort(key=lambda m: m["id"])
         return result
@@ -1528,15 +1620,17 @@ class LangDockProvider(BaseLLMProvider):
                 constraints = self._get_model_constraints(model.id)
                 # Use 'or' to handle None values (getattr returns None if attr is None)
                 model_name = getattr(model, "display_name", None) or model.id
-                result.append({
-                    "id": model.id,
-                    "name": model_name,
-                    "created": getattr(model, "created_at", None),
-                    "provider": self.provider_name,
-                    "backend": self.backend,
-                    "region": self.region,
-                    **constraints,
-                })
+                result.append(
+                    {
+                        "id": model.id,
+                        "name": model_name,
+                        "created": getattr(model, "created_at", None),
+                        "provider": self.provider_name,
+                        "backend": self.backend,
+                        "region": self.region,
+                        **constraints,
+                    }
+                )
 
             result.sort(key=lambda m: m.get("created") or "", reverse=True)
             return result
@@ -1556,14 +1650,16 @@ class LangDockProvider(BaseLLMProvider):
         result = []
         for model_id in known_models:
             constraints = self._get_model_constraints(model_id)
-            result.append({
-                "id": model_id,
-                "name": model_id,
-                "provider": self.provider_name,
-                "backend": self.backend,
-                "region": self.region,
-                **constraints,
-            })
+            result.append(
+                {
+                    "id": model_id,
+                    "name": model_id,
+                    "provider": self.provider_name,
+                    "backend": self.backend,
+                    "region": self.region,
+                    **constraints,
+                }
+            )
         return result
 
     def _list_google_models(self) -> list[dict[str, Any]]:
@@ -1577,14 +1673,16 @@ class LangDockProvider(BaseLLMProvider):
         result = []
         for model_id, name in known_models:
             constraints = self._get_model_constraints(model_id)
-            result.append({
-                "id": model_id,
-                "name": name,
-                "provider": self.provider_name,
-                "backend": self.backend,
-                "region": self.region,
-                **constraints,
-            })
+            result.append(
+                {
+                    "id": model_id,
+                    "name": name,
+                    "provider": self.provider_name,
+                    "backend": self.backend,
+                    "region": self.region,
+                    **constraints,
+                }
+            )
         return result
 
     def _list_codestral_models(self) -> list[dict[str, Any]]:
@@ -1607,13 +1705,15 @@ class LangDockProvider(BaseLLMProvider):
             for model in data.get("data", []):
                 model_id = model.get("id", "")
                 constraints = self._get_model_constraints(model_id)
-                result.append({
-                    "id": model_id,
-                    "name": model.get("name", model_id),
-                    "provider": self.provider_name,
-                    "backend": self.backend,
-                    **constraints,
-                })
+                result.append(
+                    {
+                        "id": model_id,
+                        "name": model.get("name", model_id),
+                        "provider": self.provider_name,
+                        "backend": self.backend,
+                        **constraints,
+                    }
+                )
             return result
         except Exception:
             _logger.warning("Agent model listing failed, returning empty list")
@@ -1647,7 +1747,6 @@ class LangDockProvider(BaseLLMProvider):
             message=str(error),
             provider=self.provider_name,
         )
-
 
     def upload_attachment(
         self,
@@ -1690,6 +1789,7 @@ class LangDockProvider(BaseLLMProvider):
 # ============================================================================
 # Agent API Foundation (for future expansion)
 # ============================================================================
+
 
 class LangDockAgentManager:
     """
@@ -1899,6 +1999,7 @@ class LangDockAgentManager:
 # ============================================================================
 # Knowledge Folder API Foundation (for future RAG expansion)
 # ============================================================================
+
 
 class LangDockKnowledgeManager:
     """

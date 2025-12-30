@@ -190,6 +190,10 @@ class OpenAIProvider(BaseLLMProvider):
             final_input_tokens = 0
             final_output_tokens = 0
 
+            # Accumulate tool calls from deltas
+            # Key: tool call index, Value: accumulated tool call data
+            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+
             for chunk in stream:
                 # Check for usage data (sent in final chunk with stream_options)
                 if hasattr(chunk, "usage") and chunk.usage:
@@ -207,21 +211,52 @@ class OpenAIProvider(BaseLLMProvider):
 
                 tool_call_delta = None
                 if delta.tool_calls:
-                    tc = delta.tool_calls[0]
-                    tool_call_delta = {
-                        "index": tc.index,
-                        "id": tc.id,
-                        "function": {
-                            "name": tc.function.name if tc.function else None,
-                            "arguments": tc.function.arguments if tc.function else None,
-                        },
-                    }
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        tool_call_delta = {
+                            "index": idx,
+                            "id": tc.id,
+                            "function": {
+                                "name": tc.function.name if tc.function else None,
+                                "arguments": tc.function.arguments if tc.function else None,
+                            },
+                        }
+
+                        # Accumulate tool call data
+                        if idx not in accumulated_tool_calls:
+                            accumulated_tool_calls[idx] = {
+                                "id": tc.id or "",
+                                "type": "function",
+                                "function": {
+                                    "name": "",
+                                    "arguments": "",
+                                },
+                            }
+
+                        # Update with new data (deltas send partial data)
+                        if tc.id:
+                            accumulated_tool_calls[idx]["id"] = tc.id
+                        if tc.function:
+                            if tc.function.name:
+                                accumulated_tool_calls[idx]["function"]["name"] += tc.function.name
+                            if tc.function.arguments:
+                                accumulated_tool_calls[idx]["function"]["arguments"] += tc.function.arguments
+
+                # On final chunk, include accumulated tool calls
+                complete_tool_calls = None
+                if is_final and accumulated_tool_calls:
+                    # Convert dict to sorted list by index
+                    complete_tool_calls = [
+                        accumulated_tool_calls[idx]
+                        for idx in sorted(accumulated_tool_calls.keys())
+                    ]
 
                 yield StreamChunk(
                     content=content,
                     is_final=is_final,
                     finish_reason=choice.finish_reason,
                     tool_call_delta=tool_call_delta,
+                    tool_calls=complete_tool_calls,
                     input_tokens=final_input_tokens if is_final else 0,
                     output_tokens=final_output_tokens if is_final else 0,
                 )

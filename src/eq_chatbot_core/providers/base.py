@@ -54,6 +54,9 @@ class StreamChunk:
     tool_call_delta: dict[str, Any] | None = None
     """Partial tool call data (for streaming tool calls)."""
 
+    tool_calls: list[dict[str, Any]] | None = None
+    """Complete tool calls (accumulated from deltas, set on final chunk)."""
+
     input_tokens: int = 0
     """Number of input tokens (only set on final chunk with usage data)."""
 
