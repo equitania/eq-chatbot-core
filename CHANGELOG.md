@@ -5,6 +5,21 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-01-17
+
+### Added
+
+- **OpenRouter Provider**: Access to 400+ AI models through unified API
+  - Supports OpenAI, Anthropic, Google, Meta, Mistral, and many more models
+  - Model ID format: `provider/model-name` (e.g., `openai/gpt-4o`, `anthropic/claude-3.5-sonnet`)
+  - Reasoning model detection for O1/O3/O4 series (auto-disables temperature)
+  - Streaming with tool-call accumulation
+  - Dynamic model list with constraints and pricing metadata
+  - Vision support detection from input_modalities
+  - Pricing extraction (input/output/image costs)
+- OpenRouter support in provider factory: `get_provider("openrouter", api_key="...")`
+- Comprehensive unit tests for OpenRouter provider (31 tests)
+
 ## [0.9.1] - 2025-12-30
 
 ### Fixed

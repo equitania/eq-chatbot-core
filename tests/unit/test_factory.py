@@ -11,6 +11,7 @@ from eq_chatbot_core.providers.local_provider import LocalLLMProvider
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
 from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
 
 # =============================================================================
@@ -45,6 +46,14 @@ class TestFactoryCloudProviders:
         assert isinstance(provider, LangDockProvider)
         assert provider.api_key == "ld-test-key"
         assert provider.provider_name == "langdock"
+
+    def test_get_openrouter_provider(self):
+        """Test creating OpenRouter provider."""
+        provider = get_provider("openrouter", api_key="sk-or-test-key")
+
+        assert isinstance(provider, OpenRouterProvider)
+        assert provider.api_key == "sk-or-test-key"
+        assert provider.provider_name == "openrouter"
 
     def test_provider_name_case_insensitive(self):
         """Test that provider names are case insensitive."""
@@ -160,6 +169,7 @@ class TestFactoryErrors:
         assert "openai" in error_msg
         assert "anthropic" in error_msg
         assert "langdock" in error_msg
+        assert "openrouter" in error_msg
         assert "local" in error_msg
         assert "lm_studio" in error_msg
         assert "ollama" in error_msg
@@ -247,6 +257,7 @@ class TestFactoryProviderProperties:
         openai = get_provider("openai", api_key="test")
         anthropic = get_provider("anthropic", api_key="test")
         langdock = get_provider("langdock", api_key="test")
+        openrouter = get_provider("openrouter", api_key="test")
         local = get_provider("local", base_url="http://localhost:1234/v1")
         lm_studio = get_provider("lm_studio")
         ollama = get_provider("ollama")
@@ -254,6 +265,14 @@ class TestFactoryProviderProperties:
         assert openai.provider_name == "openai"
         assert anthropic.provider_name == "anthropic"
         assert langdock.provider_name == "langdock"
+        assert openrouter.provider_name == "openrouter"
         assert local.provider_name == "local"
         assert lm_studio.provider_name == "local"
         assert ollama.provider_name == "local"
+
+    def test_openrouter_default_model(self):
+        """Test OpenRouter provider has correct default model."""
+        provider = get_provider("openrouter", api_key="test")
+
+        assert provider.default_model is not None
+        assert provider.default_model == "openai/gpt-4o"

@@ -1,7 +1,7 @@
 """
-LLM Provider adapters for OpenAI, Anthropic, LangDock, and local servers.
+LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, and local servers.
 
-Supports cloud providers (OpenAI, Anthropic, LangDock) and local LLM servers
+Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter) and local LLM servers
 (LM Studio, Ollama) that expose OpenAI-compatible APIs.
 
 Usage:
@@ -10,6 +10,10 @@ Usage:
     # Cloud providers
     provider = get_provider("openai", api_key="sk-...")
     response = provider.chat_completion(messages=[...])
+
+    # OpenRouter (400+ models)
+    provider = get_provider("openrouter", api_key="sk-or-...")
+    response = provider.chat_completion(messages=[...], model="openai/gpt-4o")
 
     # Local providers (LM Studio or Ollama)
     provider = get_provider("local", base_url="http://localhost:1234/v1")
@@ -32,8 +36,8 @@ def get_provider(
     Factory function to get the appropriate LLM provider.
 
     Args:
-        provider_name: One of "openai", "anthropic", "langdock", "local",
-                       "lm_studio", "lmstudio", "ollama"
+        provider_name: One of "openai", "anthropic", "langdock", "openrouter",
+                       "local", "lm_studio", "lmstudio", "ollama"
         api_key: API key for the provider (optional for local providers)
         base_url: Optional custom base URL. Required for local providers,
                   optional for cloud providers. For convenience aliases:
@@ -51,6 +55,9 @@ def get_provider(
         # OpenAI cloud
         provider = get_provider("openai", api_key="sk-...")
 
+        # OpenRouter (400+ models)
+        provider = get_provider("openrouter", api_key="sk-or-...")
+
         # Local LM Studio
         provider = get_provider("lm_studio")
         provider = get_provider("local", base_url="http://localhost:1234/v1")
@@ -62,6 +69,7 @@ def get_provider(
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
     from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+    from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
     from eq_chatbot_core.providers.local_provider import LocalLLMProvider
 
     # Provider class mapping
@@ -69,6 +77,7 @@ def get_provider(
         "openai": OpenAIProvider,
         "anthropic": AnthropicProvider,
         "langdock": LangDockProvider,
+        "openrouter": OpenRouterProvider,
         "local": LocalLLMProvider,
     }
 
@@ -115,6 +124,7 @@ from eq_chatbot_core.providers.base import (
 )
 
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider
+from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
 __all__ = [
     "get_provider",
@@ -127,4 +137,5 @@ __all__ = [
     "AuthenticationError",
     "ContextLengthError",
     "LocalLLMProvider",
+    "OpenRouterProvider",
 ]

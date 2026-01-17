@@ -1018,4 +1018,4 @@ class TestMCPClientVersion:
         from eq_chatbot_core.version import __version__
 
         # Version should match current package version
-        assert __version__ == "0.9.1"
+        assert __version__ == "0.12.0"

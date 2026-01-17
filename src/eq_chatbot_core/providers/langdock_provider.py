@@ -117,6 +117,11 @@ class LangDockProvider(BaseLLMProvider):
         """
         super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries)
 
+        # Initialize clients BEFORE validation to ensure __del__ works
+        self._http_client: httpx.Client | None = None
+        self._openai_client: Any = None
+        self._anthropic_client: Any = None
+
         self.region = region.lower()
         self.backend = backend.lower()
         self.reasoning_effort = reasoning_effort
@@ -129,13 +134,6 @@ class LangDockProvider(BaseLLMProvider):
         # Agent backend requires agent_id
         if self.backend == "agent" and not self.agent_id:
             raise ValueError("agent_id is required when using backend='agent'")
-
-        # Initialize HTTP client for non-SDK backends
-        self._http_client: httpx.Client | None = None
-
-        # Lazy-initialized SDK clients
-        self._openai_client: Any = None
-        self._anthropic_client: Any = None
 
     @property
     def provider_name(self) -> str:

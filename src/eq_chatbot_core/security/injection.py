@@ -142,9 +142,41 @@ def sanitize_input(text: str, escape_html: bool = True) -> str:
     return text
 
 
+def _format_tools_section(tools: list[dict]) -> str:
+    """
+    Format MCP tools list for inclusion in system prompt.
+
+    This helps the LLM understand what tools are available without
+    relying solely on the function calling mechanism.
+
+    Args:
+        tools: List of tool dictionaries in OpenAI function calling format
+
+    Returns:
+        Formatted string describing available tools, or empty string if no tools
+    """
+    if not tools:
+        return ""
+
+    lines = ["\n\n## Available Tools\n"]
+    lines.append("You have access to the following tools. Use them when appropriate:\n")
+
+    for tool in tools:
+        func = tool.get("function", {})
+        name = func.get("name", "unknown")
+        desc = func.get("description", "No description available")
+        # Truncate very long descriptions
+        if len(desc) > 200:
+            desc = desc[:197] + "..."
+        lines.append(f"- **{name}**: {desc}")
+
+    return "\n".join(lines)
+
+
 def build_safe_system_prompt(
     base_prompt: str,
     context: str | None = None,
+    tools: list[dict] | None = None,
     include_safety_prefix: bool = True,
     include_safety_suffix: bool = True,
 ) -> str:
@@ -154,6 +186,7 @@ def build_safe_system_prompt(
     Args:
         base_prompt: The main system prompt content
         context: Optional additional context to include
+        tools: Optional list of MCP tools to document in the prompt
         include_safety_prefix: Add safety rules at the start
         include_safety_suffix: Add reminder at the end
 
@@ -175,6 +208,10 @@ def build_safe_system_prompt(
         parts.append(safety_prefix)
 
     parts.append(base_prompt)
+
+    # Add tool descriptions if provided
+    if tools:
+        parts.append(_format_tools_section(tools))
 
     if context:
         parts.append(f"\n\nContext:\n{context}")
