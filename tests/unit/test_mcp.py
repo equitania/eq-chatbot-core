@@ -238,6 +238,7 @@ class TestMCPClientRequests:
         # Simulate SSE response in background
         def simulate_sse_response():
             import time
+
             time.sleep(0.05)
             response_data = json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"tools": []}})
             client._handle_sse_event("message", response_data)
@@ -291,6 +292,7 @@ class TestMCPClientRequests:
         # Simulate response for first request
         def simulate_response_1():
             import time
+
             time.sleep(0.05)
             client._handle_sse_event("message", json.dumps({"jsonrpc": "2.0", "id": 1, "result": {}}))
 
@@ -341,6 +343,7 @@ class TestMCPClientToolOperations:
 
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {"jsonrpc": "2.0", "id": 1, "result": {"tools": expected_tools}}
             connected_client._handle_sse_event("message", json.dumps(response))
@@ -355,8 +358,10 @@ class TestMCPClientToolOperations:
 
     def test_list_tools_empty(self, connected_client):
         """Test list_tools returns empty list when no tools."""
+
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}
             connected_client._handle_sse_event("message", json.dumps(response))
@@ -375,13 +380,12 @@ class TestMCPClientToolOperations:
 
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {
                 "jsonrpc": "2.0",
                 "id": 1,
-                "result": {
-                    "content": [{"type": "text", "text": "Weather: Sunny, 25°C"}]
-                }
+                "result": {"content": [{"type": "text", "text": "Weather: Sunny, 25°C"}]},
             }
             connected_client._handle_sse_event("message", json.dumps(response))
 
@@ -398,14 +402,12 @@ class TestMCPClientToolOperations:
 
     def test_call_tool_error(self, connected_client):
         """Test call_tool handles errors."""
+
         def simulate_response():
             import time
+
             time.sleep(0.05)
-            response = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": {"code": -32000, "message": "Tool not found"}
-            }
+            response = {"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "Tool not found"}}
             connected_client._handle_sse_event("message", json.dumps(response))
 
         thread = threading.Thread(target=simulate_response)
@@ -426,6 +428,7 @@ class TestMCPClientToolOperations:
 
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {"jsonrpc": "2.0", "id": 1, "result": {"tools": tools}}
             connected_client._handle_sse_event("message", json.dumps(response))
@@ -441,8 +444,10 @@ class TestMCPClientToolOperations:
 
     def test_get_tool_schema_not_found(self, connected_client):
         """Test get_tool_schema returns None when not found."""
+
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}
             connected_client._handle_sse_event("message", json.dumps(response))
@@ -461,6 +466,7 @@ class TestMCPClientToolOperations:
 
         def simulate_response():
             import time
+
             time.sleep(0.05)
             response = {
                 "jsonrpc": "2.0",
@@ -470,7 +476,7 @@ class TestMCPClientToolOperations:
                         {"type": "text", "text": "Line 1"},
                         {"type": "text", "text": "Line 2"},
                     ]
-                }
+                },
             }
             connected_client._handle_sse_event("message", json.dumps(response))
 
@@ -503,8 +509,7 @@ class TestMCPClientContextManager:
 
         client = MCPClient(base_url="http://localhost:8000/sse")
 
-        with patch.object(client, "connect") as mock_connect, \
-             patch.object(client, "close") as mock_close:
+        with patch.object(client, "connect") as mock_connect, patch.object(client, "close") as mock_close:
 
             with client:
                 mock_connect.assert_called_once()
@@ -517,8 +522,7 @@ class TestMCPClientContextManager:
 
         client = MCPClient(base_url="http://localhost:8000/sse")
 
-        with patch.object(client, "connect") as mock_connect, \
-             patch.object(client, "close") as mock_close:
+        with patch.object(client, "connect") as mock_connect, patch.object(client, "close") as mock_close:
 
             with pytest.raises(ValueError):
                 with client:
@@ -602,9 +606,7 @@ class TestStdioMCPClientProcessManagement:
         mock_process.stdin.write = MagicMock()
         mock_process.stdin.drain = AsyncMock()
         mock_process.stdout = MagicMock()
-        mock_process.stdout.readline = AsyncMock(
-            return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n'
-        )
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
 
         with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
             mock_exec.return_value = mock_process
@@ -682,9 +684,7 @@ class TestStdioMCPClientRequests:
         mock_process.stdin.write = MagicMock()
         mock_process.stdin.drain = AsyncMock()
         mock_process.stdout = MagicMock()
-        mock_process.stdout.readline = AsyncMock(
-            return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}\n'
-        )
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {"tools": []}}\n')
         client._process = mock_process
 
         result = await client._send_request("tools/list")
@@ -761,11 +761,7 @@ class TestStdioMCPClientToolOperations:
         """Test list_tools_async returns tool list."""
         expected_tools = [{"name": "tool1"}, {"name": "tool2"}]
         started_client._process.stdout.readline = AsyncMock(
-            return_value=json.dumps({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {"tools": expected_tools}
-            }).encode() + b"\n"
+            return_value=json.dumps({"jsonrpc": "2.0", "id": 1, "result": {"tools": expected_tools}}).encode() + b"\n"
         )
 
         tools = await started_client.list_tools_async()
@@ -778,13 +774,10 @@ class TestStdioMCPClientToolOperations:
         from eq_chatbot_core.mcp.client import MCPToolResult
 
         started_client._process.stdout.readline = AsyncMock(
-            return_value=json.dumps({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {
-                    "content": [{"type": "text", "text": "Result data"}]
-                }
-            }).encode() + b"\n"
+            return_value=json.dumps(
+                {"jsonrpc": "2.0", "id": 1, "result": {"content": [{"type": "text", "text": "Result data"}]}}
+            ).encode()
+            + b"\n"
         )
 
         result = await started_client.call_tool_async("my_tool", {"arg": "value"})
@@ -796,9 +789,7 @@ class TestStdioMCPClientToolOperations:
     @pytest.mark.asyncio
     async def test_call_tool_async_error(self, started_client):
         """Test call_tool_async handles errors."""
-        started_client._process.stdout.readline = AsyncMock(
-            side_effect=Exception("Connection lost")
-        )
+        started_client._process.stdout.readline = AsyncMock(side_effect=Exception("Connection lost"))
 
         result = await started_client.call_tool_async("my_tool", {})
 
@@ -808,9 +799,7 @@ class TestStdioMCPClientToolOperations:
     @pytest.mark.asyncio
     async def test_list_tools_async_error(self, started_client):
         """Test list_tools_async handles errors gracefully."""
-        started_client._process.stdout.readline = AsyncMock(
-            side_effect=Exception("Connection error")
-        )
+        started_client._process.stdout.readline = AsyncMock(side_effect=Exception("Connection error"))
 
         tools = await started_client.list_tools_async()
 
@@ -828,8 +817,10 @@ class TestStdioMCPClientContextManager:
 
         client = StdioMCPClient(command="python")
 
-        with patch.object(client, "start", new_callable=AsyncMock) as mock_start, \
-             patch.object(client, "stop", new_callable=AsyncMock) as mock_stop:
+        with (
+            patch.object(client, "start", new_callable=AsyncMock) as mock_start,
+            patch.object(client, "stop", new_callable=AsyncMock) as mock_stop,
+        ):
 
             async with client:
                 mock_start.assert_called_once()
@@ -847,8 +838,10 @@ class TestStdioMCPClientContextManager:
         mock_process = MagicMock()
         mock_process.returncode = None
 
-        with patch.object(client, "start", new_callable=AsyncMock) as mock_start_fn, \
-             patch.object(client, "stop", new_callable=AsyncMock) as mock_stop_fn:
+        with (
+            patch.object(client, "start", new_callable=AsyncMock) as mock_start_fn,
+            patch.object(client, "stop", new_callable=AsyncMock) as mock_stop_fn,
+        ):
 
             # Simulate that start() sets _process
             def set_process():
@@ -1018,4 +1011,4 @@ class TestMCPClientVersion:
         from eq_chatbot_core.version import __version__
 
         # Version should match current package version
-        assert __version__ == "0.12.0"
+        assert __version__ == "0.13.0"

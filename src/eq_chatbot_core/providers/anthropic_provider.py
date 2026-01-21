@@ -3,6 +3,8 @@ Anthropic Claude provider implementation.
 """
 
 import json
+import logging
+import time
 from typing import Any, Iterator
 
 from eq_chatbot_core.providers.base import (
@@ -13,7 +15,10 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     AuthenticationError,
     ContextLengthError,
+    OverloadedError,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AnthropicProvider(BaseLLMProvider):
@@ -33,6 +38,11 @@ class AnthropicProvider(BaseLLMProvider):
     # Models that don't support temperature
     NO_TEMPERATURE_MODELS = ("claude-3-opus",)
 
+    # Retry configuration for transient errors (overloaded)
+    OVERLOAD_MAX_RETRIES = 3
+    OVERLOAD_BASE_DELAY = 2.0  # Initial delay in seconds
+    OVERLOAD_MAX_DELAY = 30.0  # Maximum delay in seconds
+
     def __init__(
         self,
         api_key: str,
@@ -42,6 +52,20 @@ class AnthropicProvider(BaseLLMProvider):
     ):
         super().__init__(api_key, base_url, timeout, max_retries)
         self._client: Any = None
+
+    def _should_retry_error(self, error: Exception) -> bool:
+        """Check if an error is retryable (overloaded, temporary failures)."""
+        error_str = str(error).lower()
+        return "overloaded" in error_str or "529" in error_str
+
+    def _get_retry_delay(self, attempt: int) -> float:
+        """Calculate exponential backoff delay with jitter."""
+        import random
+
+        delay = min(self.OVERLOAD_BASE_DELAY * (2**attempt), self.OVERLOAD_MAX_DELAY)
+        # Add jitter (±25%)
+        jitter = delay * 0.25 * (2 * random.random() - 1)
+        return delay + jitter
 
     @property
     def provider_name(self) -> str:
@@ -58,9 +82,7 @@ class AnthropicProvider(BaseLLMProvider):
             try:
                 from anthropic import Anthropic
             except ImportError as e:
-                raise ImportError(
-                    "Anthropic package not installed. Install with: pip install anthropic"
-                ) from e
+                raise ImportError("Anthropic package not installed. Install with: pip install anthropic") from e
 
             self._client = Anthropic(
                 api_key=self.api_key,
@@ -70,9 +92,7 @@ class AnthropicProvider(BaseLLMProvider):
             )
         return self._client
 
-    def _extract_system_prompt(
-        self, messages: list[dict[str, Any]]
-    ) -> tuple[str | None, list[dict[str, Any]]]:
+    def _extract_system_prompt(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
         """
         Extract system prompt from messages.
 
@@ -94,9 +114,7 @@ class AnthropicProvider(BaseLLMProvider):
 
         return system_prompt, filtered_messages
 
-    def _convert_messages(
-        self, messages: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    def _convert_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Convert OpenAI-style messages to Anthropic format.
 
@@ -132,17 +150,21 @@ class AnthropicProvider(BaseLLMProvider):
                     else:
                         parsed_args = arguments
 
-                    content_blocks.append({
-                        "type": "tool_use",
-                        "id": tool_call.get("id", ""),
-                        "name": func.get("name", ""),
-                        "input": parsed_args,
-                    })
+                    content_blocks.append(
+                        {
+                            "type": "tool_use",
+                            "id": tool_call.get("id", ""),
+                            "name": func.get("name", ""),
+                            "input": parsed_args,
+                        }
+                    )
 
-                converted.append({
-                    "role": "assistant",
-                    "content": content_blocks,
-                })
+                converted.append(
+                    {
+                        "role": "assistant",
+                        "content": content_blocks,
+                    }
+                )
 
             elif role == "tool":
                 # Convert tool message to user message with tool_result block
@@ -153,14 +175,18 @@ class AnthropicProvider(BaseLLMProvider):
                 if isinstance(content, dict):
                     result_content = json.dumps(content)
 
-                converted.append({
-                    "role": "user",
-                    "content": [{
-                        "type": "tool_result",
-                        "tool_use_id": tool_call_id,
-                        "content": result_content,
-                    }],
-                })
+                converted.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_call_id,
+                                "content": result_content,
+                            }
+                        ],
+                    }
+                )
 
             else:
                 # Pass through user/assistant messages as-is
@@ -168,9 +194,7 @@ class AnthropicProvider(BaseLLMProvider):
 
         return converted
 
-    def _convert_tools_to_anthropic(
-        self, tools: list[dict[str, Any]] | None
-    ) -> list[dict[str, Any]] | None:
+    def _convert_tools_to_anthropic(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         """Convert OpenAI-style tools to Anthropic format."""
         if not tools:
             return None
@@ -179,11 +203,13 @@ class AnthropicProvider(BaseLLMProvider):
         for tool in tools:
             if tool.get("type") == "function":
                 func = tool.get("function", {})
-                anthropic_tools.append({
-                    "name": func.get("name"),
-                    "description": func.get("description", ""),
-                    "input_schema": func.get("parameters", {}),
-                })
+                anthropic_tools.append(
+                    {
+                        "name": func.get("name"),
+                        "description": func.get("description", ""),
+                        "input_schema": func.get("parameters", {}),
+                    }
+                )
 
         return anthropic_tools if anthropic_tools else None
 
@@ -196,64 +222,84 @@ class AnthropicProvider(BaseLLMProvider):
         tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """Send a chat completion request to Anthropic."""
+        """Send a chat completion request to Anthropic with retry on overload."""
         model = model or self.default_model
 
-        try:
-            system_prompt, filtered_messages = self._extract_system_prompt(messages)
-            # Convert OpenAI-style tool messages to Anthropic format
-            filtered_messages = self._convert_messages(filtered_messages)
-            anthropic_tools = self._convert_tools_to_anthropic(tools)
+        system_prompt, filtered_messages = self._extract_system_prompt(messages)
+        # Convert OpenAI-style tool messages to Anthropic format
+        filtered_messages = self._convert_messages(filtered_messages)
+        anthropic_tools = self._convert_tools_to_anthropic(tools)
 
-            params: dict[str, Any] = {
-                "model": model,
-                "messages": filtered_messages,
-                "max_tokens": max_tokens or 4096,
-            }
+        params: dict[str, Any] = {
+            "model": model,
+            "messages": filtered_messages,
+            "max_tokens": max_tokens or 4096,
+        }
 
-            # Only add temperature if model supports it
-            if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
-                params["temperature"] = temperature
+        # Only add temperature if model supports it
+        if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
+            params["temperature"] = temperature
 
-            if system_prompt:
-                params["system"] = system_prompt
+        if system_prompt:
+            params["system"] = system_prompt
 
-            if anthropic_tools:
-                params["tools"] = anthropic_tools
+        if anthropic_tools:
+            params["tools"] = anthropic_tools
 
-            params.update(kwargs)
+        params.update(kwargs)
 
-            response = self.client.messages.create(**params)
+        last_error: Exception | None = None
 
-            # Extract text content
-            content = ""
-            tool_calls = []
+        for attempt in range(self.OVERLOAD_MAX_RETRIES + 1):
+            try:
+                response = self.client.messages.create(**params)
 
-            for block in response.content:
-                if block.type == "text":
-                    content += block.text
-                elif block.type == "tool_use":
-                    tool_calls.append({
-                        "id": block.id,
-                        "type": "function",
-                        "function": {
-                            "name": block.name,
-                            "arguments": str(block.input),
-                        },
-                    })
+                # Extract text content
+                content = ""
+                tool_calls = []
 
-            return LLMResponse(
-                content=content,
-                model=response.model,
-                input_tokens=response.usage.input_tokens,
-                output_tokens=response.usage.output_tokens,
-                finish_reason=response.stop_reason,
-                tool_calls=tool_calls,
-                raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
-            )
+                for block in response.content:
+                    if block.type == "text":
+                        content += block.text
+                    elif block.type == "tool_use":
+                        tool_calls.append(
+                            {
+                                "id": block.id,
+                                "type": "function",
+                                "function": {
+                                    "name": block.name,
+                                    "arguments": str(block.input),
+                                },
+                            }
+                        )
 
-        except Exception as e:
-            raise self._handle_error(e) from e
+                return LLMResponse(
+                    content=content,
+                    model=response.model,
+                    input_tokens=response.usage.input_tokens,
+                    output_tokens=response.usage.output_tokens,
+                    finish_reason=response.stop_reason,
+                    tool_calls=tool_calls,
+                    raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
+                )
+
+            except Exception as e:
+                last_error = e
+                if self._should_retry_error(e) and attempt < self.OVERLOAD_MAX_RETRIES:
+                    delay = self._get_retry_delay(attempt)
+                    logger.warning(
+                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} "
+                        f"in {delay:.1f}s..."
+                    )
+                    time.sleep(delay)
+                    continue
+                # Non-retryable error or max retries reached
+                raise self._handle_error(e) from e
+
+        # Should not reach here, but just in case
+        if last_error:
+            raise self._handle_error(last_error) from last_error
+        raise ProviderError(message="Unexpected error in chat_completion", provider=self.provider_name)
 
     def stream_completion(
         self,
@@ -264,140 +310,157 @@ class AnthropicProvider(BaseLLMProvider):
         tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
-        """Stream a chat completion response from Anthropic."""
+        """Stream a chat completion response from Anthropic with retry on overload."""
         model = model or self.default_model
 
-        try:
-            system_prompt, filtered_messages = self._extract_system_prompt(messages)
-            # Convert OpenAI-style tool messages to Anthropic format
-            filtered_messages = self._convert_messages(filtered_messages)
-            anthropic_tools = self._convert_tools_to_anthropic(tools)
+        system_prompt, filtered_messages = self._extract_system_prompt(messages)
+        # Convert OpenAI-style tool messages to Anthropic format
+        filtered_messages = self._convert_messages(filtered_messages)
+        anthropic_tools = self._convert_tools_to_anthropic(tools)
 
-            params: dict[str, Any] = {
-                "model": model,
-                "messages": filtered_messages,
-                "max_tokens": max_tokens or 4096,
-            }
+        params: dict[str, Any] = {
+            "model": model,
+            "messages": filtered_messages,
+            "max_tokens": max_tokens or 4096,
+        }
 
-            # Only add temperature if model supports it
-            if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
-                params["temperature"] = temperature
+        # Only add temperature if model supports it
+        if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
+            params["temperature"] = temperature
 
-            if system_prompt:
-                params["system"] = system_prompt
+        if system_prompt:
+            params["system"] = system_prompt
 
-            if anthropic_tools:
-                params["tools"] = anthropic_tools
+        if anthropic_tools:
+            params["tools"] = anthropic_tools
 
-            params.update(kwargs)
+        params.update(kwargs)
 
-            # Track usage for final chunk
-            final_input_tokens = 0
-            final_output_tokens = 0
+        last_error: Exception | None = None
 
-            # Accumulate tool calls from stream events
-            # Key: content block index, Value: tool call data
-            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
-            current_block_index = 0
+        for attempt in range(self.OVERLOAD_MAX_RETRIES + 1):
+            try:
+                # Track usage for final chunk
+                final_input_tokens = 0
+                final_output_tokens = 0
 
-            with self.client.messages.stream(**params) as stream:
-                for event in stream:
-                    # Capture input tokens from message_start event
-                    if event.type == "message_start":
-                        if hasattr(event, "message") and hasattr(event.message, "usage"):
-                            final_input_tokens = event.message.usage.input_tokens or 0
+                # Accumulate tool calls from stream events
+                # Key: content block index, Value: tool call data
+                accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+                current_block_index = 0
 
-                    # Capture output tokens from message_delta event
-                    elif event.type == "message_delta":
-                        if hasattr(event, "usage"):
-                            final_output_tokens = event.usage.output_tokens or 0
+                with self.client.messages.stream(**params) as stream:
+                    for event in stream:
+                        # Capture input tokens from message_start event
+                        if event.type == "message_start":
+                            if hasattr(event, "message") and hasattr(event.message, "usage"):
+                                final_input_tokens = event.message.usage.input_tokens or 0
 
-                    # Track content block index
-                    elif event.type == "content_block_start":
-                        current_block_index = getattr(event, "index", 0)
-                        # Check if this is a tool_use block
-                        if hasattr(event, "content_block"):
-                            block = event.content_block
-                            if hasattr(block, "type") and block.type == "tool_use":
-                                # Initialize tool call accumulator
-                                accumulated_tool_calls[current_block_index] = {
-                                    "id": getattr(block, "id", ""),
-                                    "type": "function",
-                                    "function": {
-                                        "name": getattr(block, "name", ""),
-                                        "arguments": "",
-                                    },
-                                }
-                                # Emit tool_call_delta for the start
-                                yield StreamChunk(
-                                    content="",
-                                    is_final=False,
-                                    tool_call_delta={
-                                        "index": current_block_index,
+                        # Capture output tokens from message_delta event
+                        elif event.type == "message_delta":
+                            if hasattr(event, "usage"):
+                                final_output_tokens = event.usage.output_tokens or 0
+
+                        # Track content block index
+                        elif event.type == "content_block_start":
+                            current_block_index = getattr(event, "index", 0)
+                            # Check if this is a tool_use block
+                            if hasattr(event, "content_block"):
+                                block = event.content_block
+                                if hasattr(block, "type") and block.type == "tool_use":
+                                    # Initialize tool call accumulator
+                                    accumulated_tool_calls[current_block_index] = {
                                         "id": getattr(block, "id", ""),
+                                        "type": "function",
                                         "function": {
                                             "name": getattr(block, "name", ""),
-                                            "arguments": None,
+                                            "arguments": "",
                                         },
-                                    },
-                                )
+                                    }
+                                    # Emit tool_call_delta for the start
+                                    yield StreamChunk(
+                                        content="",
+                                        is_final=False,
+                                        tool_call_delta={
+                                            "index": current_block_index,
+                                            "id": getattr(block, "id", ""),
+                                            "function": {
+                                                "name": getattr(block, "name", ""),
+                                                "arguments": None,
+                                            },
+                                        },
+                                    )
 
-                    elif event.type == "content_block_delta":
-                        delta = event.delta
-                        if hasattr(delta, "text"):
-                            yield StreamChunk(
-                                content=delta.text,
-                                is_final=False,
-                            )
-                        # Handle tool input JSON deltas
-                        elif hasattr(delta, "type") and delta.type == "input_json_delta":
-                            partial_json = getattr(delta, "partial_json", "")
-                            if current_block_index in accumulated_tool_calls:
-                                # Accumulate the JSON arguments
-                                accumulated_tool_calls[current_block_index]["function"]["arguments"] += partial_json
-                                # Emit tool_call_delta
+                        elif event.type == "content_block_delta":
+                            delta = event.delta
+                            if hasattr(delta, "text"):
                                 yield StreamChunk(
-                                    content="",
+                                    content=delta.text,
                                     is_final=False,
-                                    tool_call_delta={
-                                        "index": current_block_index,
-                                        "id": None,
-                                        "function": {
-                                            "name": None,
-                                            "arguments": partial_json,
-                                        },
-                                    },
                                 )
+                            # Handle tool input JSON deltas
+                            elif hasattr(delta, "type") and delta.type == "input_json_delta":
+                                partial_json = getattr(delta, "partial_json", "")
+                                if current_block_index in accumulated_tool_calls:
+                                    # Accumulate the JSON arguments
+                                    accumulated_tool_calls[current_block_index]["function"]["arguments"] += partial_json
+                                    # Emit tool_call_delta
+                                    yield StreamChunk(
+                                        content="",
+                                        is_final=False,
+                                        tool_call_delta={
+                                            "index": current_block_index,
+                                            "id": None,
+                                            "function": {
+                                                "name": None,
+                                                "arguments": partial_json,
+                                            },
+                                        },
+                                    )
 
-                    elif event.type == "message_stop":
-                        # Build complete tool calls list
-                        complete_tool_calls = None
-                        if accumulated_tool_calls:
-                            complete_tool_calls = [
-                                accumulated_tool_calls[idx]
-                                for idx in sorted(accumulated_tool_calls.keys())
-                            ]
+                        elif event.type == "message_stop":
+                            # Build complete tool calls list
+                            complete_tool_calls = None
+                            if accumulated_tool_calls:
+                                complete_tool_calls = [
+                                    accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())
+                                ]
 
-                        yield StreamChunk(
-                            content="",
-                            is_final=True,
-                            finish_reason="end_turn",
-                            tool_calls=complete_tool_calls,
-                            input_tokens=final_input_tokens,
-                            output_tokens=final_output_tokens,
-                        )
+                            yield StreamChunk(
+                                content="",
+                                is_final=True,
+                                finish_reason="end_turn",
+                                tool_calls=complete_tool_calls,
+                                input_tokens=final_input_tokens,
+                                output_tokens=final_output_tokens,
+                            )
 
-        except Exception as e:
-            raise self._handle_error(e) from e
+                # Success - exit retry loop
+                return
+
+            except Exception as e:
+                last_error = e
+                if self._should_retry_error(e) and attempt < self.OVERLOAD_MAX_RETRIES:
+                    delay = self._get_retry_delay(attempt)
+                    logger.warning(
+                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} "
+                        f"in {delay:.1f}s..."
+                    )
+                    time.sleep(delay)
+                    continue
+                # Non-retryable error or max retries reached
+                raise self._handle_error(e) from e
+
+        # Should not reach here, but just in case
+        if last_error:
+            raise self._handle_error(last_error) from last_error
 
     def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
         """Get temperature, token, and capability constraints for a model."""
         model_lower = model_id.lower()
 
         # Check if it's a model that doesn't support temperature
-        supports_temp = not any(
-            prefix in model_lower for prefix in self.NO_TEMPERATURE_MODELS
-        )
+        supports_temp = not any(prefix in model_lower for prefix in self.NO_TEMPERATURE_MODELS)
 
         # All Claude 3.x and 4.x models support vision
         # Check for various naming patterns: claude-3-*, claude-4-*, claude-haiku-*, etc.
@@ -443,13 +506,15 @@ class AnthropicProvider(BaseLLMProvider):
             chat_models = []
             for model in models_response.data:
                 constraints = self._get_model_constraints(model.id)
-                chat_models.append({
-                    "id": model.id,
-                    "name": getattr(model, "display_name", model.id),
-                    "created": getattr(model, "created_at", None),
-                    "provider": self.provider_name,
-                    **constraints,
-                })
+                chat_models.append(
+                    {
+                        "id": model.id,
+                        "name": getattr(model, "display_name", model.id),
+                        "created": getattr(model, "created_at", None),
+                        "provider": self.provider_name,
+                        **constraints,
+                    }
+                )
 
             # Sort by creation date (newest first) or by ID
             chat_models.sort(
@@ -464,6 +529,15 @@ class AnthropicProvider(BaseLLMProvider):
     def _handle_error(self, error: Exception) -> ProviderError:
         """Convert Anthropic exceptions to ProviderError types."""
         error_str = str(error).lower()
+
+        # Check for overloaded error (transient, retryable)
+        if "overloaded" in error_str or "529" in error_str:
+            return OverloadedError(
+                message=str(error),
+                provider=self.provider_name,
+                status_code=529,
+                retry_after=5,  # Suggest 5 second wait
+            )
 
         if "rate limit" in error_str or "429" in error_str:
             return RateLimitError(

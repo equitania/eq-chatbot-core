@@ -227,14 +227,23 @@ class ProviderError(Exception):
 
 class RateLimitError(ProviderError):
     """Raised when the provider's rate limit is exceeded."""
+
     pass
 
 
 class AuthenticationError(ProviderError):
     """Raised when API authentication fails."""
+
     pass
 
 
 class ContextLengthError(ProviderError):
     """Raised when the context length is exceeded."""
+
+    pass
+
+
+class OverloadedError(ProviderError):
+    """Raised when the provider's servers are overloaded (transient, retryable)."""
+
     pass
