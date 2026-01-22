@@ -16,7 +16,6 @@ INJECTION_PATTERNS: list[str] = [
     r"you\s+are\s+now\s+",
     r"new\s+instructions?:",
     r"override\s+previous\s+",
-
     # System prompt injection
     r"system\s*:\s*",
     r"\[INST\]",
@@ -26,23 +25,19 @@ INJECTION_PATTERNS: list[str] = [
     r"###\s*(System|Human|Assistant)",
     r"<system>",
     r"</system>",
-
     # Role confusion
     r"pretend\s+you\s+are",
     r"act\s+as\s+if",
     r"roleplay\s+as",
     r"simulate\s+being",
-
     # Prompt leakage
     r"(show|tell|reveal|print)\s+(me\s+)?(your|the)\s+(system\s+)?(prompt|instructions)",
     r"what\s+(are|is)\s+your\s+(system\s+)?(prompt|instructions)",
-
     # Code injection (for MCP tools)
     r"eval\s*\(",
     r"exec\s*\(",
     r"__import__",
     r"subprocess\.",
-
     # Jailbreak attempts
     r"DAN\s*(mode)?",
     r"developer\s+mode",
@@ -53,24 +48,20 @@ INJECTION_PATTERNS: list[str] = [
     r"no\s+restrictions?\s+mode",
     r"evil\s+(mode|persona)",
     r"opposite\s+mode",
-
     # Encoding/obfuscation tricks
     r"base64\s*:",
     r"decode\s*\(",
     r"rot13",
     r"hex\s*:",
-
     # Multi-language injection (German)
     r"ignoriere\s+(alle\s+)?vorherigen?\s+",
     r"vergiss\s+(alles|alle)",
     r"neue\s+anweisungen?:",
     r"du\s+bist\s+(jetzt|nun)\s+",
     r"tue\s+so\s+als\s+ob",
-
     # Multi-language injection (French)
     r"ignore[rz]?\s+(toutes?\s+)?les?\s+instructions?\s+",
     r"oublie[rz]?\s+tout",
-
     # Multi-language injection (Spanish)
     r"ignora\s+(todas?\s+)?las?\s+instrucciones?\s+",
     r"olvida\s+todo",
@@ -85,10 +76,7 @@ def _get_patterns() -> list[Pattern[str]]:
     global _compiled_patterns
 
     if _compiled_patterns is None:
-        _compiled_patterns = [
-            re.compile(pattern, re.IGNORECASE)
-            for pattern in INJECTION_PATTERNS
-        ]
+        _compiled_patterns = [re.compile(pattern, re.IGNORECASE) for pattern in INJECTION_PATTERNS]
 
     return _compiled_patterns
 

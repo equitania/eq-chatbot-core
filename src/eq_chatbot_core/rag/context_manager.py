@@ -91,12 +91,10 @@ class ContextWindowManager:
         if self._encoder is None:
             try:
                 import tiktoken
+
                 self._encoder = tiktoken.get_encoding("cl100k_base")
             except ImportError as e:
-                raise ImportError(
-                    "tiktoken package not installed. "
-                    "Install with: pip install tiktoken"
-                ) from e
+                raise ImportError("tiktoken package not installed. " "Install with: pip install tiktoken") from e
         return self._encoder
 
     def count_tokens(self, text: str) -> int:
@@ -225,10 +223,12 @@ class ContextWindowManager:
         ]
 
         if rag_context:
-            messages.append({
-                "role": "system",
-                "content": f"Relevant context:\n{rag_context}",
-            })
+            messages.append(
+                {
+                    "role": "system",
+                    "content": f"Relevant context:\n{rag_context}",
+                }
+            )
 
         messages.extend(truncated_history)
         messages.append({"role": "user", "content": user_message})

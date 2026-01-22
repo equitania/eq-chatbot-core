@@ -372,17 +372,19 @@ class LocalLLMProvider(BaseLLMProvider):
             models = []
             for model_data in data.get("data", []):
                 model_id = model_data.get("id", "unknown")
-                models.append({
-                    "id": model_id,
-                    "name": model_id,
-                    "provider": self.provider_name,
-                    "context_length": model_data.get("context_length"),
-                    "supports_streaming": True,
-                    "supports_tools": False,  # Most local models don't support tools
-                    "supports_vision": False,  # Most local models don't support vision
-                    "owned_by": model_data.get("owned_by", "local"),
-                    "created": model_data.get("created"),
-                })
+                models.append(
+                    {
+                        "id": model_id,
+                        "name": model_id,
+                        "provider": self.provider_name,
+                        "context_length": model_data.get("context_length"),
+                        "supports_streaming": True,
+                        "supports_tools": False,  # Most local models don't support tools
+                        "supports_vision": False,  # Most local models don't support vision
+                        "owned_by": model_data.get("owned_by", "local"),
+                        "created": model_data.get("created"),
+                    }
+                )
 
             return models
 

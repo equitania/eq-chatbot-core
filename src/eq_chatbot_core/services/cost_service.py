@@ -24,7 +24,6 @@ PRICING: dict[str, ModelPricing] = {
     "o1-mini": {"input": 0.003, "output": 0.012},
     "o1-preview": {"input": 0.015, "output": 0.06},
     "o3-mini": {"input": 0.0011, "output": 0.0044},
-
     # Anthropic
     "claude-3-5-sonnet-latest": {"input": 0.003, "output": 0.015},
     "claude-3-5-sonnet-20241022": {"input": 0.003, "output": 0.015},
@@ -32,7 +31,6 @@ PRICING: dict[str, ModelPricing] = {
     "claude-3-opus-latest": {"input": 0.015, "output": 0.075},
     "claude-3-sonnet-20240229": {"input": 0.003, "output": 0.015},
     "claude-3-haiku-20240307": {"input": 0.00025, "output": 0.00125},
-
     # Embeddings
     "text-embedding-3-small": {"input": 0.00002, "output": 0.0},
     "text-embedding-3-large": {"input": 0.00013, "output": 0.0},
@@ -73,10 +71,7 @@ def calculate_cost(
     if pricing is None:
         pricing = DEFAULT_PRICING
 
-    cost = (
-        (input_tokens / 1000) * pricing["input"]
-        + (output_tokens / 1000) * pricing["output"]
-    )
+    cost = (input_tokens / 1000) * pricing["input"] + (output_tokens / 1000) * pricing["output"]
 
     return round(cost, 6)
 

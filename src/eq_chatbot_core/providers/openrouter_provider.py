@@ -109,10 +109,7 @@ class OpenRouterProvider(BaseLLMProvider):
     def _is_reasoning_model(self, model: str) -> bool:
         """Check if model is a reasoning model (O1, O3, O4)."""
         model_lower = model.lower()
-        return any(
-            model_lower.startswith(prefix.lower())
-            for prefix in self.REASONING_MODEL_PREFIXES
-        )
+        return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
     def chat_completion(
         self,
@@ -299,8 +296,7 @@ class OpenRouterProvider(BaseLLMProvider):
                     complete_tool_calls = None
                     if is_final and accumulated_tool_calls:
                         complete_tool_calls = [
-                            accumulated_tool_calls[idx]
-                            for idx in sorted(accumulated_tool_calls.keys())
+                            accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())
                         ]
 
                     yield StreamChunk(
@@ -336,16 +332,18 @@ class OpenRouterProvider(BaseLLMProvider):
                 constraints = self._get_model_constraints(model_data)
                 pricing = self._extract_pricing(model_data)
 
-                models.append({
-                    "id": model_id,
-                    "name": model_data.get("name", model_id),
-                    "description": model_data.get("description", ""),
-                    "context_length": model_data.get("context_length"),
-                    "provider": self.provider_name,
-                    "created": model_data.get("created"),
-                    **constraints,
-                    **pricing,
-                })
+                models.append(
+                    {
+                        "id": model_id,
+                        "name": model_data.get("name", model_id),
+                        "description": model_data.get("description", ""),
+                        "context_length": model_data.get("context_length"),
+                        "provider": self.provider_name,
+                        "created": model_data.get("created"),
+                        **constraints,
+                        **pricing,
+                    }
+                )
 
             # Sort by model ID for consistent ordering
             models.sort(key=lambda m: m["id"])
@@ -373,18 +371,11 @@ class OpenRouterProvider(BaseLLMProvider):
         output_modalities = model_data.get("output_modalities", ["text"])
 
         # Check if it's a reasoning model
-        is_reasoning = any(
-            model_id.startswith(prefix.lower())
-            for prefix in self.REASONING_MODEL_PREFIXES
-        )
+        is_reasoning = any(model_id.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
         # Determine temperature support
         # Either from supported_parameters or by checking if not a reasoning model
-        supports_temperature = (
-            "temperature" in supported_params
-            if supported_params
-            else not is_reasoning
-        )
+        supports_temperature = "temperature" in supported_params if supported_params else not is_reasoning
 
         # Get temperature bounds from default_parameters or use defaults
         if is_reasoning:

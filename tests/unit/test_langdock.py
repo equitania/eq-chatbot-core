@@ -146,9 +146,7 @@ class TestLangDockProviderInit:
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
-            provider = LangDockProvider(
-                api_key="test-key", backend="agent", agent_id="agent-123"
-            )
+            provider = LangDockProvider(api_key="test-key", backend="agent", agent_id="agent-123")
             assert provider.backend == "agent"
             assert provider.agent_id == "agent-123"
 
@@ -228,9 +226,7 @@ class TestLangDockBackendURLs:
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
-            provider = LangDockProvider(
-                api_key="test-key", backend="anthropic", region="eu"
-            )
+            provider = LangDockProvider(api_key="test-key", backend="anthropic", region="eu")
             backend_url = provider._get_backend_url()
             assert "anthropic" in backend_url.lower()
             assert "eu" in backend_url.lower()
@@ -249,9 +245,7 @@ class TestLangDockBackendURLs:
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
-            provider = LangDockProvider(
-                api_key="test-key", backend="agent", agent_id="agent-123"
-            )
+            provider = LangDockProvider(api_key="test-key", backend="agent", agent_id="agent-123")
             backend_url = provider._get_backend_url()
             # Agent backend uses /assistant/v1 endpoint
             assert "assistant" in backend_url.lower()
@@ -371,18 +365,14 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             # Set the mock client directly
             provider._LangDockProvider__openai_client = mock_client
 
-            response = provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-            )
+            response = provider.chat_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o")
 
             assert response.content == "Test response from LangDock"
             assert response.model == "gpt-4o"
@@ -394,9 +384,7 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -418,9 +406,7 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -443,14 +429,10 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
-            provider = LangDockProvider(
-                api_key="test-key", backend="openai", reasoning_effort="high"
-            )
+            provider = LangDockProvider(api_key="test-key", backend="openai", reasoning_effort="high")
             provider._LangDockProvider__openai_client = mock_client
 
             provider.chat_completion(
@@ -468,9 +450,7 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -505,9 +485,7 @@ class TestLangDockOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -541,9 +519,7 @@ class TestLangDockAnthropicChatCompletion:
         mock_client.messages.create.return_value = mock_anthropic_response
         mock_anthropic_module.Anthropic.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}
-        ):
+        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="anthropic")
@@ -563,9 +539,7 @@ class TestLangDockAnthropicChatCompletion:
         mock_client.messages.create.return_value = mock_anthropic_response
         mock_anthropic_module.Anthropic.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}
-        ):
+        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="anthropic")
@@ -589,9 +563,7 @@ class TestLangDockAnthropicChatCompletion:
         mock_client.messages.create.return_value = mock_anthropic_response
         mock_anthropic_module.Anthropic.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}
-        ):
+        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": mock_anthropic_module}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="anthropic")
@@ -623,19 +595,13 @@ class TestLangDockStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
-            chunks = list(
-                provider.stream_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
-            )
+            chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"))
 
             assert len(chunks) > 0
             # Combine content
@@ -649,19 +615,13 @@ class TestLangDockStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
-            chunks = list(
-                provider.stream_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
-            )
+            chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"))
 
             # Last chunk should have finish_reason
             last_chunk = chunks[-1]
@@ -738,9 +698,7 @@ class TestLangDockListModels:
         mock_client.models.list.return_value = mock_openai_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -759,9 +717,7 @@ class TestLangDockListModels:
         mock_client.models.list.return_value = mock_openai_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -781,9 +737,7 @@ class TestLangDockListModels:
         mock_client.models.list.return_value = mock_openai_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
@@ -814,49 +768,35 @@ class TestLangDockErrorHandling:
         mock_error.status_code = 429
         mock_error.message = "Rate limit exceeded"
         mock_openai_module.RateLimitError = type("RateLimitError", (Exception,), {})
-        mock_client.chat.completions.create.side_effect = mock_openai_module.RateLimitError(
-            "Rate limit exceeded"
-        )
+        mock_client.chat.completions.create.side_effect = mock_openai_module.RateLimitError("Rate limit exceeded")
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
             with pytest.raises((RateLimitError, Exception)):
-                provider.chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
+                provider.chat_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o")
 
     def test_authentication_error(self):
         """Test authentication error is properly mapped."""
         mock_openai_module = MagicMock()
         mock_client = MagicMock()
 
-        mock_openai_module.AuthenticationError = type(
-            "AuthenticationError", (Exception,), {}
-        )
-        mock_client.chat.completions.create.side_effect = (
-            mock_openai_module.AuthenticationError("Invalid API key")
-        )
+        mock_openai_module.AuthenticationError = type("AuthenticationError", (Exception,), {})
+        mock_client.chat.completions.create.side_effect = mock_openai_module.AuthenticationError("Invalid API key")
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
             with pytest.raises((AuthenticationError, Exception)):
-                provider.chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
+                provider.chat_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o")
 
     def test_context_length_error(self):
         """Test context length error is properly mapped."""
@@ -869,18 +809,14 @@ class TestLangDockErrorHandling:
         mock_client.chat.completions.create.side_effect = error
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
             with pytest.raises((ContextLengthError, Exception)):
-                provider.chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
+                provider.chat_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o")
 
     def test_generic_error(self):
         """Test generic errors are wrapped as ProviderError."""
@@ -888,23 +824,17 @@ class TestLangDockErrorHandling:
         mock_client = MagicMock()
 
         mock_openai_module.APIError = type("APIError", (Exception,), {})
-        mock_client.chat.completions.create.side_effect = mock_openai_module.APIError(
-            "Unknown error"
-        )
+        mock_client.chat.completions.create.side_effect = mock_openai_module.APIError("Unknown error")
         mock_openai_module.OpenAI.return_value = mock_client
 
-        with patch.dict(
-            "sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}
-        ):
+        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
             provider = LangDockProvider(api_key="test-key", backend="openai")
             provider._LangDockProvider__openai_client = mock_client
 
             with pytest.raises((ProviderError, Exception)):
-                provider.chat_completion(
-                    messages=[{"role": "user", "content": "Hello"}], model="gpt-4o"
-                )
+                provider.chat_completion(messages=[{"role": "user", "content": "Hello"}], model="gpt-4o")
 
 
 # =============================================================================

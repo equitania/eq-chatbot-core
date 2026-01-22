@@ -269,6 +269,7 @@ class TestExceptionHierarchy:
 
     def test_order_of_exception_catching(self):
         """Test that specific exceptions should be caught before generic."""
+
         def handle_error(error: ProviderError) -> str:
             # Correct order: specific exceptions first
             if isinstance(error, RateLimitError):
@@ -482,6 +483,7 @@ class TestRealWorldScenarios:
 
     def test_retry_logic_based_on_error_type(self):
         """Test implementing retry logic based on error types."""
+
         def should_retry(error: ProviderError, attempt: int) -> bool:
             """Determine if request should be retried."""
             if attempt >= 3:
@@ -507,4 +509,3 @@ class TestRealWorldScenarios:
         assert should_retry(AuthenticationError("x", provider="t"), 1) is False
         assert should_retry(ProviderError("x", provider="t", status_code=500), 1) is True
         assert should_retry(ProviderError("x", provider="t", status_code=400), 1) is False
-

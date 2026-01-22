@@ -127,6 +127,7 @@ class TestOpenAILive:
         assert response.content
         # Should be valid JSON
         import json
+
         try:
             data = json.loads(response.content)
             assert "status" in data

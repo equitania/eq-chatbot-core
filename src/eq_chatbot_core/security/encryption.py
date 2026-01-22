@@ -33,10 +33,7 @@ class FernetEncryption:
         try:
             from cryptography.fernet import Fernet
         except ImportError as e:
-            raise ImportError(
-                "cryptography package not installed. "
-                "Install with: pip install cryptography"
-            ) from e
+            raise ImportError("cryptography package not installed. " "Install with: pip install cryptography") from e
 
         if isinstance(key, str):
             key = key.encode()

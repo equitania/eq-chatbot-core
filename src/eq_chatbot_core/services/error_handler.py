@@ -136,7 +136,7 @@ class ChatbotErrorHandler:
         retry_count = context.get("retry_count", 0)
 
         if retry_count < 2 and retry_callback:
-            wait_time = 2 ** retry_count  # 1s, 2s
+            wait_time = 2**retry_count  # 1s, 2s
             logger.warning(f"LLM timeout, retry {retry_count + 1}/2 after {wait_time}s")
             time.sleep(wait_time)
 
@@ -172,17 +172,20 @@ class ChatbotErrorHandler:
         """Handle rate limit errors."""
         wait_time = self._extract_retry_after(error) or 60
 
-        self._log_event("rate_limit", "warning", {
-            "provider": provider,
-            "retry_after": wait_time,
-        })
+        self._log_event(
+            "rate_limit",
+            "warning",
+            {
+                "provider": provider,
+                "retry_after": wait_time,
+            },
+        )
 
         return ErrorResult(
             success=False,
             error_type="rate_limit",
             user_message=(
-                f"Der Service ist momentan überlastet. "
-                f"Bitte versuchen Sie es in {wait_time} Sekunden erneut."
+                f"Der Service ist momentan überlastet. " f"Bitte versuchen Sie es in {wait_time} Sekunden erneut."
             ),
             retry_after=wait_time,
             original_error=str(error),
@@ -194,18 +197,19 @@ class ChatbotErrorHandler:
         provider: str,
     ) -> ErrorResult:
         """Handle authentication errors."""
-        self._log_event("error", "critical", {
-            "provider": provider,
-            "error": "authentication_failure",
-        })
+        self._log_event(
+            "error",
+            "critical",
+            {
+                "provider": provider,
+                "error": "authentication_failure",
+            },
+        )
 
         return ErrorResult(
             success=False,
             error_type="configuration",
-            user_message=(
-                "Es gibt ein Konfigurationsproblem. "
-                "Bitte kontaktieren Sie den Administrator."
-            ),
+            user_message=("Es gibt ein Konfigurationsproblem. " "Bitte kontaktieren Sie den Administrator."),
             original_error=str(error),
         )
 
@@ -237,10 +241,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="unknown",
-            user_message=(
-                "Ein unerwarteter Fehler ist aufgetreten. "
-                "Bitte versuchen Sie es später erneut."
-            ),
+            user_message=("Ein unerwarteter Fehler ist aufgetreten. " "Bitte versuchen Sie es später erneut."),
             original_error=str(error),
         )
 

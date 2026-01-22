@@ -46,6 +46,7 @@ def mock_openai_response():
 @pytest.fixture
 def mock_openai_stream():
     """Create mock streaming chunks."""
+
     def generate_chunks():
         for content in ["Hello", " ", "World", "!"]:
             chunk = MagicMock()
@@ -188,9 +189,7 @@ class TestOpenAIChatCompletion:
 
         provider = OpenAIProvider(api_key="sk-test")
         provider._client = None
-        response = provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        )
+        response = provider.chat_completion(messages=[{"role": "user", "content": "Hello"}])
 
         assert response.content == "Test response"
         assert response.model == "gpt-4o"
@@ -343,9 +342,7 @@ class TestOpenAIStreamCompletion:
 
         provider = OpenAIProvider(api_key="sk-test")
         provider._client = None
-        chunks = list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        ))
+        chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
         # Should have content chunks + final chunk
         assert len(chunks) >= 1
@@ -367,9 +364,7 @@ class TestOpenAIStreamCompletion:
 
         provider = OpenAIProvider(api_key="sk-test")
         provider._client = None
-        chunks = list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        ))
+        chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
         final_chunk = [c for c in chunks if c.is_final][0]
         assert final_chunk.input_tokens == 10
@@ -383,11 +378,13 @@ class TestOpenAIStreamCompletion:
 
         provider = OpenAIProvider(api_key="sk-test")
         provider._client = None
-        list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-4o",
-            max_tokens=50,
-        ))
+        list(
+            provider.stream_completion(
+                messages=[{"role": "user", "content": "Hello"}],
+                model="gpt-4o",
+                max_tokens=50,
+            )
+        )
 
         call_args = mock_client.chat.completions.create.call_args
         assert call_args.kwargs.get("max_completion_tokens") == 50
@@ -395,6 +392,7 @@ class TestOpenAIStreamCompletion:
 
     def test_stream_tool_calls(self):
         """Test streaming with tool calls."""
+
         def stream_with_tools():
             chunk = MagicMock()
             chunk.choices = [MagicMock()]
@@ -421,10 +419,12 @@ class TestOpenAIStreamCompletion:
 
         provider = OpenAIProvider(api_key="sk-test")
         provider._client = None
-        chunks = list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            tools=[{"type": "function", "function": {"name": "test_func"}}],
-        ))
+        chunks = list(
+            provider.stream_completion(
+                messages=[{"role": "user", "content": "Hello"}],
+                tools=[{"type": "function", "function": {"name": "test_func"}}],
+            )
+        )
 
         assert len(chunks) == 1
         assert chunks[0].tool_call_delta is not None
@@ -598,9 +598,7 @@ class TestOpenAIErrorHandling:
     def test_rate_limit_error(self):
         """Test handling of rate limit errors."""
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "Error code: 429 - Rate limit exceeded"
-        )
+        mock_client.chat.completions.create.side_effect = Exception("Error code: 429 - Rate limit exceeded")
         mock_openai_module.OpenAI.return_value = mock_client
 
         provider = OpenAIProvider(api_key="sk-test")
@@ -615,9 +613,7 @@ class TestOpenAIErrorHandling:
     def test_authentication_error(self):
         """Test handling of authentication errors."""
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "Error code: 401 - Authentication failed"
-        )
+        mock_client.chat.completions.create.side_effect = Exception("Error code: 401 - Authentication failed")
         mock_openai_module.OpenAI.return_value = mock_client
 
         provider = OpenAIProvider(api_key="sk-invalid")
@@ -648,9 +644,7 @@ class TestOpenAIErrorHandling:
     def test_generic_error(self):
         """Test handling of generic errors."""
         mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "Unknown server error"
-        )
+        mock_client.chat.completions.create.side_effect = Exception("Unknown server error")
         mock_openai_module.OpenAI.return_value = mock_client
 
         provider = OpenAIProvider(api_key="sk-test")
@@ -673,9 +667,7 @@ class TestOpenAIErrorHandling:
         provider._client = None
 
         with pytest.raises(ProviderError):
-            list(provider.stream_completion(
-                messages=[{"role": "user", "content": "Hi"}]
-            ))
+            list(provider.stream_completion(messages=[{"role": "user", "content": "Hi"}]))
 
     def test_list_models_error_handling(self):
         """Test error handling in list_models."""
@@ -731,4 +723,3 @@ class TestOpenAIProviderProperties:
         assert "o1" in OpenAIProvider.REASONING_MODELS
         assert "o3" in OpenAIProvider.REASONING_MODELS
         assert "o4" in OpenAIProvider.REASONING_MODELS
-

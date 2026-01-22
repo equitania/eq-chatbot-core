@@ -18,6 +18,7 @@ from typing import Optional
 # Try to import python-magic for MIME detection
 try:
     import magic
+
     MAGIC_AVAILABLE = True
 except ImportError:
     MAGIC_AVAILABLE = False
@@ -48,29 +49,29 @@ class FileTypeConfig:
 # Dangerous byte patterns at file START (header-based detection)
 # These patterns must appear at the very beginning of the file
 DANGEROUS_HEADER_PATTERNS = [
-    b"MZ",           # DOS/Windows PE executable
-    b"\x7fELF",      # Linux ELF binary
-    b"#!/",          # Shebang (shell scripts)
-    b"<?php",        # PHP script
-    b"<%",           # ASP/JSP
+    b"MZ",  # DOS/Windows PE executable
+    b"\x7fELF",  # Linux ELF binary
+    b"#!/",  # Shebang (shell scripts)
+    b"<?php",  # PHP script
+    b"<%",  # ASP/JSP
 ]
 
 # Dangerous patterns anywhere in file (for text-based threats)
 # These are checked only for text-like content, not binary formats
 DANGEROUS_TEXT_PATTERNS = [
-    b"<script",      # JavaScript in HTML
-    b"<SCRIPT",      # JavaScript (uppercase)
+    b"<script",  # JavaScript in HTML
+    b"<SCRIPT",  # JavaScript (uppercase)
     b"javascript:",  # JavaScript URL scheme
-    b"vbscript:",    # VBScript URL scheme
+    b"vbscript:",  # VBScript URL scheme
 ]
 
 # Patterns specific to Office documents (VBA macros)
 # Only vbaProject patterns - these indicate actual macro content
 OFFICE_MACRO_PATTERNS = [
-    b"vbaProject.bin",   # VBA project binary (standard location)
-    b"xl/vbaProject",    # Excel VBA path
+    b"vbaProject.bin",  # VBA project binary (standard location)
+    b"xl/vbaProject",  # Excel VBA path
     b"word/vbaProject",  # Word VBA path
-    b"ppt/vbaProject",   # PowerPoint VBA path
+    b"ppt/vbaProject",  # PowerPoint VBA path
 ]
 
 

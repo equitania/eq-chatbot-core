@@ -72,9 +72,7 @@ class OpenAIProvider(BaseLLMProvider):
             try:
                 from openai import OpenAI
             except ImportError as e:
-                raise ImportError(
-                    "OpenAI package not installed. Install with: pip install openai"
-                ) from e
+                raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
 
             self._client = OpenAI(
                 api_key=self.api_key,
@@ -246,10 +244,7 @@ class OpenAIProvider(BaseLLMProvider):
                 complete_tool_calls = None
                 if is_final and accumulated_tool_calls:
                     # Convert dict to sorted list by index
-                    complete_tool_calls = [
-                        accumulated_tool_calls[idx]
-                        for idx in sorted(accumulated_tool_calls.keys())
-                    ]
+                    complete_tool_calls = [accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())]
 
                 yield StreamChunk(
                     content=content,
@@ -355,14 +350,16 @@ class OpenAIProvider(BaseLLMProvider):
                 # Filter for chat-capable models
                 if any(model_id.startswith(prefix) for prefix in self.CHAT_MODEL_PREFIXES):
                     constraints = self._get_model_constraints(model.id)
-                    chat_models.append({
-                        "id": model.id,
-                        "name": model.id,  # OpenAI uses ID as name
-                        "created": model.created,
-                        "owned_by": model.owned_by,
-                        "provider": self.provider_name,
-                        **constraints,
-                    })
+                    chat_models.append(
+                        {
+                            "id": model.id,
+                            "name": model.id,  # OpenAI uses ID as name
+                            "created": model.created,
+                            "owned_by": model.owned_by,
+                            "provider": self.provider_name,
+                            **constraints,
+                        }
+                    )
 
             # Sort by model ID for consistent ordering
             chat_models.sort(key=lambda m: m["id"])

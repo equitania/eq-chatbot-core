@@ -62,8 +62,7 @@ ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
     "--base-url",
     "-u",
     default=None,
-    help="Custom base URL for the provider. "
-    "For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
+    help="Custom base URL for the provider. " "For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
 )
 def test_provider(provider: str, api_key: str, model: str, message: str, base_url: str):
     """Test connection to an LLM provider.
@@ -221,15 +220,11 @@ def list_models(provider: str, api_key: str, base_url: str, as_json: bool, visio
             ]
             click.echo(json.dumps(output, indent=2))
         else:
-            click.echo(
-                f"Available models for {click.style(provider, fg='cyan', bold=True)}:"
-            )
+            click.echo(f"Available models for {click.style(provider, fg='cyan', bold=True)}:")
             click.echo()
 
             for m in models:
-                vision_badge = (
-                    click.style(" [vision]", fg="green") if m.supports_vision else ""
-                )
+                vision_badge = click.style(" [vision]", fg="green") if m.supports_vision else ""
                 click.echo(f"  • {m.model_id}{vision_badge}")
 
             click.echo()

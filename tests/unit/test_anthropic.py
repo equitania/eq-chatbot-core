@@ -42,6 +42,7 @@ def mock_anthropic_response():
 @pytest.fixture
 def mock_anthropic_stream():
     """Create mock streaming events."""
+
     class StreamContext:
         def __init__(self):
             self.events = []
@@ -225,17 +226,19 @@ class TestToolConversion:
     def test_convert_single_tool(self):
         """Test converting a single tool."""
         provider = AnthropicProvider(api_key="sk-ant-test")
-        tools = [{
-            "type": "function",
-            "function": {
-                "name": "get_weather",
-                "description": "Get weather for a city",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"location": {"type": "string"}},
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_weather",
+                    "description": "Get weather for a city",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"location": {"type": "string"}},
+                    },
                 },
-            },
-        }]
+            }
+        ]
 
         converted = provider._convert_tools_to_anthropic(tools)
 
@@ -286,9 +289,7 @@ class TestAnthropicChatCompletion:
 
         provider = AnthropicProvider(api_key="sk-ant-test")
         provider._client = None
-        response = provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        )
+        response = provider.chat_completion(messages=[{"role": "user", "content": "Hello"}])
 
         assert response.content == "Test response"
         assert response.model == "claude-sonnet-4-20250514"
@@ -450,9 +451,7 @@ class TestAnthropicChatCompletion:
 
         provider = AnthropicProvider(api_key="sk-ant-test")
         provider._client = None
-        result = provider.chat_completion(
-            messages=[{"role": "user", "content": "Test"}]
-        )
+        result = provider.chat_completion(messages=[{"role": "user", "content": "Test"}])
 
         assert result.content == "Let me check. Here is the result."
 
@@ -474,9 +473,7 @@ class TestAnthropicStreamCompletion:
 
         provider = AnthropicProvider(api_key="sk-ant-test")
         provider._client = None
-        chunks = list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        ))
+        chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
         # Should have content chunks + final
         assert len(chunks) >= 1
@@ -498,9 +495,7 @@ class TestAnthropicStreamCompletion:
 
         provider = AnthropicProvider(api_key="sk-ant-test")
         provider._client = None
-        chunks = list(provider.stream_completion(
-            messages=[{"role": "user", "content": "Hello"}]
-        ))
+        chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
         final_chunk = [c for c in chunks if c.is_final][0]
         assert final_chunk.input_tokens == 10
@@ -514,12 +509,14 @@ class TestAnthropicStreamCompletion:
 
         provider = AnthropicProvider(api_key="sk-ant-test")
         provider._client = None
-        list(provider.stream_completion(
-            messages=[
-                {"role": "system", "content": "Be helpful"},
-                {"role": "user", "content": "Hello"},
-            ]
-        ))
+        list(
+            provider.stream_completion(
+                messages=[
+                    {"role": "system", "content": "Be helpful"},
+                    {"role": "user", "content": "Hello"},
+                ]
+            )
+        )
 
         call_args = mock_client.messages.stream.call_args
         assert call_args.kwargs["system"] == "Be helpful"
@@ -645,9 +642,7 @@ class TestAnthropicErrorHandling:
     def test_rate_limit_error(self):
         """Test handling of rate limit errors."""
         mock_client = MagicMock()
-        mock_client.messages.create.side_effect = Exception(
-            "Error code: 429 - Rate limit exceeded"
-        )
+        mock_client.messages.create.side_effect = Exception("Error code: 429 - Rate limit exceeded")
         mock_anthropic_module.Anthropic.return_value = mock_client
 
         provider = AnthropicProvider(api_key="sk-ant-test")
@@ -662,9 +657,7 @@ class TestAnthropicErrorHandling:
     def test_authentication_error(self):
         """Test handling of authentication errors."""
         mock_client = MagicMock()
-        mock_client.messages.create.side_effect = Exception(
-            "Error code: 401 - Authentication failed"
-        )
+        mock_client.messages.create.side_effect = Exception("Error code: 401 - Authentication failed")
         mock_anthropic_module.Anthropic.return_value = mock_client
 
         provider = AnthropicProvider(api_key="sk-ant-invalid")
@@ -679,9 +672,7 @@ class TestAnthropicErrorHandling:
     def test_context_length_error(self):
         """Test handling of context length errors."""
         mock_client = MagicMock()
-        mock_client.messages.create.side_effect = Exception(
-            "prompt is too long: 250000 tokens > 200000 maximum"
-        )
+        mock_client.messages.create.side_effect = Exception("prompt is too long: 250000 tokens > 200000 maximum")
         mock_anthropic_module.Anthropic.return_value = mock_client
 
         provider = AnthropicProvider(api_key="sk-ant-test")
@@ -717,9 +708,7 @@ class TestAnthropicErrorHandling:
         provider._client = None
 
         with pytest.raises(ProviderError):
-            list(provider.stream_completion(
-                messages=[{"role": "user", "content": "Hi"}]
-            ))
+            list(provider.stream_completion(messages=[{"role": "user", "content": "Hi"}]))
 
     def test_list_models_error_handling(self):
         """Test error handling in list_models."""

@@ -60,10 +60,7 @@ class OpenAIEmbedder(BaseEmbedder):
         self._client: Any = None
 
         if model not in self.MODELS:
-            raise ValueError(
-                f"Unknown model: {model}. "
-                f"Available: {', '.join(self.MODELS.keys())}"
-            )
+            raise ValueError(f"Unknown model: {model}. " f"Available: {', '.join(self.MODELS.keys())}")
 
     @property
     def dimensions(self) -> int:
@@ -76,9 +73,7 @@ class OpenAIEmbedder(BaseEmbedder):
             try:
                 from openai import OpenAI
             except ImportError as e:
-                raise ImportError(
-                    "OpenAI package not installed. Install with: pip install openai"
-                ) from e
+                raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
 
             self._client = OpenAI(
                 api_key=self.api_key,

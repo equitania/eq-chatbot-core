@@ -100,10 +100,7 @@ def get_provider(
 
     if provider_class is None:
         available = list(providers.keys()) + list(local_aliases.keys())
-        raise ValueError(
-            f"Unknown provider: {provider_name}. "
-            f"Available: {', '.join(sorted(set(available)))}"
-        )
+        raise ValueError(f"Unknown provider: {provider_name}. " f"Available: {', '.join(sorted(set(available)))}")
 
     # Local providers don't require API key
     if provider_class == LocalLLMProvider:

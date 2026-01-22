@@ -601,6 +601,7 @@ class TestOpenRouterErrorHandling:
             mock_response.json.return_value = {"error": {"message": "Rate limit exceeded"}}
 
             import httpx
+
             mock_httpx.HTTPStatusError = httpx.HTTPStatusError
 
             mock_error = httpx.HTTPStatusError(
@@ -632,6 +633,7 @@ class TestOpenRouterErrorHandling:
             mock_response.json.return_value = {"error": {"message": "Invalid API key"}}
 
             import httpx
+
             mock_httpx.HTTPStatusError = httpx.HTTPStatusError
 
             mock_error = httpx.HTTPStatusError(

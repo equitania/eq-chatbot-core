@@ -306,18 +306,10 @@ def encryption_key() -> str:
 
 def pytest_configure(config):
     """Register custom pytest markers."""
-    config.addinivalue_line(
-        "markers", "unit: Unit tests (mocked, fast, no external dependencies)"
-    )
-    config.addinivalue_line(
-        "markers", "integration: Integration tests (real API calls, requires keys)"
-    )
-    config.addinivalue_line(
-        "markers", "local: Local LLM server tests (requires running server)"
-    )
-    config.addinivalue_line(
-        "markers", "expensive: Tests with expensive models (skip in CI by default)"
-    )
+    config.addinivalue_line("markers", "unit: Unit tests (mocked, fast, no external dependencies)")
+    config.addinivalue_line("markers", "integration: Integration tests (real API calls, requires keys)")
+    config.addinivalue_line("markers", "local: Local LLM server tests (requires running server)")
+    config.addinivalue_line("markers", "expensive: Tests with expensive models (skip in CI by default)")
     config.addinivalue_line("markers", "slow: Slow-running tests")
 
 
@@ -329,18 +321,12 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Skip integration tests if SKIP_LIVE_TESTS is true
         if "integration" in item.keywords and skip_live:
-            item.add_marker(
-                pytest.mark.skip(reason="SKIP_LIVE_TESTS is true")
-            )
+            item.add_marker(pytest.mark.skip(reason="SKIP_LIVE_TESTS is true"))
 
         # Skip local tests if SKIP_LOCAL_TESTS is true
         if "local" in item.keywords and skip_local:
-            item.add_marker(
-                pytest.mark.skip(reason="SKIP_LOCAL_TESTS is true")
-            )
+            item.add_marker(pytest.mark.skip(reason="SKIP_LOCAL_TESTS is true"))
 
         # Skip expensive tests in CI environments
         if "expensive" in item.keywords and os.getenv("CI"):
-            item.add_marker(
-                pytest.mark.skip(reason="Expensive tests skipped in CI")
-            )
+            item.add_marker(pytest.mark.skip(reason="Expensive tests skipped in CI"))
