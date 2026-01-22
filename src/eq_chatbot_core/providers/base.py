@@ -3,8 +3,9 @@ Base classes and types for LLM providers.
 """
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any
 
 
 @dataclass
@@ -112,7 +113,7 @@ class BaseLLMProvider(ABC):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """
         Send a chat completion request.
@@ -142,7 +143,7 @@ class BaseLLMProvider(ABC):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """
         Stream a chat completion response.
@@ -165,13 +166,13 @@ class BaseLLMProvider(ABC):
         ...
 
     @abstractmethod
-    def list_models(self) -> list[dict[str, Any]]:
+    def list_models(self) -> list["ModelInfo"] | list[dict[str, Any]]:
         """
         List available models from the provider.
 
         Returns:
-            List of dicts with at least 'id' and 'name' keys.
-            May include additional metadata like 'context_length', 'capabilities', etc.
+            List of ModelInfo objects or dicts with model metadata.
+            Note: Future versions will standardize on list[ModelInfo].
 
         Raises:
             ProviderError: On API errors

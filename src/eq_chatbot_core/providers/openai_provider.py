@@ -2,16 +2,17 @@
 OpenAI provider implementation.
 """
 
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 from eq_chatbot_core.providers.base import (
+    AuthenticationError,
     BaseLLMProvider,
+    ContextLengthError,
     LLMResponse,
-    StreamChunk,
     ProviderError,
     RateLimitError,
-    AuthenticationError,
-    ContextLengthError,
+    StreamChunk,
 )
 
 

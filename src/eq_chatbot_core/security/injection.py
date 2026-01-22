@@ -4,8 +4,7 @@ Prompt injection detection and prevention.
 
 import html
 import re
-from typing import Pattern
-
+from re import Pattern
 
 # Known prompt injection patterns
 INJECTION_PATTERNS: list[str] = [

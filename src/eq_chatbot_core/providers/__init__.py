@@ -20,7 +20,7 @@ Usage:
     response = provider.chat_completion(messages=[...])
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from eq_chatbot_core.providers.base import BaseLLMProvider
@@ -30,7 +30,7 @@ def get_provider(
     provider_name: str,
     api_key: str | None = None,
     base_url: str | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> "BaseLLMProvider":
     """
     Factory function to get the appropriate LLM provider.
@@ -66,11 +66,11 @@ def get_provider(
         provider = get_provider("ollama")
         provider = get_provider("local", base_url="http://localhost:11434/v1")
     """
-    from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
     from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-    from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
     from eq_chatbot_core.providers.local_provider import LocalLLMProvider
+    from eq_chatbot_core.providers.openai_provider import OpenAIProvider
+    from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
     # Provider class mapping
     providers = {
@@ -91,6 +91,15 @@ def get_provider(
     provider_name_lower = provider_name.lower()
 
     # Handle local provider aliases
+    provider_class: (
+        type[OpenAIProvider]
+        | type[AnthropicProvider]
+        | type[LangDockProvider]
+        | type[OpenRouterProvider]
+        | type[LocalLLMProvider]
+        | None
+    ) = None
+
     if provider_name_lower in local_aliases:
         if base_url is None:
             base_url = local_aliases[provider_name_lower]
@@ -106,22 +115,24 @@ def get_provider(
     if provider_class == LocalLLMProvider:
         api_key = api_key or "not-used"
 
-    return provider_class(api_key=api_key, base_url=base_url, **kwargs)
+    # api_key is guaranteed to be str at this point for non-local providers
+    return provider_class(api_key=api_key or "", base_url=base_url, **kwargs)
 
 
-from eq_chatbot_core.providers.base import (
+# Exports for public API - after get_provider to avoid circular imports
+from eq_chatbot_core.providers.base import (  # noqa: E402
+    AuthenticationError,
     BaseLLMProvider,
+    ContextLengthError,
     LLMResponse,
-    StreamChunk,
     ModelInfo,
+    OverloadedError,
     ProviderError,
     RateLimitError,
-    AuthenticationError,
-    ContextLengthError,
+    StreamChunk,
 )
-
-from eq_chatbot_core.providers.local_provider import LocalLLMProvider
-from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
+from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
 
 __all__ = [
     "get_provider",
@@ -133,6 +144,7 @@ __all__ = [
     "RateLimitError",
     "AuthenticationError",
     "ContextLengthError",
+    "OverloadedError",
     "LocalLLMProvider",
     "OpenRouterProvider",
 ]

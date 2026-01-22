@@ -54,7 +54,7 @@ class FernetEncryption:
         return Fernet.generate_key().decode()
 
     @classmethod
-    def from_key(cls, key: str | bytes) -> "FernetEncryption":
+    def from_key(cls, key: str | bytes) -> FernetEncryption:
         """
         Create instance from existing key.
 

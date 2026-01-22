@@ -13,7 +13,6 @@ import os
 import re
 import unicodedata
 from dataclasses import dataclass
-from typing import Optional
 
 # Try to import python-magic for MIME detection
 try:
@@ -29,9 +28,9 @@ class FileValidationResult:
     """Result of file validation."""
 
     is_valid: bool
-    error_message: Optional[str] = None
-    detected_mime: Optional[str] = None
-    sanitized_filename: Optional[str] = None
+    error_message: str | None = None
+    detected_mime: str | None = None
+    sanitized_filename: str | None = None
 
 
 @dataclass
@@ -159,7 +158,7 @@ class FileValidator:
         self,
         filename: str,
         allowed_types: list[FileTypeConfig],
-    ) -> tuple[bool, Optional[str], Optional[FileTypeConfig]]:
+    ) -> tuple[bool, str | None, FileTypeConfig | None]:
         """Validate file extension against whitelist.
 
         Returns:
@@ -180,7 +179,7 @@ class FileValidator:
         self,
         content: bytes,
         config: FileTypeConfig,
-    ) -> tuple[bool, Optional[str], Optional[str]]:
+    ) -> tuple[bool, str | None, str | None]:
         """Verify actual MIME type matches expected.
 
         Returns:
@@ -223,7 +222,7 @@ class FileValidator:
         self,
         content: bytes,
         config: FileTypeConfig,
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Scan file content for dangerous patterns.
 
         Uses different scanning strategies based on file type:
@@ -265,7 +264,7 @@ class FileValidator:
         self,
         content: bytes,
         config: FileTypeConfig,
-    ) -> tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Validate file size against limit.
 
         Returns:

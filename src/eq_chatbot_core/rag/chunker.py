@@ -2,8 +2,8 @@
 Document chunking for RAG pipeline.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Iterator
 
 
 @dataclass

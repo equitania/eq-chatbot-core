@@ -80,7 +80,7 @@ response = provider.chat_completion(
     model="gpt-4o"
 )
 print(response.content)
-print(f"Tokens used: {response.usage.total_tokens}")
+print(f"Tokens used: {response.total_tokens}")
 
 # Streaming
 for chunk in provider.stream_completion(
@@ -92,7 +92,7 @@ for chunk in provider.stream_completion(
 # List available models
 models = provider.list_models()
 for model in models:
-    print(f"{model.model_id} - Vision: {model.supports_vision}")
+    print(f"{model.id} - Vision: {model.supports_vision}")
 ```
 
 ### Encryption Example
@@ -190,7 +190,7 @@ response = provider.chat_completion(
     model="gpt-4o"
 )
 print(response.content)
-print(f"Tokens verwendet: {response.usage.total_tokens}")
+print(f"Tokens verwendet: {response.total_tokens}")
 
 # Streaming
 for chunk in provider.stream_completion(
@@ -207,7 +207,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 0.6.0 |
+| **Version** | 0.13.0 |
 | **Author** | Equitania Software GmbH |
 | **License** | MIT |
 | **Python** | >=3.10 |

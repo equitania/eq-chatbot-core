@@ -5,6 +5,32 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-01-22
+
+### Added
+
+- **OverloadedError Exception**: New exception type for transient server overload errors (529/503)
+  - Distinct from RateLimitError for better retry handling
+  - Used by Anthropic provider for overload_error responses
+  - Properly exported from providers module
+
+### Fixed
+
+- **CLI AttributeError**: Fixed CLI `list-models` command crashing
+  - Changed `m.model_id` to `m.id` (matching ModelInfo dataclass)
+  - Removed non-existent `supports_temperature` and `max_tokens` attributes
+  - Fixed token usage display using correct `LLMResponse` attributes
+- **README Examples**: Updated code examples to use correct API
+  - `response.usage.total_tokens` → `response.total_tokens`
+  - `model.model_id` → `model.id`
+- **Export Completeness**: Added `OverloadedError` to `__all__` in providers module
+- **MANIFEST.in**: Added manifest file to include LICENSE, README, CHANGELOG in sdist
+
+### Changed
+
+- Improved JSON output in `list-models` command with more model metadata
+  - Now includes: id, name, provider, supports_vision, supports_tools, supports_streaming, context_length
+
 ## [0.12.0] - 2025-01-17
 
 ### Added

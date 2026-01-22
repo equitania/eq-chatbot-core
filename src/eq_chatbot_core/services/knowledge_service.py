@@ -5,11 +5,12 @@ Provides schema generation, data transformation, and export orchestration
 for vector databases (Qdrant) and LangDock Knowledge Folders.
 """
 
-from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Iterator
 import json
 import logging
+from collections.abc import Iterator
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -553,8 +554,8 @@ class KnowledgeExporter:
         Returns:
             Export result with statistics
         """
-        import tempfile
         import os
+        import tempfile
 
         files = self.prepare_for_langdock(records_by_model)
 

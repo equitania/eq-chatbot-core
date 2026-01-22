@@ -7,15 +7,15 @@ Core services for chatbot operations.
 - KnowledgeService: Odoo data export to vector databases
 """
 
-from eq_chatbot_core.services.cost_service import calculate_cost, PRICING
+from eq_chatbot_core.services.cost_service import PRICING, calculate_cost
 from eq_chatbot_core.services.error_handler import ChatbotErrorHandler
 from eq_chatbot_core.services.knowledge_service import (
-    FieldConfig,
-    ModelConfig,
     ExportRecord,
+    FieldConfig,
+    KnowledgeExporter,
+    ModelConfig,
     OdooSchemaGenerator,
     RecordTransformer,
-    KnowledgeExporter,
 )
 
 __all__ = [

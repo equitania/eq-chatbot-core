@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """PDF processing utilities for chatbot-core.
 
 This module provides PDF-to-image conversion for LLM providers that
@@ -8,14 +7,12 @@ Requires the 'pdf' extra: pip install chatbot-core[pdf]
 """
 
 import base64
-import io
 import logging
-from typing import Optional
 
 _logger = logging.getLogger(__name__)
 
 # Track if PyMuPDF is available
-_pymupdf_available: Optional[bool] = None
+_pymupdf_available: bool | None = None
 
 
 def is_pdf_conversion_available() -> bool:

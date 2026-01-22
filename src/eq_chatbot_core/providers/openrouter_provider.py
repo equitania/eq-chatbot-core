@@ -7,7 +7,8 @@ including OpenAI, Anthropic, Google, Meta, Mistral, and many more.
 
 import json
 import logging
-from typing import Any, Iterator
+from collections.abc import Iterator
+from typing import Any
 
 import httpx
 

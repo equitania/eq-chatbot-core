@@ -74,7 +74,7 @@ class HybridRetriever:
         Returns:
             List of RetrievalResult objects
         """
-        from qdrant_client.models import Filter, FieldCondition, MatchValue
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
 
         top_k = top_k or self.top_k
 
@@ -149,7 +149,7 @@ class HybridRetriever:
         Returns:
             Collection name
         """
-        from qdrant_client.models import VectorParams, Distance
+        from qdrant_client.models import Distance, VectorParams
 
         collections = self.client.get_collections().collections
         exists = any(c.name == self.collection for c in collections)
@@ -183,8 +183,9 @@ class HybridRetriever:
         Returns:
             Number of points upserted
         """
-        from qdrant_client.models import PointStruct
         import uuid
+
+        from qdrant_client.models import PointStruct
 
         total = 0
 

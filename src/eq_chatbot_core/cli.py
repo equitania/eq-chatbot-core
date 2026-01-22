@@ -17,7 +17,7 @@ from eq_chatbot_core.version import __version__
 
 @click.group()
 @click.version_option(version=__version__, prog_name="eq-chatbot")
-def main():
+def main() -> None:
     """eq-chatbot - LLM Provider Testing & Management CLI.
 
     A command-line tool for testing LLM provider connections,
@@ -64,7 +64,7 @@ ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
     default=None,
     help="Custom base URL for the provider. " "For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
 )
-def test_provider(provider: str, api_key: str, model: str, message: str, base_url: str):
+def test_provider(provider: str, api_key: str | None, model: str | None, message: str, base_url: str | None) -> None:
     """Test connection to an LLM provider.
 
     Sends a test message and displays the response along with token usage.
@@ -102,14 +102,15 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
 
         provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
 
-        kwargs = {}
         if model:
-            kwargs["model"] = model
-
-        response = provider_instance.chat_completion(
-            messages=[{"role": "user", "content": message}],
-            **kwargs,
-        )
+            response = provider_instance.chat_completion(
+                messages=[{"role": "user", "content": message}],
+                model=model,
+            )
+        else:
+            response = provider_instance.chat_completion(
+                messages=[{"role": "user", "content": message}],
+            )
 
         click.echo(click.style("✓ Success!", fg="green", bold=True))
         click.echo()
@@ -117,11 +118,11 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
         click.echo(f"  {response.content}")
         click.echo()
 
-        if response.usage:
+        if response.input_tokens or response.output_tokens:
             click.echo(click.style("Token Usage:", fg="blue"))
-            click.echo(f"  Input:  {response.usage.prompt_tokens}")
-            click.echo(f"  Output: {response.usage.completion_tokens}")
-            click.echo(f"  Total:  {response.usage.total_tokens}")
+            click.echo(f"  Input:  {response.input_tokens}")
+            click.echo(f"  Output: {response.output_tokens}")
+            click.echo(f"  Total:  {response.total_tokens}")
 
         if response.model:
             click.echo()
@@ -166,7 +167,7 @@ def test_provider(provider: str, api_key: str, model: str, message: str, base_ur
     is_flag=True,
     help="Show only models with vision support",
 )
-def list_models(provider: str, api_key: str, base_url: str, as_json: bool, vision_only: bool):
+def list_models(provider: str, api_key: str | None, base_url: str | None, as_json: bool, vision_only: bool) -> None:
     """List available models from a provider.
 
     Queries the provider's API and displays all available models
@@ -198,23 +199,33 @@ def list_models(provider: str, api_key: str, base_url: str, as_json: bool, visio
         )
         sys.exit(1)
 
-    from eq_chatbot_core.providers import ProviderError, get_provider
+    from typing import Any
+
+    from eq_chatbot_core.providers import ModelInfo, ProviderError, get_provider
+
+    def get_model_attr(model: ModelInfo | dict[str, Any], attr: str, default: Any = None) -> Any:
+        """Get attribute from ModelInfo or dict."""
+        if isinstance(model, ModelInfo):
+            return getattr(model, attr, default)
+        return model.get(attr, default)
 
     try:
         provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
         models = provider_instance.list_models()
 
         if vision_only:
-            models = [m for m in models if m.supports_vision]
+            models = [m for m in models if get_model_attr(m, "supports_vision", False)]
 
         if as_json:
             output = [
                 {
-                    "model_id": m.model_id,
-                    "supports_vision": m.supports_vision,
-                    "supports_temperature": m.supports_temperature,
-                    "max_tokens": m.max_tokens,
-                    "context_length": m.context_length,
+                    "id": get_model_attr(m, "id"),
+                    "name": get_model_attr(m, "name"),
+                    "provider": get_model_attr(m, "provider"),
+                    "supports_vision": get_model_attr(m, "supports_vision", False),
+                    "supports_tools": get_model_attr(m, "supports_tools", False),
+                    "supports_streaming": get_model_attr(m, "supports_streaming", True),
+                    "context_length": get_model_attr(m, "context_length"),
                 }
                 for m in models
             ]
@@ -224,8 +235,10 @@ def list_models(provider: str, api_key: str, base_url: str, as_json: bool, visio
             click.echo()
 
             for m in models:
-                vision_badge = click.style(" [vision]", fg="green") if m.supports_vision else ""
-                click.echo(f"  • {m.model_id}{vision_badge}")
+                model_id = get_model_attr(m, "id")
+                has_vision = get_model_attr(m, "supports_vision", False)
+                vision_badge = click.style(" [vision]", fg="green") if has_vision else ""
+                click.echo(f"  • {model_id}{vision_badge}")
 
             click.echo()
             click.echo(f"Total: {len(models)} models")
@@ -239,7 +252,7 @@ def list_models(provider: str, api_key: str, base_url: str, as_json: bool, visio
 
 
 @main.command("info")
-def info():
+def info() -> None:
     """Show package information.
 
     Displays version, supported providers, and available features.
