@@ -42,8 +42,8 @@ SKIP_LIVE_TESTS=true pytest tests/ -v
 ### Linting
 
 ```bash
-ruff check src/ && black src/ --check   # Check only
-ruff check src/ --fix && black src/     # Auto-fix
+ruff check src/ && ruff format src/ --check   # Check only
+ruff check src/ --fix && ruff format src/     # Auto-fix
 mypy src/                               # Type checking
 ```
 
@@ -194,7 +194,7 @@ openai, anthropic, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
 
 ### Optional
 
-- `[dev]` - pytest, ruff, black, mypy, pytest-cov, pytest-asyncio
-- `[security]` - python-magic (MIME validation)
+- `[dev]` - pytest, ruff, mypy, twine, pytest-cov, pytest-asyncio
+- `[security]` - puremagic (MIME validation)
 - `[pdf]` - pymupdf (PDF to image conversion)
 - `[local]` - sentence-transformers (local embeddings)

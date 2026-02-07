@@ -309,9 +309,9 @@ class TestMimeTypeValidation:
     def test_magic_enabled_detects_mismatch(self, image_types):
         """Test MIME mismatch detection when magic is available."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "application/pdf"
+        mock_magic.from_string.return_value = "application/pdf"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("fake.png", b"%PDF-1.4 content", image_types)
@@ -324,9 +324,9 @@ class TestMimeTypeValidation:
     def test_magic_enabled_accepts_match(self, image_types):
         """Test that matching MIME type passes when magic is available."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "image/png"
+        mock_magic.from_string.return_value = "image/png"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("photo.png", b"\x89PNG\r\n\x1a\n", image_types)
@@ -336,9 +336,9 @@ class TestMimeTypeValidation:
     def test_csv_alias_text_csv_accepts_application_csv(self, document_types):
         """Test that text/csv accepts application/csv alias."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "application/csv"
+        mock_magic.from_string.return_value = "application/csv"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("data.csv", b"a,b,c\n1,2,3", document_types)
@@ -348,9 +348,9 @@ class TestMimeTypeValidation:
     def test_text_plain_accepts_application_csv(self, document_types):
         """Test that text/plain accepts application/csv (CSV detected as plain text)."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "application/csv"
+        mock_magic.from_string.return_value = "application/csv"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("data.txt", b"a,b,c\n1,2,3", document_types)
@@ -360,9 +360,9 @@ class TestMimeTypeValidation:
     def test_jpeg_alias_accepts_image_jpg(self, image_types):
         """Test that image/jpeg accepts image/jpg alias."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "image/jpg"
+        mock_magic.from_string.return_value = "image/jpg"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("photo.jpg", b"\xff\xd8\xff", image_types)
@@ -372,9 +372,9 @@ class TestMimeTypeValidation:
     def test_json_alias_accepts_text_json(self, document_types):
         """Test that application/json accepts text/json alias."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/json"
+        mock_magic.from_string.return_value = "text/json"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("data.json", b'{"key": "value"}', document_types)
@@ -389,12 +389,12 @@ class TestMimeTypeValidation:
         the reverse check finds the match.
         """
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/csv"
+        mock_magic.from_string.return_value = "text/csv"
 
         # Create a type where expected MIME is application/csv (which is an alias)
         types = [FileTypeConfig(extension="csv", mime_type="application/csv", max_size_mb=5.0)]
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 # Expected: application/csv, Detected: text/csv
@@ -411,9 +411,9 @@ class TestMimeTypeValidation:
         so it should be rejected as a MIME mismatch.
         """
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/plain"
+        mock_magic.from_string.return_value = "text/plain"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("data.csv", b"a,b,c\n1,2,3", document_types)
@@ -428,9 +428,9 @@ class TestMimeTypeValidation:
         cross-type confusion attacks (e.g., HTML served as XML).
         """
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/xml"
+        mock_magic.from_string.return_value = "text/xml"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("data.xml", b"<root><item/></root>", text_types)
@@ -442,9 +442,9 @@ class TestMimeTypeValidation:
     def test_completely_wrong_mime_rejected(self, image_types):
         """Test that completely mismatched MIME types are rejected."""
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/html"
+        mock_magic.from_string.return_value = "text/html"
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 result = validator.validate("image.png", b"<html>not an image</html>", image_types)
@@ -1167,13 +1167,13 @@ class TestSecurityScenarios:
         and having it accepted as application/xml, which could lead to XSS.
         """
         mock_magic = MagicMock()
-        mock_magic.from_buffer.return_value = "text/xml"
+        mock_magic.from_string.return_value = "text/xml"
 
         text_types = [
             FileTypeConfig(extension="xml", mime_type="application/xml", max_size_mb=2.0),
         ]
 
-        with patch("eq_chatbot_core.security.file_validator.magic", mock_magic, create=True):
+        with patch("eq_chatbot_core.security.file_validator.puremagic", mock_magic, create=True):
             with patch("eq_chatbot_core.security.file_validator.MAGIC_AVAILABLE", True):
                 validator = FileValidator(use_magic=True)
                 content = b'<?xml version="1.0"?><html><body>XSS attempt</body></html>'

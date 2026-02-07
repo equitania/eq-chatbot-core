@@ -172,8 +172,8 @@ class ChatbotErrorHandler:
                     error_type="timeout_recovered",
                     user_message="",
                 )
-            except Exception:
-                pass  # Fall through to fallback
+            except Exception as retry_err:
+                logger.debug("Retry callback failed, falling through to fallback: %s", retry_err)
 
         # Try fallback provider
         fallback_result = self._try_fallback_provider(provider, context)

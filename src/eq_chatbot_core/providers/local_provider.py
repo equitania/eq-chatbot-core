@@ -10,6 +10,7 @@ making them interchangeable via the base_url parameter.
 """
 
 import json
+import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -24,6 +25,8 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class LocalLLMProvider(BaseLLMProvider):
@@ -410,7 +413,8 @@ class LocalLLMProvider(BaseLLMProvider):
         try:
             response = self.client.get("/models")
             return response.status_code == 200
-        except Exception:
+        except (httpx.HTTPError, ConnectionError, OSError, TimeoutError) as e:
+            logger.debug("Local server health check failed: %s", e)
             return False
 
     def __del__(self):

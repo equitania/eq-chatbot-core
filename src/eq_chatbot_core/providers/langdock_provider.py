@@ -1634,9 +1634,9 @@ class LangDockProvider(BaseLLMProvider):
 
             result.sort(key=lambda m: m.get("created") or "", reverse=True)
             return result
-        except Exception:
+        except (AttributeError, KeyError, TypeError) as e:
             # Fallback to known models if API doesn't support listing
-            _logger.warning("Anthropic model listing not supported, using known models")
+            _logger.warning("Anthropic model listing not supported, using known models: %s", e)
             return self._get_known_anthropic_models()
 
     def _get_known_anthropic_models(self) -> list[dict[str, Any]]:
@@ -1715,8 +1715,8 @@ class LangDockProvider(BaseLLMProvider):
                     }
                 )
             return result
-        except Exception:
-            _logger.warning("Agent model listing failed, returning empty list")
+        except (AttributeError, KeyError, TypeError, ConnectionError) as e:
+            _logger.warning("Agent model listing failed, returning empty list: %s", e)
             return []
 
     def _handle_error(self, error: Exception) -> ProviderError:
@@ -1782,8 +1782,8 @@ class LangDockProvider(BaseLLMProvider):
         if self._http_client is not None:
             try:
                 self._http_client.close()
-            except Exception:
-                pass
+            except (OSError, RuntimeError):
+                pass  # Ignore cleanup errors during interpreter shutdown
 
 
 # ============================================================================
@@ -1992,8 +1992,8 @@ class LangDockAgentManager:
         if self._client is not None:
             try:
                 self._client.close()
-            except Exception:
-                pass
+            except (OSError, RuntimeError):
+                pass  # Ignore cleanup errors during interpreter shutdown
 
 
 # ============================================================================
@@ -2127,5 +2127,5 @@ class LangDockKnowledgeManager:
         if self._client is not None:
             try:
                 self._client.close()
-            except Exception:
-                pass
+            except (OSError, RuntimeError):
+                pass  # Ignore cleanup errors during interpreter shutdown

@@ -64,7 +64,7 @@ class DocumentChunker:
 
                 self._encoder = tiktoken.get_encoding(self._encoding_name)
             except ImportError as e:
-                raise ImportError("tiktoken package not installed. " "Install with: pip install tiktoken") from e
+                raise ImportError("tiktoken package not installed. Install with: pip install tiktoken") from e
         return self._encoder
 
     def chunk_text(

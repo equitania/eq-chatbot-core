@@ -25,40 +25,41 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 dependencies = [
-    "openai>=1.58.0",
-    "anthropic>=0.42.0",
-    "qdrant-client>=1.12.0",
-    "tiktoken>=0.8.0",
+    "openai>=1.58.0,<3.0.0",
+    "anthropic>=0.42.0,<1.0.0",
+    "qdrant-client>=1.12.0,<2.0.0",
+    "tiktoken>=0.9.0,<1.0.0",
     "cryptography>=44.0.0",
-    "httpx>=0.27.0",
-    "pydantic>=2.10.0",
-    "click>=8.1.0",
+    "httpx>=0.27.0,<1.0.0",
+    "pydantic>=2.10.0,<3.0.0",
+    "click>=8.1.0,<9.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0",
-    "pytest-cov>=6.0.0",
-    "pytest-asyncio>=0.24.0",
+    "pytest>=8.0.0,<10.0.0",
+    "pytest-cov>=6.0.0,<8.0.0",
+    "pytest-asyncio>=0.24.0,<2.0.0",
     "python-dotenv>=1.0.0",  # For loading .env.test in tests
-    "ruff>=0.8.0",
-    "black>=24.0.0",
-    "mypy>=1.13.0",
+    "ruff>=0.12.0",
+    "mypy>=1.15.0",
+    "twine>=6.0.0",
     "pre-commit>=4.0.0",
 ]
 local = [
     "sentence-transformers>=2.2.0",  # For local embeddings
 ]
 security = [
-    "python-magic>=0.4.27",  # For MIME type verification in file uploads
+    "puremagic>=1.0",  # Pure Python MIME type verification (no libmagic dependency)
 ]
 pdf = [
-    "pymupdf>=1.24.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
+    "pymupdf>=1.25.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
 ]
 
 [project.scripts]
@@ -91,16 +92,15 @@ select = [
     "UP",   # pyupgrade
 ]
 ignore = [
-    "E501",  # line too long (handled by black)
+    "E501",  # line too long (handled by ruff format)
     "B008",  # do not perform function calls in argument defaults
 ]
 
 [tool.ruff.lint.isort]
 known-first-party = ["eq_chatbot_core"]
 
-[tool.black]
-line-length = 120
-target-version = ["py310", "py311", "py312"]
+[tool.ruff.format]
+line-ending = "auto"
 
 [tool.mypy]
 python_version = "3.10"

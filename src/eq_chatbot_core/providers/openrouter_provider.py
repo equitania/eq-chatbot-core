@@ -446,7 +446,7 @@ class OpenRouterProvider(BaseLLMProvider):
         try:
             error_data = error.response.json()
             message = error_data.get("error", {}).get("message", str(error))
-        except Exception:
+        except (ValueError, KeyError):
             message = str(error)
 
         if status == 429:

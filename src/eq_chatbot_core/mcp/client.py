@@ -15,10 +15,14 @@ References:
 """
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
 import queue
+import re
+import shutil
+import socket
 import threading
 import time
 from dataclasses import dataclass
@@ -28,6 +32,106 @@ from urllib.parse import urlparse
 from eq_chatbot_core.version import __version__
 
 logger = logging.getLogger(__name__)
+
+# Allowed commands for StdioMCPClient subprocess execution.
+# Only these binaries are permitted to prevent arbitrary command execution.
+ALLOWED_STDIO_COMMANDS = frozenset(
+    {
+        "python",
+        "python3",
+        "python3.10",
+        "python3.11",
+        "python3.12",
+        "python3.13",
+        "node",
+        "npx",
+        "uvx",
+        "uv",
+    }
+)
+
+# Shell metacharacters that are not allowed in stdio args
+_SHELL_META_RE = re.compile(r"[;|&`$(){}!\n\r]")
+
+
+def _validate_url(url: str) -> None:
+    """Validate a URL for SSRF protection.
+
+    Blocks private/reserved IP ranges and non-HTTP(S) schemes.
+    Localhost (127.0.0.1, ::1, localhost) is explicitly allowed for local development.
+
+    Args:
+        url: URL to validate
+
+    Raises:
+        ValueError: If the URL is invalid or targets a private network
+    """
+    parsed = urlparse(url)
+
+    # Only allow http/https schemes
+    if parsed.scheme not in ("http", "https"):
+        raise ValueError(f"URL scheme '{parsed.scheme}' not allowed. Use http or https.")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("URL must contain a valid hostname")
+
+    # Resolve hostname to check for private IPs
+    try:
+        addr_infos = socket.getaddrinfo(hostname, None)
+    except socket.gaierror:
+        # Cannot resolve - allow it (may be a valid host not resolvable from here)
+        return
+
+    for addr_info in addr_infos:
+        ip = ipaddress.ip_address(addr_info[4][0])
+        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+            # Allow localhost explicitly for local development
+            if hostname in ("localhost", "127.0.0.1", "::1"):
+                continue
+            raise ValueError(
+                f"URL resolves to private/reserved IP {ip}. "
+                "Internal network access is not allowed for security reasons."
+            )
+
+
+def _validate_stdio_command(command: str, args: list[str] | None = None) -> None:
+    """Validate command and args for StdioMCPClient.
+
+    Args:
+        command: Command binary name or path
+        args: Command arguments
+
+    Raises:
+        ValueError: If the command is not in the whitelist or args contain shell metacharacters
+    """
+    # Extract basename for whitelist check (handles full paths like /usr/bin/python3)
+    cmd_basename = os.path.basename(command)
+
+    if cmd_basename not in ALLOWED_STDIO_COMMANDS:
+        # Also check if the resolved path matches an allowed command
+        resolved = shutil.which(command)
+        if resolved:
+            resolved_basename = os.path.basename(resolved)
+            if resolved_basename not in ALLOWED_STDIO_COMMANDS:
+                raise ValueError(
+                    f"Command '{cmd_basename}' is not in the allowed list: "
+                    f"{sorted(ALLOWED_STDIO_COMMANDS)}. "
+                    "Only trusted runtimes are permitted for MCP subprocess execution."
+                )
+        else:
+            raise ValueError(
+                f"Command '{command}' not found or not in the allowed list: {sorted(ALLOWED_STDIO_COMMANDS)}"
+            )
+
+    # Validate args for shell metacharacters
+    if args:
+        for i, arg in enumerate(args):
+            if _SHELL_META_RE.search(arg):
+                raise ValueError(
+                    f"Argument {i} contains shell metacharacters: '{arg}'. "
+                    "Shell metacharacters are not allowed in MCP subprocess arguments."
+                )
 
 
 @dataclass
@@ -71,7 +175,11 @@ class MCPClient:
             base_url: MCP server base URL (e.g., http://localhost:8000)
             api_key: Optional API key for authentication
             timeout: Request timeout in seconds
+
+        Raises:
+            ValueError: If the URL scheme is not http/https or resolves to a private network
         """
+        _validate_url(base_url)
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
@@ -101,7 +209,7 @@ class MCPClient:
             try:
                 import httpx
             except ImportError as e:
-                raise ImportError("httpx package not installed. " "Install with: pip install httpx") from e
+                raise ImportError("httpx package not installed. Install with: pip install httpx") from e
 
             self._client = httpx.Client(
                 headers=self._get_headers(),
@@ -470,7 +578,11 @@ class StdioMCPClient:
             args: Command arguments (e.g., ["-m", "mcp_odoo"])
             env: Additional environment variables
             timeout: Request timeout in seconds
+
+        Raises:
+            ValueError: If the command is not in the whitelist or args contain shell metacharacters
         """
+        _validate_stdio_command(command, args)
         self.command = command
         self.args = args or []
         self.env = env or {}

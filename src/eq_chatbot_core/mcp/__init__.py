@@ -4,7 +4,12 @@ MCP (Model Context Protocol) client integration.
 Supports both SSE (HTTP) and stdio (subprocess) transport modes.
 """
 
-from eq_chatbot_core.mcp.client import MCPClient, MCPToolResult, StdioMCPClient
+from eq_chatbot_core.mcp.client import (
+    ALLOWED_STDIO_COMMANDS,
+    MCPClient,
+    MCPToolResult,
+    StdioMCPClient,
+)
 
 
 def get_mcp_client(
@@ -77,6 +82,7 @@ def get_mcp_client(
 
 
 __all__ = [
+    "ALLOWED_STDIO_COMMANDS",
     "MCPClient",
     "StdioMCPClient",
     "MCPToolResult",

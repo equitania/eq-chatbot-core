@@ -62,7 +62,7 @@ ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
     "--base-url",
     "-u",
     default=None,
-    help="Custom base URL for the provider. " "For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
+    help="Custom base URL for the provider. For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
 )
 def test_provider(provider: str, api_key: str | None, model: str | None, message: str, base_url: str | None) -> None:
     """Test connection to an LLM provider.

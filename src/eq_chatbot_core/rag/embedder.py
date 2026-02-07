@@ -60,7 +60,7 @@ class OpenAIEmbedder(BaseEmbedder):
         self._client: Any = None
 
         if model not in self.MODELS:
-            raise ValueError(f"Unknown model: {model}. " f"Available: {', '.join(self.MODELS.keys())}")
+            raise ValueError(f"Unknown model: {model}. Available: {', '.join(self.MODELS.keys())}")
 
     @property
     def dimensions(self) -> int:

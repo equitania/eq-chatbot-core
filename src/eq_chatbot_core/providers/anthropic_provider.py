@@ -291,8 +291,7 @@ class AnthropicProvider(BaseLLMProvider):
                 if self._should_retry_error(e) and attempt < self.OVERLOAD_MAX_RETRIES:
                     delay = self._get_retry_delay(attempt)
                     logger.warning(
-                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} "
-                        f"in {delay:.1f}s..."
+                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} in {delay:.1f}s..."
                     )
                     time.sleep(delay)
                     continue
@@ -446,8 +445,7 @@ class AnthropicProvider(BaseLLMProvider):
                 if self._should_retry_error(e) and attempt < self.OVERLOAD_MAX_RETRIES:
                     delay = self._get_retry_delay(attempt)
                     logger.warning(
-                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} "
-                        f"in {delay:.1f}s..."
+                        f"Anthropic API overloaded, retry {attempt + 1}/{self.OVERLOAD_MAX_RETRIES} in {delay:.1f}s..."
                     )
                     time.sleep(delay)
                     continue

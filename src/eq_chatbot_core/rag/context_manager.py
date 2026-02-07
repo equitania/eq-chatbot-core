@@ -66,8 +66,7 @@ class ContextWindowManager:
         """
         if history_ratio + rag_ratio > 1.0:
             raise ValueError(
-                f"history_ratio ({history_ratio}) + rag_ratio ({rag_ratio}) = "
-                f"{history_ratio + rag_ratio} exceeds 1.0"
+                f"history_ratio ({history_ratio}) + rag_ratio ({rag_ratio}) = {history_ratio + rag_ratio} exceeds 1.0"
             )
         if history_ratio < 0 or rag_ratio < 0:
             raise ValueError("history_ratio and rag_ratio must be non-negative")
@@ -102,7 +101,7 @@ class ContextWindowManager:
 
                 self._encoder = tiktoken.get_encoding("cl100k_base")
             except ImportError as e:
-                raise ImportError("tiktoken package not installed. " "Install with: pip install tiktoken") from e
+                raise ImportError("tiktoken package not installed. Install with: pip install tiktoken") from e
         return self._encoder
 
     def count_tokens(self, text: str) -> int:

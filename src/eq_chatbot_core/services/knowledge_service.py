@@ -182,7 +182,7 @@ class OdooSchemaGenerator:
 
 ## Overview
 You have access to structured data from Odoo ERP containing the following models:
-{', '.join(model_names)}
+{", ".join(model_names)}
 
 ## How to Search
 

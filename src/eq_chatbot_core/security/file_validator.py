@@ -14,9 +14,9 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
-# Try to import python-magic for MIME detection
+# Try to import puremagic for MIME detection (pure Python, no libmagic needed)
 try:
-    import magic
+    import puremagic
 
     MAGIC_AVAILABLE = True
 except ImportError:
@@ -81,7 +81,7 @@ class FileValidator:
         """Initialize the validator.
 
         Args:
-            use_magic: Whether to use python-magic for MIME detection.
+            use_magic: Whether to use puremagic for MIME detection.
                        Falls back to extension-based detection if unavailable.
         """
         self.use_magic = use_magic and MAGIC_AVAILABLE
@@ -186,10 +186,14 @@ class FileValidator:
             Tuple of (is_valid, error_message, detected_mime)
         """
         if not self.use_magic:
-            # Skip MIME verification if magic is not available
+            # Skip MIME verification if puremagic is not available
             return True, None, config.mime_type
 
-        detected = magic.from_buffer(content, mime=True)
+        try:
+            detected = puremagic.from_string(content, mime=True)
+        except puremagic.PureError:
+            # Cannot determine MIME type - treat as unknown
+            return False, "Could not determine MIME type of file", None
 
         # Allow some flexibility for related MIME types
         if detected == config.mime_type:
@@ -340,7 +344,7 @@ def create_validator(use_magic: bool = True) -> FileValidator:
     """Factory function to create a FileValidator instance.
 
     Args:
-        use_magic: Whether to use python-magic for MIME detection
+        use_magic: Whether to use puremagic for MIME detection
 
     Returns:
         Configured FileValidator instance
@@ -349,5 +353,5 @@ def create_validator(use_magic: bool = True) -> FileValidator:
 
 
 def is_magic_available() -> bool:
-    """Check if python-magic is available for MIME detection."""
+    """Check if puremagic is available for MIME detection."""
     return MAGIC_AVAILABLE
