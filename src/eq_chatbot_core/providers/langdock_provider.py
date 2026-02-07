@@ -576,13 +576,15 @@ class LangDockProvider(BaseLLMProvider):
                 if block.type == "text":
                     content += block.text
                 elif block.type == "tool_use":
+                    # Serialize tool input as JSON string for downstream compatibility
+                    arguments = json.dumps(block.input) if isinstance(block.input, dict) else str(block.input)
                     tool_calls.append(
                         {
                             "id": block.id,
                             "type": "function",
                             "function": {
                                 "name": block.name,
-                                "arguments": str(block.input),
+                                "arguments": arguments,
                             },
                         }
                     )

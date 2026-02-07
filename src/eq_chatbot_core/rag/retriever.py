@@ -2,8 +2,11 @@
 Qdrant-based document retrieval.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -76,10 +79,17 @@ class HybridRetriever:
         """
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
+        if not query or not query.strip():
+            return []
+
         top_k = top_k or self.top_k
 
         # Generate query embedding
-        query_embedding = self.embedder.embed(query)[0]
+        try:
+            query_embedding = self.embedder.embed(query)[0]
+        except Exception as e:
+            logger.error(f"Embedding generation failed: {e}")
+            raise RuntimeError(f"Failed to generate embedding for query: {e}") from e
 
         # Build Qdrant filter
         qdrant_filter = None
@@ -88,13 +98,17 @@ class HybridRetriever:
             qdrant_filter = Filter(must=conditions)
 
         # Search
-        results = self.client.search(
-            collection_name=self.collection,
-            query_vector=query_embedding.tolist(),
-            limit=top_k * 2 if self.rerank else top_k,
-            query_filter=qdrant_filter,
-            score_threshold=self.score_threshold,
-        )
+        try:
+            results = self.client.search(
+                collection_name=self.collection,
+                query_vector=query_embedding.tolist(),
+                limit=top_k * 2 if self.rerank else top_k,
+                query_filter=qdrant_filter,
+                score_threshold=self.score_threshold,
+            )
+        except Exception as e:
+            logger.error(f"Qdrant search failed for collection '{self.collection}': {e}")
+            raise ConnectionError(f"Vector database search failed: {e}") from e
 
         # Convert to RetrievalResult
         retrieval_results = [
@@ -151,7 +165,12 @@ class HybridRetriever:
         """
         from qdrant_client.models import Distance, VectorParams
 
-        collections = self.client.get_collections().collections
+        try:
+            collections = self.client.get_collections().collections
+        except Exception as e:
+            logger.error(f"Failed to list collections: {e}")
+            raise ConnectionError(f"Vector database connection failed: {e}") from e
+
         exists = any(c.name == self.collection for c in collections)
 
         if not exists:
@@ -187,6 +206,9 @@ class HybridRetriever:
 
         from qdrant_client.models import PointStruct
 
+        if not chunks:
+            return 0
+
         total = 0
 
         for i in range(0, len(chunks), batch_size):
@@ -194,7 +216,11 @@ class HybridRetriever:
 
             # Generate embeddings
             contents = [c["content"] for c in batch]
-            embeddings = self.embedder.embed(contents)
+            try:
+                embeddings = self.embedder.embed(contents)
+            except Exception as e:
+                logger.error(f"Embedding generation failed for batch {i // batch_size}: {e}")
+                raise RuntimeError(f"Failed to generate embeddings: {e}") from e
 
             # Create points
             points = [
@@ -210,10 +236,14 @@ class HybridRetriever:
                 for j in range(len(batch))
             ]
 
-            self.client.upsert(
-                collection_name=self.collection,
-                points=points,
-            )
+            try:
+                self.client.upsert(
+                    collection_name=self.collection,
+                    points=points,
+                )
+            except Exception as e:
+                logger.error(f"Qdrant upsert failed for batch {i // batch_size}: {e}")
+                raise ConnectionError(f"Vector database upsert failed: {e}") from e
 
             total += len(points)
 

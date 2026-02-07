@@ -4,6 +4,7 @@ Prompt injection detection and prevention.
 
 import html
 import re
+import unicodedata
 from re import Pattern
 
 # Known prompt injection patterns
@@ -66,8 +67,42 @@ INJECTION_PATTERNS: list[str] = [
     r"olvida\s+todo",
 ]
 
+# Zero-width and invisible Unicode characters to strip
+_ZERO_WIDTH_CHARS = re.compile(
+    "["
+    "\u200b"  # Zero Width Space
+    "\u200c"  # Zero Width Non-Joiner
+    "\u200d"  # Zero Width Joiner
+    "\u200e"  # Left-to-Right Mark
+    "\u200f"  # Right-to-Left Mark
+    "\u2060"  # Word Joiner
+    "\u2061"  # Function Application
+    "\u2062"  # Invisible Times
+    "\u2063"  # Invisible Separator
+    "\u2064"  # Invisible Plus
+    "\ufeff"  # Zero Width No-Break Space (BOM)
+    "\ufe0f"  # Variation Selector-16
+    "\ufe0e"  # Variation Selector-15
+    "]"
+)
+
 # Compiled patterns (lazy initialization)
 _compiled_patterns: list[Pattern[str]] | None = None
+
+
+def _normalize_text(text: str) -> str:
+    """Normalize text to prevent Unicode-based bypass attacks.
+
+    Applies NFKD normalization to convert homoglyphs (e.g., Cyrillic 'а' -> ASCII 'a')
+    and strips zero-width/invisible characters that could break pattern matching.
+    """
+    # Strip zero-width and invisible characters
+    text = _ZERO_WIDTH_CHARS.sub("", text)
+    # NFKD normalization decomposes characters and maps compatibility equivalents
+    text = unicodedata.normalize("NFKD", text)
+    # Remove combining marks (diacritics) left after NFKD decomposition
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    return text
 
 
 def _get_patterns() -> list[Pattern[str]]:
@@ -84,6 +119,9 @@ def detect_injection(text: str) -> tuple[bool, str | None]:
     """
     Detect potential prompt injection attempts.
 
+    Applies Unicode normalization before pattern matching to prevent
+    bypass attacks using homoglyphs or invisible characters.
+
     Args:
         text: User input to check
 
@@ -92,8 +130,11 @@ def detect_injection(text: str) -> tuple[bool, str | None]:
         - is_suspicious: True if injection attempt detected
         - matched_pattern: The matched text (for logging)
     """
+    # Normalize to prevent Unicode bypass attacks
+    normalized = _normalize_text(text)
+
     for pattern in _get_patterns():
-        match = pattern.search(text)
+        match = pattern.search(normalized)
         if match:
             return True, match.group()
 
@@ -226,11 +267,14 @@ def get_injection_risk_score(text: str) -> float:
     if not text:
         return 0.0
 
+    # Normalize to prevent Unicode bypass attacks
+    normalized = _normalize_text(text)
+
     score = 0.0
     matches = 0
 
     for pattern in _get_patterns():
-        if pattern.search(text):
+        if pattern.search(normalized):
             matches += 1
 
     if matches == 0:

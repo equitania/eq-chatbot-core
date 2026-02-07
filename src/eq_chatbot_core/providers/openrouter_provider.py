@@ -240,7 +240,7 @@ class OpenRouterProvider(BaseLLMProvider):
                     try:
                         chunk_data = json.loads(line)
                     except json.JSONDecodeError:
-                        _logger.debug(f"Skipping non-JSON line: {line[:100]}")
+                        _logger.warning(f"Failed to parse SSE chunk: {line[:200]}")
                         continue
 
                     # Check for usage data

@@ -195,11 +195,12 @@ class FileValidator:
         if detected == config.mime_type:
             return True, None, detected
 
-        # Handle common variations
+        # Handle common variations - only within the same type category
+        # to prevent cross-type confusion attacks (e.g., HTML served as XML)
         mime_aliases = {
-            "text/plain": ["text/csv", "application/csv"],
+            "text/csv": ["application/csv"],
+            "text/plain": ["application/csv"],  # CSV files may detect as text/plain
             "image/jpeg": ["image/jpg"],
-            "application/xml": ["text/xml"],
             "application/json": ["text/json"],
         }
 
@@ -207,7 +208,7 @@ class FileValidator:
         if expected in mime_aliases and detected in mime_aliases[expected]:
             return True, None, detected
 
-        # Reverse check
+        # Reverse check - only within same-category aliases
         for primary, aliases in mime_aliases.items():
             if expected in aliases and detected == primary:
                 return True, None, detected

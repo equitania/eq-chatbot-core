@@ -64,6 +64,14 @@ class ContextWindowManager:
             history_ratio: Ratio of available tokens for history
             rag_ratio: Ratio of available tokens for RAG context
         """
+        if history_ratio + rag_ratio > 1.0:
+            raise ValueError(
+                f"history_ratio ({history_ratio}) + rag_ratio ({rag_ratio}) = "
+                f"{history_ratio + rag_ratio} exceeds 1.0"
+            )
+        if history_ratio < 0 or rag_ratio < 0:
+            raise ValueError("history_ratio and rag_ratio must be non-negative")
+
         self.model = model
         self.max_tokens = self._get_model_limit(model)
         self.max_response = max_response_tokens

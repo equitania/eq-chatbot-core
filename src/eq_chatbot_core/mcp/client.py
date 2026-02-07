@@ -82,6 +82,7 @@ class MCPClient:
         self._request_id = 0
         self._pending_requests: dict[int, queue.Queue] = {}
         self._lock = threading.Lock()
+        self._pending_lock = threading.Lock()
         self._connected = threading.Event()
         self._stop_event = threading.Event()
         self._initialized = False
@@ -111,15 +112,16 @@ class MCPClient:
 
     def _start_sse_listener(self) -> None:
         """Start SSE listener thread."""
-        if self._sse_thread is not None and self._sse_thread.is_alive():
-            return
+        with self._lock:
+            if self._sse_thread is not None and self._sse_thread.is_alive():
+                return
 
-        self._stop_event.clear()
-        self._connected.clear()
-        self._sse_thread = threading.Thread(target=self._sse_listener_loop, daemon=True)
-        self._sse_thread.start()
+            self._stop_event.clear()
+            self._connected.clear()
+            self._sse_thread = threading.Thread(target=self._sse_listener_loop, daemon=True)
+            self._sse_thread.start()
 
-        # Wait for connection and endpoint event
+        # Wait for connection and endpoint event (outside lock to avoid deadlock)
         if not self._connected.wait(timeout=self.timeout):
             sse_url = self.base_url if self.base_url.endswith("/sse") else f"{self.base_url}/sse"
             raise TimeoutError(f"Failed to connect to MCP server at {sse_url} within {self.timeout}s")
@@ -210,10 +212,11 @@ class MCPClient:
                 response = json.loads(data)
                 request_id = response.get("id")
 
-                if request_id is not None and request_id in self._pending_requests:
-                    self._pending_requests[request_id].put(response)
-                else:
-                    logger.warning(f"Received response for unknown request: {request_id}")
+                with self._pending_lock:
+                    if request_id is not None and request_id in self._pending_requests:
+                        self._pending_requests[request_id].put(response)
+                    else:
+                        logger.warning(f"Received response for unknown request: {request_id}")
 
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse SSE message: {e}")
@@ -254,7 +257,8 @@ class MCPClient:
 
         # Create response queue for this request
         response_queue: queue.Queue = queue.Queue()
-        self._pending_requests[request_id] = response_queue
+        with self._pending_lock:
+            self._pending_requests[request_id] = response_queue
 
         try:
             # Send request via POST
@@ -281,7 +285,8 @@ class MCPClient:
 
         finally:
             # Cleanup
-            del self._pending_requests[request_id]
+            with self._pending_lock:
+                self._pending_requests.pop(request_id, None)
 
     def connect(self) -> None:
         """
@@ -653,7 +658,20 @@ class StdioMCPClient:
         Returns:
             MCPToolResult with execution results
         """
-        return asyncio.get_event_loop().run_until_complete(self.call_tool_async(tool_name, arguments))
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            # Already in an async context - create a new thread to avoid blocking
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, self.call_tool_async(tool_name, arguments))
+                return future.result()
+        else:
+            return asyncio.run(self.call_tool_async(tool_name, arguments))
 
     async def list_tools_async(self) -> list[dict[str, Any]]:
         """
@@ -680,7 +698,19 @@ class StdioMCPClient:
         Returns:
             List of tool definitions
         """
-        return asyncio.get_event_loop().run_until_complete(self.list_tools_async())
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                future = pool.submit(asyncio.run, self.list_tools_async())
+                return future.result()
+        else:
+            return asyncio.run(self.list_tools_async())
 
     def get_tool_schema(self, tool_name: str) -> dict[str, Any] | None:
         """
@@ -703,7 +733,18 @@ class StdioMCPClient:
     def close(self) -> None:
         """Close the subprocess (synchronous wrapper)."""
         if self._process is not None:
-            asyncio.get_event_loop().run_until_complete(self.stop())
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+
+            if loop and loop.is_running():
+                import concurrent.futures
+
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    pool.submit(asyncio.run, self.stop()).result()
+            else:
+                asyncio.run(self.stop())
 
     async def __aenter__(self):
         await self.start()
@@ -713,7 +754,18 @@ class StdioMCPClient:
         await self.stop()
 
     def __enter__(self):
-        asyncio.get_event_loop().run_until_complete(self.start())
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+
+        if loop and loop.is_running():
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                pool.submit(asyncio.run, self.start()).result()
+        else:
+            asyncio.run(self.start())
         return self
 
     def __exit__(self, *args):

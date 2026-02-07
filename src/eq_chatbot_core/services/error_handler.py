@@ -57,6 +57,21 @@ class ErrorResult:
     """Original error message (for logging)."""
 
 
+# Default error messages (German). Override via messages parameter in constructor.
+DEFAULT_ERROR_MESSAGES: dict[str, str] = {
+    "timeout": "Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es erneut.",
+    "rate_limit": "Der Service ist momentan überlastet. Bitte versuchen Sie es in {wait_time} Sekunden erneut.",
+    "auth_error": "Es gibt ein Konfigurationsproblem. Bitte kontaktieren Sie den Administrator.",
+    "token_limit": (
+        "Die Nachricht oder der Kontext ist zu lang. "
+        "Bitte kürzen Sie Ihre Nachricht oder starten Sie eine neue Session."
+    ),
+    "generic_error": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.",
+    "no_fallback": "Kein Fallback-Provider verfügbar.",
+    "all_fallbacks_failed": "Alle Dienste sind momentan nicht erreichbar.",
+}
+
+
 class ChatbotErrorHandler:
     """
     Centralized error handling with retry and fallback logic.
@@ -64,7 +79,7 @@ class ChatbotErrorHandler:
     Handles:
     - LLM provider errors (timeout, rate limit, auth)
     - Provider fallback chains
-    - User-friendly error messages
+    - User-friendly error messages (configurable language)
     """
 
     # Fallback chains by provider
@@ -78,6 +93,7 @@ class ChatbotErrorHandler:
         self,
         get_provider_fn: Callable[[str], Any] | None = None,
         log_fn: Callable[[str, str, dict], None] | None = None,
+        messages: dict[str, str] | None = None,
     ):
         """
         Initialize error handler.
@@ -85,9 +101,11 @@ class ChatbotErrorHandler:
         Args:
             get_provider_fn: Function to get provider by name
             log_fn: Function to log errors (event_type, severity, details)
+            messages: Custom error messages (overrides defaults per key)
         """
         self.get_provider = get_provider_fn
         self.log_fn = log_fn
+        self.messages = {**DEFAULT_ERROR_MESSAGES, **(messages or {})}
 
     def handle_llm_error(
         self,
@@ -132,12 +150,17 @@ class ChatbotErrorHandler:
         context: dict[str, Any],
         retry_callback: Callable[[dict], Any] | None,
     ) -> ErrorResult:
-        """Handle timeout with exponential backoff retry."""
+        """Handle timeout with exponential backoff retry and jitter."""
+        import random
+
         retry_count = context.get("retry_count", 0)
 
         if retry_count < 2 and retry_callback:
-            wait_time = 2**retry_count  # 1s, 2s
-            logger.warning(f"LLM timeout, retry {retry_count + 1}/2 after {wait_time}s")
+            base_wait = 2**retry_count  # 1s, 2s
+            # Add jitter (±25%) to prevent thundering herd
+            jitter = base_wait * 0.25 * (2 * random.random() - 1)
+            wait_time = base_wait + jitter
+            logger.warning(f"LLM timeout, retry {retry_count + 1}/2 after {wait_time:.1f}s")
             time.sleep(wait_time)
 
             context["retry_count"] = retry_count + 1
@@ -160,7 +183,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="timeout",
-            user_message="Die Anfrage hat zu lange gedauert. Bitte versuchen Sie es erneut.",
+            user_message=self.messages["timeout"],
             original_error=str(error),
         )
 
@@ -184,9 +207,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="rate_limit",
-            user_message=(
-                f"Der Service ist momentan überlastet. " f"Bitte versuchen Sie es in {wait_time} Sekunden erneut."
-            ),
+            user_message=self.messages["rate_limit"].format(wait_time=wait_time),
             retry_after=wait_time,
             original_error=str(error),
         )
@@ -209,7 +230,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="configuration",
-            user_message=("Es gibt ein Konfigurationsproblem. " "Bitte kontaktieren Sie den Administrator."),
+            user_message=self.messages["auth_error"],
             original_error=str(error),
         )
 
@@ -218,10 +239,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="token_limit",
-            user_message=(
-                "Die Nachricht oder der Kontext ist zu lang. "
-                "Bitte kürzen Sie Ihre Nachricht oder starten Sie eine neue Session."
-            ),
+            user_message=self.messages["token_limit"],
             original_error=str(error),
         )
 
@@ -241,7 +259,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="unknown",
-            user_message=("Ein unerwarteter Fehler ist aufgetreten. " "Bitte versuchen Sie es später erneut."),
+            user_message=self.messages["generic_error"],
             original_error=str(error),
         )
 
@@ -255,7 +273,7 @@ class ChatbotErrorHandler:
             return ErrorResult(
                 success=False,
                 error_type="no_fallback",
-                user_message="Kein Fallback-Provider verfügbar.",
+                user_message=self.messages["no_fallback"],
             )
 
         fallbacks = self.FALLBACK_CHAINS.get(failed_provider, [])
@@ -278,7 +296,7 @@ class ChatbotErrorHandler:
         return ErrorResult(
             success=False,
             error_type="all_fallbacks_failed",
-            user_message="Alle Dienste sind momentan nicht erreichbar.",
+            user_message=self.messages["all_fallbacks_failed"],
         )
 
     def _extract_retry_after(self, error: Exception) -> int | None:

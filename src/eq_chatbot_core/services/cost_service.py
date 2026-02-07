@@ -13,18 +13,23 @@ class ModelPricing(TypedDict):
 
 
 # Pricing table (USD per 1K tokens)
-# Last updated: December 2024
+# Last updated: February 2025
 PRICING: dict[str, ModelPricing] = {
-    # OpenAI
+    # OpenAI - GPT series
     "gpt-4-turbo": {"input": 0.01, "output": 0.03},
-    "gpt-4o": {"input": 0.005, "output": 0.015},
+    "gpt-4o": {"input": 0.0025, "output": 0.01},
     "gpt-4o-mini": {"input": 0.00015, "output": 0.0006},
     "gpt-4": {"input": 0.03, "output": 0.06},
+    # OpenAI - o-series reasoning models
     "o1": {"input": 0.015, "output": 0.06},
     "o1-mini": {"input": 0.003, "output": 0.012},
     "o1-preview": {"input": 0.015, "output": 0.06},
+    "o3": {"input": 0.01, "output": 0.04},
     "o3-mini": {"input": 0.0011, "output": 0.0044},
-    # Anthropic
+    # Anthropic - Claude 4.x / 3.5 series
+    "claude-sonnet-4-5": {"input": 0.003, "output": 0.015},
+    "claude-haiku-4-5": {"input": 0.001, "output": 0.005},
+    "claude-opus-4": {"input": 0.015, "output": 0.075},
     "claude-3-5-sonnet-latest": {"input": 0.003, "output": 0.015},
     "claude-3-5-sonnet-20241022": {"input": 0.003, "output": 0.015},
     "claude-3-5-haiku-latest": {"input": 0.001, "output": 0.005},
@@ -60,12 +65,13 @@ def calculate_cost(
     # Try exact match
     pricing = PRICING.get(model)
 
-    # Try prefix match if no exact match
+    # Try longest-prefix match if no exact match
     if pricing is None:
+        best_match_len = 0
         for key, p in PRICING.items():
-            if model.startswith(key):
+            if model.startswith(key) and len(key) > best_match_len:
                 pricing = p
-                break
+                best_match_len = len(key)
 
     # Use default if still not found
     if pricing is None:
@@ -114,8 +120,13 @@ def get_model_pricing(model: str) -> ModelPricing:
     pricing = PRICING.get(model)
 
     if pricing is None:
+        best_match_len = 0
+        best_match: ModelPricing | None = None
         for key, p in PRICING.items():
-            if model.startswith(key):
-                return p
+            if model.startswith(key) and len(key) > best_match_len:
+                best_match = p
+                best_match_len = len(key)
+        if best_match is not None:
+            return best_match
 
     return pricing or DEFAULT_PRICING

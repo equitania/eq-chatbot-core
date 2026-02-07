@@ -82,6 +82,9 @@ class DocumentChunker:
         Yields:
             Chunk objects with content and metadata
         """
+        if not text or not text.strip():
+            return
+
         if metadata is None:
             metadata = {}
 
@@ -121,7 +124,9 @@ class DocumentChunker:
             )
 
             chunk_index += 1
-            start = end - self.chunk_overlap
+            # Ensure start advances by at least 1 to prevent infinite loop
+            # when chunk_overlap >= chunk_size
+            start = max(end - self.chunk_overlap, start + 1)
 
     def _adjust_to_sentence_boundary(self, text: str) -> str:
         """
