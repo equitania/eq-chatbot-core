@@ -83,3 +83,5 @@ Thumbs.db
 .env.local
 .env.test
 tests/.env.test
+tests/reports/test-report-*.md
+!tests/reports/latest.md

@@ -6,9 +6,15 @@ This module provides:
 - Provider-specific fixtures for cloud and local LLM testing
 - Mock fixtures for unit tests
 - Skip markers for conditional test execution
+- Markdown test report generation (auto-generated on every run)
 """
 
 import os
+import platform
+import shutil
+import sys
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
@@ -330,3 +336,398 @@ def pytest_collection_modifyitems(config, items):
         # Skip expensive tests in CI environments
         if "expensive" in item.keywords and os.getenv("CI"):
             item.add_marker(pytest.mark.skip(reason="Expensive tests skipped in CI"))
+
+
+# =============================================================================
+# Markdown Test Report Generator
+# =============================================================================
+
+# Store session start time
+_session_start_time = None
+
+
+def _get_version() -> str:
+    """Read version from eq_chatbot_core."""
+    try:
+        from eq_chatbot_core.version import __version__
+
+        return __version__
+    except ImportError:
+        return "unknown"
+
+
+def _get_test_category(nodeid: str, markers: list[str]) -> str:
+    """Determine test category from markers or path."""
+    if "integration" in markers:
+        return "integration"
+    if "local" in markers:
+        return "local"
+    if "unit" in markers:
+        return "unit"
+    # Fallback: infer from path
+    if "/integration/" in nodeid or "integration" in nodeid:
+        return "integration"
+    if "/local/" in nodeid or "local" in nodeid:
+        return "local"
+    return "unit"
+
+
+# Module-to-group mapping for report structure
+_MODULE_GROUPS = {
+    "OpenAI": {
+        "label": "Provider: OpenAI",
+        "modules": ["test_openai", "test_openai_live"],
+    },
+    "Anthropic": {
+        "label": "Provider: Anthropic",
+        "modules": ["test_anthropic", "test_anthropic_live"],
+    },
+    "LangDock": {
+        "label": "Provider: LangDock",
+        "modules": ["test_langdock", "test_langdock_live"],
+    },
+    "OpenRouter": {
+        "label": "Provider: OpenRouter",
+        "modules": ["test_openrouter", "test_openrouter_live"],
+    },
+    "Local": {
+        "label": "Provider: Local (LM Studio / Ollama)",
+        "modules": ["test_local", "test_local_live"],
+    },
+    "Security": {
+        "label": "Security",
+        "modules": ["test_encryption", "test_injection", "test_rate_limit", "test_file_validator"],
+    },
+    "RAG": {
+        "label": "RAG Pipeline",
+        "modules": ["test_chunker", "test_retriever", "test_context_manager", "test_knowledge_service"],
+    },
+    "Services": {
+        "label": "Services & Core",
+        "modules": ["test_cost_service", "test_error_handler", "test_factory", "test_exceptions"],
+    },
+    "MCP": {
+        "label": "MCP Client",
+        "modules": ["test_mcp", "test_mcp_live"],
+    },
+}
+
+
+def _get_module_group(nodeid: str) -> str:
+    """Determine module group from test file name."""
+    # Extract filename without extension from nodeid
+    # e.g. "tests/unit/test_openai.py::TestClass::test_method" -> "test_openai"
+    parts = nodeid.split("::")
+    filepath = parts[0]  # "tests/unit/test_openai.py"
+    filename = filepath.rsplit("/", 1)[-1].replace(".py", "")  # "test_openai"
+
+    for group_key, group_info in _MODULE_GROUPS.items():
+        if filename in group_info["modules"]:
+            return group_key
+    return "Other"
+
+
+def _format_duration(seconds: float) -> str:
+    """Format duration as human-readable string."""
+    if seconds < 0.01:
+        return "<0.01s"
+    return f"{seconds:.2f}s"
+
+
+def _escape_md(text: str) -> str:
+    """Escape pipe characters for Markdown table cells."""
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _short_nodeid(nodeid: str) -> str:
+    """Shorten nodeid by removing common prefixes."""
+    # Remove tests/ prefix for brevity
+    if nodeid.startswith("tests/"):
+        return nodeid[6:]
+    return nodeid
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Collect test results for Markdown report generation."""
+    outcome = yield
+    report = outcome.get_result()
+
+    # Only process the 'call' phase (not setup/teardown) for pass/fail
+    # but also capture 'setup' phase for skip (skips happen during setup)
+    if report.when == "call" or (report.when == "setup" and report.skipped):
+        results = getattr(item.config, "_md_report_results", None)
+        if results is None:
+            item.config._md_report_results = []
+            results = item.config._md_report_results
+
+        # Determine outcome
+        test_outcome = report.outcome  # "passed", "failed", "skipped"
+
+        # Check for xfail
+        wasxfail = getattr(report, "wasxfail", "")
+        if wasxfail:
+            test_outcome = "xfailed"
+
+        # Extract skip reason
+        skip_reason = ""
+        if report.skipped:
+            if hasattr(report, "longrepr") and isinstance(report.longrepr, tuple):
+                skip_reason = str(report.longrepr[2]) if len(report.longrepr) > 2 else ""
+            elif wasxfail:
+                skip_reason = wasxfail
+
+        # Extract error message for failures
+        error_msg = ""
+        if report.failed and report.longrepr:
+            longrepr_str = str(report.longrepr)
+            # Take last line (usually the assertion error)
+            lines = longrepr_str.strip().split("\n")
+            error_msg = lines[-1].strip() if lines else longrepr_str[:200]
+
+        # Collect markers
+        markers = [m.name for m in item.iter_markers()]
+
+        results.append(
+            {
+                "nodeid": item.nodeid,
+                "outcome": test_outcome,
+                "duration": getattr(report, "duration", 0.0),
+                "skip_reason": skip_reason,
+                "error_msg": error_msg,
+                "markers": markers,
+                "category": _get_test_category(item.nodeid, markers),
+                "group": _get_module_group(item.nodeid),
+            }
+        )
+
+
+def pytest_sessionstart(session):
+    """Record session start time."""
+    global _session_start_time
+    _session_start_time = time.time()
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config):
+    """Generate Markdown test report at end of test session."""
+    results = getattr(config, "_md_report_results", [])
+    if not results:
+        return
+
+    global _session_start_time
+    total_duration = time.time() - _session_start_time if _session_start_time else 0.0
+
+    # Prepare report directory
+    report_dir = Path(__file__).parent / "reports"
+    report_dir.mkdir(exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    report_path = report_dir / f"test-report-{timestamp}.md"
+    latest_path = report_dir / "latest.md"
+
+    # Count results by outcome
+    counts = {"passed": 0, "failed": 0, "skipped": 0, "xfailed": 0, "error": 0}
+    for r in results:
+        outcome = r["outcome"]
+        if outcome in counts:
+            counts[outcome] += 1
+        else:
+            counts["error"] += 1
+
+    total = sum(counts.values())
+    version = _get_version()
+
+    # Build Markdown content
+    lines = []
+
+    # Overall result line
+    if counts["failed"] > 0 or counts["error"] > 0:
+        result_text = f"FAILED - {counts['failed']} failure(s), {counts['error']} error(s)"
+    else:
+        result_text = f"ALL PASSED - {counts['passed']} tests OK"
+        if counts["xfailed"] > 0:
+            result_text += f", {counts['xfailed']} expected failures"
+        if counts["skipped"] > 0:
+            result_text += f", {counts['skipped']} skipped"
+
+    report_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Header with date
+    lines.append(f"# Test Report - {report_date}")
+    lines.append("")
+    lines.append(f"**eq_chatbot_core v{version}** | {_format_duration(total_duration)} | "
+                 f"Python {platform.python_version()} | {platform.platform()}")
+    lines.append("")
+    lines.append(f"> **Result: {result_text}**")
+    lines.append("")
+    lines.append(f"Command: `{' '.join(sys.argv)}`")
+    lines.append("")
+
+    # Summary table
+    lines.append("## Summary")
+    lines.append("")
+    lines.append("| Status | Count |")
+    lines.append("|--------|-------|")
+
+    status_labels = {
+        "passed": "Passed",
+        "failed": "Failed",
+        "skipped": "Skipped",
+        "xfailed": "XFailed (expected)",
+        "error": "Error",
+    }
+    for status, label in status_labels.items():
+        count = counts[status]
+        if count > 0 or status in ("passed", "failed"):
+            lines.append(f"| {label} | {count} |")
+    lines.append(f"| **Total** | **{total}** |")
+    lines.append("")
+
+    # Failed tests section
+    failed = [r for r in results if r["outcome"] == "failed"]
+    if failed:
+        lines.append("## Failed Tests")
+        lines.append("")
+        lines.append("| Test | Error |")
+        lines.append("|------|-------|")
+        for r in failed:
+            nodeid = _escape_md(_short_nodeid(r["nodeid"]))
+            error = _escape_md(r["error_msg"][:200])
+            lines.append(f"| `{nodeid}` | {error} |")
+        lines.append("")
+
+    # Skipped tests section
+    skipped = [r for r in results if r["outcome"] == "skipped"]
+    if skipped:
+        lines.append("## Skipped Tests")
+        lines.append("")
+        lines.append("| Test | Reason |")
+        lines.append("|------|--------|")
+        for r in skipped:
+            nodeid = _escape_md(_short_nodeid(r["nodeid"]))
+            reason = _escape_md(r["skip_reason"]) or "No reason given"
+            lines.append(f"| `{nodeid}` | {reason} |")
+        lines.append("")
+
+    # Module group overview table
+    lines.append("## Results by Module")
+    lines.append("")
+    lines.append("| Module | Passed | Failed | Skipped | XFailed | Total | Duration |")
+    lines.append("|--------|--------|--------|---------|---------|-------|----------|")
+
+    # Build group stats - ordered by _MODULE_GROUPS definition
+    all_group_keys = list(_MODULE_GROUPS.keys())
+    # Add "Other" if there are ungrouped tests
+    if any(r["group"] == "Other" for r in results):
+        all_group_keys.append("Other")
+
+    for group_key in all_group_keys:
+        group_results = [r for r in results if r["group"] == group_key]
+        if not group_results:
+            continue
+
+        label = _MODULE_GROUPS[group_key]["label"] if group_key in _MODULE_GROUPS else "Other"
+        g_passed = sum(1 for r in group_results if r["outcome"] == "passed")
+        g_failed = sum(1 for r in group_results if r["outcome"] == "failed")
+        g_skipped = sum(1 for r in group_results if r["outcome"] == "skipped")
+        g_xfailed = sum(1 for r in group_results if r["outcome"] == "xfailed")
+        g_total = len(group_results)
+        g_duration = sum(r["duration"] for r in group_results)
+
+        # Mark failed groups
+        status_marker = " **!!**" if g_failed > 0 else ""
+        lines.append(
+            f"| **{label}**{status_marker} | {g_passed} | {g_failed} | "
+            f"{g_skipped} | {g_xfailed} | {g_total} | {_format_duration(g_duration)} |"
+        )
+
+    lines.append("")
+
+    # Detailed results by module group, then by category
+    lines.append("## Detailed Results")
+    lines.append("")
+
+    categories = {"unit": "Unit Tests", "integration": "Integration Tests", "local": "Local Server Tests"}
+
+    for cat_key, cat_label in categories.items():
+        cat_results = [r for r in results if r["category"] == cat_key]
+        if not cat_results:
+            continue
+
+        cat_passed = sum(1 for r in cat_results if r["outcome"] == "passed")
+        cat_failed = sum(1 for r in cat_results if r["outcome"] == "failed")
+        cat_skipped = sum(1 for r in cat_results if r["outcome"] == "skipped")
+        cat_xfailed = sum(1 for r in cat_results if r["outcome"] == "xfailed")
+
+        parts = []
+        if cat_passed:
+            parts.append(f"{cat_passed} passed")
+        if cat_failed:
+            parts.append(f"{cat_failed} failed")
+        if cat_skipped:
+            parts.append(f"{cat_skipped} skipped")
+        if cat_xfailed:
+            parts.append(f"{cat_xfailed} xfailed")
+
+        lines.append(f"### {cat_label} ({', '.join(parts)})")
+        lines.append("")
+
+        # Sub-group by module group within this category
+        for group_key in all_group_keys:
+            group_info = _MODULE_GROUPS.get(group_key, {"label": "Other"})
+            group_cat_results = [r for r in cat_results if r["group"] == group_key]
+            if not group_cat_results:
+                continue
+
+            gp = sum(1 for r in group_cat_results if r["outcome"] == "passed")
+            gf = sum(1 for r in group_cat_results if r["outcome"] == "failed")
+            gs = sum(1 for r in group_cat_results if r["outcome"] == "skipped")
+            gx = sum(1 for r in group_cat_results if r["outcome"] == "xfailed")
+            g_dur = sum(r["duration"] for r in group_cat_results)
+
+            sub_parts = []
+            if gp:
+                sub_parts.append(f"{gp} passed")
+            if gf:
+                sub_parts.append(f"{gf} failed")
+            if gs:
+                sub_parts.append(f"{gs} skipped")
+            if gx:
+                sub_parts.append(f"{gx} xfailed")
+
+            lines.append(f"#### {group_info['label']} ({', '.join(sub_parts)}) - {_format_duration(g_dur)}")
+            lines.append("")
+
+            has_details = any(r["skip_reason"] or r["error_msg"] for r in group_cat_results)
+
+            if has_details:
+                lines.append("| Test | Status | Duration | Detail |")
+                lines.append("|------|--------|----------|--------|")
+            else:
+                lines.append("| Test | Status | Duration |")
+                lines.append("|------|--------|----------|")
+
+            for r in group_cat_results:
+                nodeid = _escape_md(_short_nodeid(r["nodeid"]))
+                status = r["outcome"].upper()
+                duration = _format_duration(r["duration"]) if r["outcome"] != "skipped" else "-"
+                detail = _escape_md(r["skip_reason"] or r["error_msg"])
+
+                if has_details:
+                    lines.append(f"| `{nodeid}` | {status} | {duration} | {detail} |")
+                else:
+                    lines.append(f"| `{nodeid}` | {status} | {duration} |")
+
+            lines.append("")
+
+    # Write report
+    report_content = "\n".join(lines)
+    report_path.write_text(report_content, encoding="utf-8")
+
+    # Copy to latest.md
+    shutil.copy2(report_path, latest_path)
+
+    # Print path in terminal
+    terminalreporter.write_sep("=", "Markdown Test Report")
+    terminalreporter.write_line(f"Report: {report_path}")
+    terminalreporter.write_line(f"Latest: {latest_path}")
