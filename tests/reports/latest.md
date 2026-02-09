@@ -1,10 +1,10 @@
-# Test Report - 2026-02-07 11:51:49
+# Test Report - 2026-02-09 11:50:51
 
-**eq_chatbot_core v0.15.0** | 2.63s | Python 3.13.2 | macOS-26.2-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v0.15.0** | 3.36s | Python 3.13.2 | macOS-26.2-arm64-arm-64bit-Mach-O
 
 > **Result: ALL PASSED - 940 tests OK, 5 expected failures**
 
-Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/ -q --tb=short`
+Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.13/site-packages/pytest/__main__.py tests/unit/ -v --tb=short`
 
 ## Summary
 
@@ -19,13 +19,13 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 
 | Module | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|--------|--------|---------|---------|-------|----------|
-| **Provider: OpenAI** | 38 | 0 | 0 | 0 | 38 | <0.01s |
+| **Provider: OpenAI** | 38 | 0 | 0 | 0 | 38 | 0.01s |
 | **Provider: Anthropic** | 43 | 0 | 0 | 0 | 43 | <0.01s |
-| **Provider: LangDock** | 56 | 0 | 0 | 0 | 56 | 0.01s |
+| **Provider: LangDock** | 56 | 0 | 0 | 0 | 56 | 0.02s |
 | **Provider: OpenRouter** | 31 | 0 | 0 | 0 | 31 | <0.01s |
 | **Provider: Local (LM Studio / Ollama)** | 32 | 0 | 0 | 0 | 32 | 0.01s |
-| **Security** | 410 | 0 | 0 | 5 | 415 | 0.04s |
-| **RAG Pipeline** | 116 | 0 | 0 | 0 | 116 | 0.36s |
+| **Security** | 410 | 0 | 0 | 5 | 415 | 0.05s |
+| **RAG Pipeline** | 116 | 0 | 0 | 0 | 116 | 0.78s |
 | **Services & Core** | 134 | 0 | 0 | 0 | 134 | 0.01s |
 | **MCP Client** | 80 | 0 | 0 | 0 | 80 | 1.55s |
 
@@ -33,7 +33,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 
 ### Unit Tests (940 passed, 5 xfailed)
 
-#### Provider: OpenAI (38 passed) - <0.01s
+#### Provider: OpenAI (38 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -124,7 +124,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_no_temperature_models` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_repr` | PASSED | <0.01s |
 
-#### Provider: LangDock (56 passed) - 0.01s
+#### Provider: LangDock (56 passed) - 0.02s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -258,7 +258,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (410 passed, 5 xfailed) - 0.04s
+#### Security (410 passed, 5 xfailed) - 0.05s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -678,7 +678,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.36s
+#### RAG Pipeline (116 passed) - 0.78s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -755,7 +755,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.35s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.76s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -942,7 +942,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 
 | Test | Status | Duration |
 |------|--------|----------|
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | 0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |
@@ -957,12 +957,12 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_unknown_request_id` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.00s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
