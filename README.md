@@ -18,7 +18,7 @@ Originally developed for Odoo 18 chatbot integration, but works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support**: OpenAI, Anthropic, LangDock gateway
+- **Multi-Provider Support**: OpenAI, Anthropic, LangDock, OpenRouter, Local (LM Studio/Ollama)
 - **Unified API**: Same interface regardless of provider
 - **Security**:
   - Fernet encryption for API key storage
@@ -36,6 +36,8 @@ Originally developed for Odoo 18 chatbot integration, but works standalone witho
 ```bash
 # Basic installation
 pip install eq-chatbot-core
+# Or with UV (recommended)
+uv pip install eq-chatbot-core
 
 # With PDF support (for OpenAI/LangDock vision)
 pip install eq-chatbot-core[pdf]
@@ -115,6 +117,8 @@ decrypted = encryption.decrypt(encrypted, key)
 | OpenAI | GPT-4, GPT-4o, o1, o3, o4 | Yes | Yes |
 | Anthropic | Claude 3, Claude 3.5, Claude 4 | Yes | Yes |
 | LangDock | All via gateway | Yes | Yes |
+| OpenRouter | 400+ models via gateway | Yes | Yes |
+| Local (LM Studio/Ollama) | Local models | No | Yes |
 
 ---
 
@@ -128,7 +132,7 @@ Ursprünglich für die Odoo 18 Chatbot-Integration entwickelt, funktioniert aber
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, LangDock Gateway
+- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, LangDock, OpenRouter, Local (LM Studio/Ollama)
 - **Einheitliche API**: Gleiche Schnittstelle unabhängig vom Provider
 - **Sicherheit**:
   - Fernet-Verschlüsselung für API-Key-Speicherung
@@ -146,6 +150,8 @@ Ursprünglich für die Odoo 18 Chatbot-Integration entwickelt, funktioniert aber
 ```bash
 # Basis-Installation
 pip install eq-chatbot-core
+# Oder mit UV (empfohlen)
+uv pip install eq-chatbot-core
 
 # Mit PDF-Unterstützung (für OpenAI/LangDock Vision)
 pip install eq-chatbot-core[pdf]
@@ -207,7 +213,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 0.13.0 |
+| **Version** | 0.15.0 |
 | **Author** | Equitania Software GmbH |
 | **License** | MIT |
 | **Python** | >=3.10 |

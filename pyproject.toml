@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "eq-chatbot-core"
 dynamic = ["version"]
-description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock)"
+description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock, OpenRouter, Local)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -13,7 +13,7 @@ authors = [
     { name = "Equitania Software GmbH", email = "info@equitania.de" },
 ]
 keywords = [
-    "chatbot", "llm", "openai", "anthropic", "langdock",
+    "chatbot", "llm", "openai", "anthropic", "langdock", "openrouter", "ollama",
     "rag", "mcp", "odoo", "ai", "nlp", "embedding", "encryption"
 ]
 classifiers = [

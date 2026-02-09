@@ -1,0 +1,35 @@
+# eq-chatbot-core Quick Reference
+# PyPI: https://pypi.org/project/eq-chatbot-core/
+# GitHub: https://github.com/equitania/eq-chatbot-core
+
+## Setup
+uv venv && source .venv/bin/activate
+uv pip install -e ".[dev,pdf,security]"
+
+## Test
+pytest tests/unit/ -v                     # Unit tests (fast, mocked)
+pytest tests/ -v --cov=eq_chatbot_core    # All tests with coverage
+
+## Lint
+ruff check src/ && ruff format src/ --check   # Check
+ruff check src/ --fix && ruff format src/     # Fix
+
+## Build
+rm -rf dist/
+uv build
+twine check dist/*
+
+## Publish (TestPyPI)
+uv publish --publish-url https://test.pypi.org/legacy/
+
+## Publish (PyPI)
+uv publish
+
+## CLI
+eq-chatbot info
+eq-chatbot test-provider -p openai -k $OPENAI_API_KEY
+eq-chatbot list-models -p openai -k $OPENAI_API_KEY --json
+
+## Git Push (both remotes)
+git push origin main --tags
+git push upstream main --tags

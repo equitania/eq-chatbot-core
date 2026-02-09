@@ -5,6 +5,53 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2026-02-09
+
+### Changed
+
+- Tighten dependency version ranges with upper bounds (openai <3, anthropic <1, httpx <1, etc.)
+- Replace python-magic with puremagic (pure Python, no libmagic system dependency)
+- Replace black dependency, use ruff format exclusively
+- Add twine to dev dependencies, add Python 3.13 classifier
+- Update pre-commit config: replace black hook with ruff-format
+
+### Added
+
+- MCP client SSRF protection (private IP blocking, HTTP/HTTPS scheme validation)
+- MCP stdio command whitelist (python, node, uvx, uv) and shell metachar validation
+- 22 new unit tests for MCP validation (940 total, 0 failures)
+
+### Fixed
+
+- Replace bare `except Exception` handlers with specific catches + logging
+
+## [0.14.0] - 2026-02-07
+
+### Added
+
+- Configurable error messages to ChatbotErrorHandler (i18n-ready)
+- MCP client thread-safety (`_pending_lock` for concurrent requests)
+- Unicode NFKD normalization to injection detection
+- Error handling to retriever (embedder + Qdrant failures)
+- Context manager budget validation (ratio sum check)
+- Longest-prefix matching to cost service
+- Jitter to error handler retry backoff
+- 9 new unit test modules (918 tests total, 0 failures)
+- TASKS.md tracking document
+
+### Fixed
+
+- Chunker infinite-loop bug when `chunk_overlap >= chunk_size`
+- Anthropic tool input serialization (`json.dumps` instead of `str`)
+
+### Changed
+
+- Stricter MIME-type aliases in file validator
+- Add SSE parse error logging to OpenRouter provider
+- Update pricing table (Feb 2025: Claude 4.x, o3, gpt-4o corrected)
+- Raise minimum dependency versions (cryptography>=44, openai>=1.58, etc.)
+- Modernize ruff config to `[tool.ruff.lint]` section
+
 ## [0.13.0] - 2025-01-22
 
 ### Added

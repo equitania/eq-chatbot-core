@@ -1,8 +1,8 @@
 """
-eq-chatbot-core: Core library for Equitania Odoo Chatbot
+eq-chatbot-core: Core library for LLM chatbot integration
 
 This package provides:
-- LLM provider adapters (OpenAI, Anthropic, LangDock)
+- LLM provider adapters (OpenAI, Anthropic, LangDock, OpenRouter, Local)
 - RAG pipeline (chunking, embedding, retrieval)
 - Security utilities (encryption, injection protection, rate limiting)
 - MCP client integration
