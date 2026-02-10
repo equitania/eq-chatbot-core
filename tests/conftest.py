@@ -58,9 +58,9 @@ def test_config() -> dict[str, Any]:
         # Test Models
         "openai_model": os.getenv("OPENAI_TEST_MODEL", "gpt-4o-mini"),
         "anthropic_model": os.getenv("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
-        "langdock_model": os.getenv("LANGDOCK_TEST_MODEL", "gpt-4o-mini"),
+        "langdock_model": os.getenv("LANGDOCK_TEST_MODEL", "gpt-5.2"),
         "mammouth_model": os.getenv("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
-        "local_model": os.getenv("LOCAL_TEST_MODEL", "phi:latest"),
+        "local_model": os.getenv("LOCAL_TEST_MODEL", "phi-4-mini"),
         # Test Settings
         "skip_live_tests": os.getenv("SKIP_LIVE_TESTS", "false").lower() == "true",
         "skip_local_tests": os.getenv("SKIP_LOCAL_TESTS", "true").lower() == "true",

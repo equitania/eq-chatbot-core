@@ -152,70 +152,68 @@ class TestLMStudioLive:
 
 
 # =============================================================================
-# Ollama Integration Tests
+# Ollama Integration Tests (disabled - using LM Studio on macOS instead)
 # =============================================================================
 
-
-@pytest.mark.local
-@pytest.mark.integration
-@skip_if_no_ollama
-class TestOllamaLive:
-    """Live integration tests for Ollama."""
-
-    @pytest.fixture
-    def provider(self):
-        """Create Ollama provider."""
-        return get_provider("ollama")
-
-    def test_connection(self, provider):
-        """Test basic connection to Ollama."""
-        assert provider.is_server_available()
-
-    def test_list_models(self, provider):
-        """Test listing available models."""
-        models = provider.list_models()
-
-        assert isinstance(models, list)
-        if models:
-            assert "id" in models[0]
-            print(f"\n  Available models: {[m['id'] for m in models]}")
-
-    def test_simple_completion(self, provider, test_config):
-        """Test simple chat completion."""
-        # Get first available model
-        models = provider.list_models()
-        model = test_config.get("local_model", models[0]["id"] if models else "phi:latest")
-
-        response = provider.chat_completion(
-            messages=[{"role": "user", "content": "Say 'hello' only."}],
-            model=model,
-            max_tokens=test_config.get("max_tokens", 20),
-            temperature=0.1,
-        )
-
-        assert response.content
-        assert len(response.content) > 0
-        print(f"\n  Model: {model}")
-        print(f"  Response: {response.content[:100]}")
-
-    def test_streaming_completion(self, provider, test_config):
-        """Test streaming chat completion."""
-        models = provider.list_models()
-        model = test_config.get("local_model", models[0]["id"] if models else "phi:latest")
-
-        chunks = list(
-            provider.stream_completion(
-                messages=[{"role": "user", "content": "Say 'test' only."}],
-                model=model,
-                max_tokens=test_config.get("max_tokens", 20),
-            )
-        )
-
-        assert len(chunks) > 0
-
-        full_content = "".join(c.content for c in chunks if c.content)
-        assert len(full_content) > 0
-        print(f"\n  Streamed: {full_content[:100]}")
+# @pytest.mark.local
+# @pytest.mark.integration
+# @skip_if_no_ollama
+# class TestOllamaLive:
+#     """Live integration tests for Ollama."""
+#
+#     @pytest.fixture
+#     def provider(self):
+#         """Create Ollama provider."""
+#         return get_provider("ollama")
+#
+#     def test_connection(self, provider):
+#         """Test basic connection to Ollama."""
+#         assert provider.is_server_available()
+#
+#     def test_list_models(self, provider):
+#         """Test listing available models."""
+#         models = provider.list_models()
+#
+#         assert isinstance(models, list)
+#         if models:
+#             assert "id" in models[0]
+#             print(f"\n  Available models: {[m['id'] for m in models]}")
+#
+#     def test_simple_completion(self, provider, test_config):
+#         """Test simple chat completion."""
+#         models = provider.list_models()
+#         model = test_config.get("local_model", models[0]["id"] if models else "phi:latest")
+#
+#         response = provider.chat_completion(
+#             messages=[{"role": "user", "content": "Say 'hello' only."}],
+#             model=model,
+#             max_tokens=test_config.get("max_tokens", 20),
+#             temperature=0.1,
+#         )
+#
+#         assert response.content
+#         assert len(response.content) > 0
+#         print(f"\n  Model: {model}")
+#         print(f"  Response: {response.content[:100]}")
+#
+#     def test_streaming_completion(self, provider, test_config):
+#         """Test streaming chat completion."""
+#         models = provider.list_models()
+#         model = test_config.get("local_model", models[0]["id"] if models else "phi:latest")
+#
+#         chunks = list(
+#             provider.stream_completion(
+#                 messages=[{"role": "user", "content": "Say 'test' only."}],
+#                 model=model,
+#                 max_tokens=test_config.get("max_tokens", 20),
+#             )
+#         )
+#
+#         assert len(chunks) > 0
+#
+#         full_content = "".join(c.content for c in chunks if c.content)
+#         assert len(full_content) > 0
+#         print(f"\n  Streamed: {full_content[:100]}")
 
 
 # =============================================================================
@@ -230,13 +228,11 @@ class TestLocalProviderGeneric:
 
     @pytest.fixture
     def provider(self):
-        """Get first available local provider."""
+        """Get first available local provider (LM Studio preferred)."""
         if is_lm_studio_available():
             return get_provider("lm_studio")
-        elif is_ollama_available():
-            return get_provider("ollama")
         else:
-            pytest.skip("No local LLM server available")
+            pytest.skip("LM Studio server not available")
 
     @pytest.fixture
     def model(self, provider, test_config):

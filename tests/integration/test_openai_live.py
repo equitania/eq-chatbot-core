@@ -352,10 +352,10 @@ class TestLangDockAnthropicBackend:
 
     def test_anthropic_completion(self, provider, test_config):
         """Test completion via LangDock Anthropic backend."""
-        # Use claude-haiku-4-5 which is available via LangDock
+        # Use claude-sonnet-4-5 which is available via LangDock
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            model="claude-haiku-4-5-20251001",
+            model="claude-sonnet-4-5-20250929",
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )

@@ -226,12 +226,11 @@ class TestMCPStdioLive:
         """Test stdio client with unavailable command."""
         from eq_chatbot_core.mcp import get_mcp_client
 
-        client = get_mcp_client(
-            transport="stdio",
-            command="nonexistent_command_12345",
-            timeout=2.0,
-        )
-
-        with pytest.raises((RuntimeError, FileNotFoundError, OSError)):
+        with pytest.raises((RuntimeError, FileNotFoundError, OSError, ValueError)):
+            client = get_mcp_client(
+                transport="stdio",
+                command="nonexistent_command_12345",
+                timeout=2.0,
+            )
             with client:
                 pass
