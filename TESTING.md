@@ -55,8 +55,8 @@ tests/.env.test
 | `MAMMOUTH_API_KEY` | Mammouth AI API key for integration tests | - |
 | `OPENAI_TEST_MODEL` | Model for OpenAI tests | `gpt-4o-mini` |
 | `ANTHROPIC_TEST_MODEL` | Model for Anthropic tests | `claude-3-haiku-20240307` |
-| `LANGDOCK_TEST_MODEL` | Model for LangDock tests | `gpt-4o-mini` |
-| `MAMMOUTH_TEST_MODEL` | Model for Mammouth tests | `gpt-4o-mini` |
+| `LANGDOCK_TEST_MODEL` | Model for LangDock tests | `gpt-5.2` |
+| `MAMMOUTH_TEST_MODEL` | Model for Mammouth tests | `gpt-4.1-nano` |
 | `SKIP_LIVE_TESTS` | Skip integration tests | `false` |
 | `SKIP_LOCAL_TESTS` | Skip local LLM tests | `true` |
 | `TEST_MAX_TOKENS` | Max tokens per test completion | `20` |
@@ -67,8 +67,7 @@ tests/.env.test
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `LM_STUDIO_URL` | LM Studio server URL | `http://localhost:1234/v1` |
-| `OLLAMA_URL` | Ollama server URL | `http://localhost:11434/v1` |
-| `LOCAL_TEST_MODEL` | Model for local tests | `phi:latest` |
+| `LOCAL_TEST_MODEL` | Model for local tests | `phi-4-mini` |
 
 ---
 
@@ -116,7 +115,7 @@ tests/
     ├── test_openai_live.py            # OpenAI + Anthropic + LangDock live tests
     ├── test_mammouth_live.py          # Mammouth AI live tests
     ├── test_mcp_live.py               # MCP server live tests
-    └── test_local_live.py             # LM Studio / Ollama tests
+    └── test_local_live.py             # LM Studio local tests
 ```
 
 ---
@@ -180,35 +179,28 @@ pytest tests/integration/test_openai_live.py::TestCostEffectivePatterns -v
 
 ### Local LLM Tests
 
-Requires LM Studio or Ollama running:
+Requires LM Studio running (recommended for macOS):
 
 ```bash
 # Enable local tests (set in .env.test)
 SKIP_LOCAL_TESTS=false
 
-# Option A: Start Ollama
-brew install ollama
-ollama serve                    # In terminal 1
-ollama pull phi                 # In terminal 2 (download a model)
-
-# Option B: Start LM Studio
-# Download from https://lmstudio.ai/
-# Load a model and start the server
+# Start LM Studio
+# 1. Download from https://lmstudio.ai/
+# 2. Load phi-4-mini model (recommended)
+# 3. Start the local server (port 1234)
 
 # Run local tests
 pytest tests/integration/test_local_live.py -v -m local
 ```
 
-**Test Results with Ollama:**
+| Test Class | Tests | Description |
+|------------|-------|-------------|
+| `TestLMStudioLive` | 6 | Connection, models, completion, streaming, multi-turn |
+| `TestLocalProviderGeneric` | 4 | Provider properties, response types, temperature |
+| `TestLocalProviderErrorsLive` | 1 | Error handling with invalid URL |
 
-| Test Class | Tests | Status |
-|------------|-------|--------|
-| `TestLMStudioLive` | 6 | Skipped (no server) |
-| `TestOllamaLive` | 4 | ✅ Passed |
-| `TestLocalProviderGeneric` | 4 | ✅ Passed |
-| `TestLocalProviderErrorsLive` | 1 | ✅ Passed |
-
-**Note:** Tests automatically detect which server is available and skip tests for unavailable servers.
+**Note:** Tests automatically detect if LM Studio is available and skip if the server is not running.
 
 ### Mammouth AI Tests
 
@@ -371,17 +363,12 @@ ls -la tests/.env*
 **Problem**: Local LLM tests fail with connection errors.
 
 **Solution**:
-1. Start the local server first:
+1. Start LM Studio and load a model (phi-4-mini recommended):
    ```bash
-   # LM Studio: Open app and start server
-   # Ollama: ollama serve
+   # Verify server is running
+   curl http://localhost:1234/v1/models
    ```
-2. Verify server is running:
-   ```bash
-   curl http://localhost:1234/v1/models  # LM Studio
-   curl http://localhost:11434/v1/models # Ollama
-   ```
-3. Check `SKIP_LOCAL_TESTS=false` in `.env.test`
+2. Check `SKIP_LOCAL_TESTS=false` in `.env.test`
 
 ### Import errors
 
@@ -452,6 +439,7 @@ jobs:
 | LangDock live tests | `pytest tests/integration/test_openai_live.py::TestLangDockLive -v` |
 | LangDock Anthropic | `pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v` |
 | Mammouth live tests | `pytest tests/integration/test_mammouth_live.py -v` |
+| LM Studio live tests | `pytest tests/integration/test_local_live.py -v -m local` |
 | With coverage | `pytest tests/ -v --cov=eq_chatbot_core --cov-report=html` |
 | Stop on failure | `pytest tests/ -v -x` |
 | Show prints | `pytest tests/ -v -s` |
