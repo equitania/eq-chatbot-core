@@ -21,7 +21,6 @@ from eq_chatbot_core.security.file_validator import (
     is_magic_available,
 )
 
-
 # =============================================================================
 # Common Fixtures and Helpers
 # =============================================================================
@@ -65,9 +64,21 @@ def document_types():
 def office_types():
     """Office document file type configurations."""
     return [
-        FileTypeConfig(extension="docx", mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document", max_size_mb=10.0),
-        FileTypeConfig(extension="xlsx", mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", max_size_mb=10.0),
-        FileTypeConfig(extension="pptx", mime_type="application/vnd.openxmlformats-officedocument.presentationml.presentation", max_size_mb=20.0),
+        FileTypeConfig(
+            extension="docx",
+            mime_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            max_size_mb=10.0,
+        ),
+        FileTypeConfig(
+            extension="xlsx",
+            mime_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            max_size_mb=10.0,
+        ),
+        FileTypeConfig(
+            extension="pptx",
+            mime_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            max_size_mb=20.0,
+        ),
     ]
 
 
@@ -498,7 +509,7 @@ class TestContentScanning:
 
     def test_asp_header_detected(self, validator, document_types):
         """Test that ASP/JSP header (<%...) is detected."""
-        content = b"<%@ Page Language=\"C#\" %>\n<script runat=\"server\">"
+        content = b'<%@ Page Language="C#" %>\n<script runat="server">'
         result = validator.validate("data.txt", content, document_types)
 
         assert result.is_valid is False

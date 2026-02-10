@@ -21,7 +21,6 @@ from eq_chatbot_core.providers.base import (
 )
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -323,6 +322,40 @@ class TestOpenAIChatCompletion:
         call_args = mock_client.chat.completions.create.call_args
         assert call_args.kwargs.get("top_p") == 0.9
         assert call_args.kwargs.get("presence_penalty") == 0.1
+
+    def test_completion_reasoning_model_no_temperature(self, mock_openai_response):
+        """Test reasoning models (o1/o3/o4) don't receive temperature in API call."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_openai_response
+        mock_openai_module.OpenAI.return_value = mock_client
+
+        provider = OpenAIProvider(api_key="sk-test")
+        provider._client = None
+        provider.chat_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            model="o3",
+            temperature=0.7,
+        )
+
+        call_args = mock_client.chat.completions.create.call_args
+        assert "temperature" not in call_args.kwargs
+
+    def test_completion_gpt41_temperature_clamped(self, mock_openai_response):
+        """Test GPT-4.1 clamps temperature to min 1.0 in API call."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_openai_response
+        mock_openai_module.OpenAI.return_value = mock_client
+
+        provider = OpenAIProvider(api_key="sk-test")
+        provider._client = None
+        provider.chat_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            model="gpt-4.1",
+            temperature=0.5,
+        )
+
+        call_args = mock_client.chat.completions.create.call_args
+        assert call_args.kwargs["temperature"] == 1.0
 
 
 # =============================================================================
@@ -718,8 +751,18 @@ class TestOpenAIProviderProperties:
         assert "o1" in OpenAIProvider.CHAT_MODEL_PREFIXES
         assert "o3" in OpenAIProvider.CHAT_MODEL_PREFIXES
 
-    def test_reasoning_models(self):
-        """Test reasoning model constants."""
-        assert "o1" in OpenAIProvider.REASONING_MODELS
-        assert "o3" in OpenAIProvider.REASONING_MODELS
-        assert "o4" in OpenAIProvider.REASONING_MODELS
+    def test_reasoning_model_no_temperature(self):
+        """Test reasoning models skip temperature via shared constraints module."""
+        from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
+
+        assert clamp_temperature("o1", 0.7) is None
+        assert clamp_temperature("o3", 0.5) is None
+        assert clamp_temperature("o4-mini", 0.3) is None
+
+    def test_gpt41_temperature_clamped(self):
+        """Test GPT-4.1 models clamp temperature to min 1.0."""
+        from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
+
+        assert clamp_temperature("gpt-4.1", 0.5) == 1.0
+        assert clamp_temperature("gpt-4.1-mini", 0.7) == 1.0
+        assert clamp_temperature("gpt-4.1", 1.5) == 1.5  # In range, passthrough

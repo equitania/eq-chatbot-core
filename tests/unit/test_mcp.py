@@ -13,7 +13,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-
 # =============================================================================
 # MCPClient (SSE Transport) Tests
 # =============================================================================
@@ -462,7 +461,6 @@ class TestMCPClientToolOperations:
 
     def test_call_tool_extracts_text_content(self, connected_client):
         """Test call_tool extracts text from content array."""
-        from eq_chatbot_core.mcp.client import MCPToolResult
 
         def simulate_response():
             import time
@@ -510,7 +508,6 @@ class TestMCPClientContextManager:
         client = MCPClient(base_url="http://localhost:8000/sse")
 
         with patch.object(client, "connect") as mock_connect, patch.object(client, "close") as mock_close:
-
             with client:
                 mock_connect.assert_called_once()
 
@@ -523,7 +520,6 @@ class TestMCPClientContextManager:
         client = MCPClient(base_url="http://localhost:8000/sse")
 
         with patch.object(client, "connect") as mock_connect, patch.object(client, "close") as mock_close:
-
             with pytest.raises(ValueError):
                 with client:
                     raise ValueError("Test error")
@@ -821,7 +817,6 @@ class TestStdioMCPClientContextManager:
             patch.object(client, "start", new_callable=AsyncMock) as mock_start,
             patch.object(client, "stop", new_callable=AsyncMock) as mock_stop,
         ):
-
             async with client:
                 mock_start.assert_called_once()
 
@@ -842,7 +837,6 @@ class TestStdioMCPClientContextManager:
             patch.object(client, "start", new_callable=AsyncMock) as mock_start_fn,
             patch.object(client, "stop", new_callable=AsyncMock) as mock_stop_fn,
         ):
-
             # Simulate that start() sets _process
             def set_process():
                 client._process = mock_process
@@ -875,7 +869,7 @@ class TestGetMCPClient:
 
     def test_get_mcp_client_sse(self, mock_httpx):
         """Test creating SSE client."""
-        from eq_chatbot_core.mcp import get_mcp_client, MCPClient
+        from eq_chatbot_core.mcp import MCPClient, get_mcp_client
 
         client = get_mcp_client(
             transport="sse",
@@ -889,7 +883,7 @@ class TestGetMCPClient:
 
     def test_get_mcp_client_stdio(self, mock_httpx):
         """Test creating stdio client."""
-        from eq_chatbot_core.mcp import get_mcp_client, StdioMCPClient
+        from eq_chatbot_core.mcp import StdioMCPClient, get_mcp_client
 
         client = get_mcp_client(
             transport="stdio",
@@ -1011,7 +1005,7 @@ class TestMCPClientVersion:
         from eq_chatbot_core.version import __version__
 
         # Version should match current package version
-        assert __version__ == "0.15.0"
+        assert __version__ == "1.0.0"
 
 
 # =============================================================================

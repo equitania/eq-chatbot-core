@@ -7,12 +7,11 @@ Tests provider instantiation, alias handling, and error cases.
 import pytest
 
 from eq_chatbot_core.providers import get_provider
-from eq_chatbot_core.providers.local_provider import LocalLLMProvider
-from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
 from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+from eq_chatbot_core.providers.local_provider import LocalLLMProvider
+from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
-
 
 # =============================================================================
 # Cloud Provider Tests

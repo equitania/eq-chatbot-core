@@ -13,14 +13,13 @@ import pytest
 mock_anthropic_module = MagicMock()
 sys.modules["anthropic"] = mock_anthropic_module
 
+from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     ContextLengthError,
     ProviderError,
     RateLimitError,
 )
-from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
-
 
 # =============================================================================
 # Fixtures
@@ -349,8 +348,8 @@ class TestAnthropicChatCompletion:
         call_args = mock_client.messages.create.call_args
         assert call_args.kwargs["temperature"] == 0.5
 
-    def test_completion_no_temp_for_opus3(self, mock_anthropic_response):
-        """Test that temperature is not sent for claude-3-opus."""
+    def test_completion_claude_opus3_gets_temperature(self, mock_anthropic_response):
+        """Test that claude-3-opus receives clamped temperature (max 1.0)."""
         mock_client = MagicMock()
         mock_client.messages.create.return_value = mock_anthropic_response
         mock_anthropic_module.Anthropic.return_value = mock_client
@@ -360,11 +359,28 @@ class TestAnthropicChatCompletion:
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
             model="claude-3-opus-20240229",
-            temperature=0.5,  # Should be ignored
+            temperature=0.5,
         )
 
         call_args = mock_client.messages.create.call_args
-        assert "temperature" not in call_args.kwargs
+        assert call_args.kwargs["temperature"] == 0.5
+
+    def test_completion_temperature_clamped_above_max(self, mock_anthropic_response):
+        """Test temperature > 1.0 is clamped to 1.0 for Claude models."""
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = mock_anthropic_response
+        mock_anthropic_module.Anthropic.return_value = mock_client
+
+        provider = AnthropicProvider(api_key="sk-ant-test")
+        provider._client = None
+        provider.chat_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            model="claude-sonnet-4-5-20250929",
+            temperature=1.5,  # Above max, should be clamped to 1.0
+        )
+
+        call_args = mock_client.messages.create.call_args
+        assert call_args.kwargs["temperature"] == 1.0
 
     def test_completion_with_max_tokens(self, mock_anthropic_response):
         """Test completion with max_tokens."""
@@ -605,11 +621,13 @@ class TestAnthropicModelConstraints:
         assert constraints["max_output_tokens"] == 16384
 
     def test_opus3_constraints(self):
-        """Test constraints for Claude 3 Opus (no temperature)."""
+        """Test constraints for Claude 3 Opus (temperature 0-1 via shared module)."""
         provider = AnthropicProvider(api_key="sk-ant-test")
         constraints = provider._get_model_constraints("claude-3-opus-20240229")
 
-        assert constraints["supports_temperature"] is False
+        assert constraints["supports_temperature"] is True
+        assert constraints["min_temperature"] == 0.0
+        assert constraints["max_temperature"] == 1.0
         assert constraints["supports_vision"] is True
 
     def test_haiku_constraints(self):
@@ -746,9 +764,13 @@ class TestAnthropicProviderProperties:
         """Test default base URL constant."""
         assert AnthropicProvider.DEFAULT_BASE_URL == "https://api.anthropic.com"
 
-    def test_no_temperature_models(self):
-        """Test NO_TEMPERATURE_MODELS constant."""
-        assert "claude-3-opus" in AnthropicProvider.NO_TEMPERATURE_MODELS
+    def test_claude_temperature_clamped_to_max(self):
+        """Test Claude models clamp temperature to max 1.0 via shared constraints module."""
+        from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
+
+        assert clamp_temperature("claude-sonnet-4-5-20250929", 1.5) == 1.0
+        assert clamp_temperature("claude-opus-4-5-20251101", 2.0) == 1.0
+        assert clamp_temperature("claude-sonnet-4-5-20250929", 0.7) == 0.7  # In range
 
     def test_repr(self):
         """Test string representation."""

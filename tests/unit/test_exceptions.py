@@ -13,7 +13,6 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
 )
 
-
 # =============================================================================
 # Base ProviderError Tests
 # =============================================================================
@@ -461,8 +460,7 @@ class TestRealWorldScenarios:
     def test_context_length_with_token_counts(self):
         """Test context length error with token information."""
         error = ContextLengthError(
-            "This model's maximum context length is 128000 tokens. "
-            "However, your messages resulted in 130000 tokens.",
+            "This model's maximum context length is 128000 tokens. However, your messages resulted in 130000 tokens.",
             provider="openai",
             status_code=400,
         )

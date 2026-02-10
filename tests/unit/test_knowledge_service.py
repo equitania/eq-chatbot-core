@@ -7,14 +7,13 @@ Tests schema generation, record transformation, and export preparation.
 import pytest
 
 from eq_chatbot_core.services.knowledge_service import (
-    FieldConfig,
-    ModelConfig,
     ExportRecord,
+    FieldConfig,
+    KnowledgeExporter,
+    ModelConfig,
     OdooSchemaGenerator,
     RecordTransformer,
-    KnowledgeExporter,
 )
-
 
 # =============================================================================
 # FieldConfig Tests

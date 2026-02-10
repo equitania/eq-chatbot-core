@@ -14,6 +14,10 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.temperature_constraints import (
+    clamp_temperature,
+    get_temperature_constraints,
+)
 
 
 class OpenAIProvider(BaseLLMProvider):
@@ -105,8 +109,12 @@ class OpenAIProvider(BaseLLMProvider):
             params: dict[str, Any] = {
                 "model": model,
                 "messages": messages,
-                "temperature": temperature,
             }
+
+            # Clamp temperature per model constraints (skip for reasoning models)
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             if max_tokens:
                 if self._uses_new_token_api(model):
@@ -167,10 +175,14 @@ class OpenAIProvider(BaseLLMProvider):
             params: dict[str, Any] = {
                 "model": model,
                 "messages": messages,
-                "temperature": temperature,
                 "stream": True,
                 "stream_options": {"include_usage": True},  # Request usage in stream
             }
+
+            # Clamp temperature per model constraints (skip for reasoning models)
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             if max_tokens:
                 if self._uses_new_token_api(model):
@@ -271,9 +283,6 @@ class OpenAIProvider(BaseLLMProvider):
         "chatgpt",
     )
 
-    # Reasoning models that don't support temperature
-    REASONING_MODELS = ("o1", "o3", "o4")
-
     # Model context lengths (approximate, for common models)
     MODEL_CONTEXT_LENGTHS = {
         "gpt-4-turbo": 128000,
@@ -294,8 +303,9 @@ class OpenAIProvider(BaseLLMProvider):
         """Get temperature, token, and capability constraints for a model."""
         model_lower = model_id.lower()
 
-        # Check if it's a reasoning model (O1, O3, O4)
-        is_reasoning = any(model_lower.startswith(prefix) for prefix in self.REASONING_MODELS)
+        # Use shared temperature constraints for accurate min/max
+        temp_constraints = get_temperature_constraints(model_id)
+        is_reasoning = not temp_constraints["supports_temperature"]
 
         # Check if model supports vision (GPT-4o, GPT-4-turbo, GPT-5, O1, O3, O4)
         vision_prefixes = ("gpt-4o", "gpt-4-turbo", "gpt-5", "o1", "o3", "o4")
@@ -324,8 +334,8 @@ class OpenAIProvider(BaseLLMProvider):
             return {
                 "supports_temperature": True,
                 "default_temperature": 1.0,
-                "min_temperature": 0.0,
-                "max_temperature": 2.0,
+                "min_temperature": temp_constraints["min"],
+                "max_temperature": temp_constraints["max"],
                 "supports_reasoning": False,
                 "supports_vision": supports_vision,
                 "max_output_tokens": 16384 if "gpt-4o" in model_lower else 4096,

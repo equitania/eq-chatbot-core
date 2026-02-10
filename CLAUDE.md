@@ -68,6 +68,7 @@ provider = get_provider("openai", api_key="sk-...")
 provider = get_provider("anthropic", api_key="sk-ant-...")
 provider = get_provider("langdock", api_key="ld-...")
 provider = get_provider("openrouter", api_key="sk-or-...")
+provider = get_provider("mammouth", api_key="mm-...")
 
 # Local providers (LM Studio, Ollama)
 provider = get_provider("lm_studio")  # defaults to localhost:1234
@@ -168,7 +169,7 @@ from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
 Copy `tests/.env.example` to `tests/.env.test` for API keys. Environment variables:
 
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `MAMMOUTH_API_KEY`
 - `SKIP_LIVE_TESTS=true` - Skip integration tests
 - `SKIP_LOCAL_TESTS=true` - Skip local server tests
 - `TEST_MAX_TOKENS=20` - Limit tokens for cost control

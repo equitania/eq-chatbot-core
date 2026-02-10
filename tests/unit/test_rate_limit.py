@@ -7,7 +7,7 @@ and proper storage protocol interaction.
 """
 
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -19,7 +19,6 @@ from eq_chatbot_core.security.rate_limit import (
     check_rate_limit,
     estimate_tokens,
 )
-
 
 # =============================================================================
 # Helper: Mock Storage Factory
@@ -211,9 +210,7 @@ class TestCheckRateLimitAllowed:
         config = RateLimitConfig()
         storage = _make_storage(minute_usage=5, hourly_usage=50, daily_tokens=50000)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=100
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=100)
 
         assert result.allowed is True
 
@@ -253,9 +250,7 @@ class TestCheckRateLimitAllowed:
         # The check is >, so exactly equal should be allowed
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=99900)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=100
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=100)
 
         # daily_tokens (99900) + estimated_tokens (100) = 100000 which is NOT > 100000
         assert result.allowed is True
@@ -265,9 +260,7 @@ class TestCheckRateLimitAllowed:
         config = RateLimitConfig(max_tokens_per_day=100000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=99999)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=0
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=0)
 
         assert result.allowed is True
 
@@ -412,9 +405,7 @@ class TestCheckRateLimitDaily:
         config = RateLimitConfig(max_tokens_per_day=100000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=90000)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=20000
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=20000)
 
         assert result.allowed is False
         assert "Daily token limit exceeded" in result.reason
@@ -427,9 +418,7 @@ class TestCheckRateLimitDaily:
         config = RateLimitConfig(max_tokens_per_day=1000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=900)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=200
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=200)
 
         assert result.allowed is False
         assert result.retry_after is not None
@@ -441,9 +430,7 @@ class TestCheckRateLimitDaily:
         config = RateLimitConfig(max_tokens_per_day=100)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=0)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=101
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=101)
 
         assert result.allowed is False
         assert "Daily token limit exceeded" in result.reason
@@ -458,9 +445,7 @@ class TestCheckRateLimitDaily:
         # Burst and hourly OK, daily exceeded
         storage = _make_storage(minute_usage=5, hourly_usage=50, daily_tokens=900)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=200
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=200)
 
         assert result.allowed is False
         assert "Daily token limit exceeded" in result.reason
@@ -470,9 +455,7 @@ class TestCheckRateLimitDaily:
         config = RateLimitConfig(max_tokens_per_day=1000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=800)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=200
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=200)
 
         # 800 + 200 = 1000 which is NOT > 1000, so allowed
         assert result.allowed is True
@@ -482,9 +465,7 @@ class TestCheckRateLimitDaily:
         config = RateLimitConfig(max_tokens_per_day=1000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=800)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=201
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=201)
 
         # 800 + 201 = 1001 which is > 1000, so denied
         assert result.allowed is False
@@ -615,9 +596,7 @@ class TestCheckRateLimitPriority:
         )
         storage = _make_storage(minute_usage=5, hourly_usage=50, daily_tokens=2000)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=100
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=100)
 
         assert "Hourly limit" in result.reason
         assert result.retry_after == 3600
@@ -648,9 +627,7 @@ class TestCheckRateLimitEdgeCases:
         config = RateLimitConfig(max_tokens_per_day=100000)
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=0)
 
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=999999
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=999999)
 
         assert result.allowed is False
 
@@ -660,9 +637,7 @@ class TestCheckRateLimitEdgeCases:
         storage = _make_storage(minute_usage=0, hourly_usage=0, daily_tokens=99999)
 
         # Negative estimated tokens would reduce the sum below daily limit
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=-100
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=-100)
 
         assert result.allowed is True
 
@@ -846,9 +821,7 @@ class TestCheckRateLimitIntegration:
         storage = _make_storage(minute_usage=3, hourly_usage=40, daily_tokens=50000)
 
         estimated = estimate_tokens("A simple user message for the chatbot.")
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=estimated
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=estimated)
 
         assert result.allowed is True
         assert result.current_usage == 40
@@ -861,9 +834,7 @@ class TestCheckRateLimitIntegration:
 
         # Even a small message estimate could push us over
         estimated = estimate_tokens("This is a longer message with enough text to exceed the remaining budget.")
-        result = check_rate_limit(
-            user_id=1, config=config, storage=storage, estimated_tokens=estimated
-        )
+        result = check_rate_limit(user_id=1, config=config, storage=storage, estimated_tokens=estimated)
 
         assert result.allowed is False
         assert "Daily token limit exceeded" in result.reason

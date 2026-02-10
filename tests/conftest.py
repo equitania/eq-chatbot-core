@@ -51,6 +51,7 @@ def test_config() -> dict[str, Any]:
         "openai_api_key": os.getenv("OPENAI_API_KEY"),
         "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
         "langdock_api_key": os.getenv("LANGDOCK_API_KEY"),
+        "mammouth_api_key": os.getenv("MAMMOUTH_API_KEY"),
         # Local Server URLs
         "lm_studio_url": os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1"),
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434/v1"),
@@ -58,6 +59,7 @@ def test_config() -> dict[str, Any]:
         "openai_model": os.getenv("OPENAI_TEST_MODEL", "gpt-4o-mini"),
         "anthropic_model": os.getenv("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
         "langdock_model": os.getenv("LANGDOCK_TEST_MODEL", "gpt-4o-mini"),
+        "mammouth_model": os.getenv("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
         "local_model": os.getenv("LOCAL_TEST_MODEL", "phi:latest"),
         # Test Settings
         "skip_live_tests": os.getenv("SKIP_LIVE_TESTS", "false").lower() == "true",
@@ -83,6 +85,12 @@ def anthropic_api_key(test_config) -> str | None:
 def langdock_api_key(test_config) -> str | None:
     """LangDock API key from environment."""
     return test_config["langdock_api_key"]
+
+
+@pytest.fixture
+def mammouth_api_key(test_config) -> str | None:
+    """Mammouth AI API key from environment."""
+    return test_config["mammouth_api_key"]
 
 
 @pytest.fixture
@@ -123,6 +131,14 @@ def skip_if_no_langdock_key():
     return pytest.mark.skipif(
         not os.getenv("LANGDOCK_API_KEY"),
         reason="LANGDOCK_API_KEY not set",
+    )
+
+
+def skip_if_no_mammouth_key():
+    """Skip test if MAMMOUTH_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("MAMMOUTH_API_KEY"),
+        reason="MAMMOUTH_API_KEY not set",
     )
 
 
@@ -390,6 +406,10 @@ _MODULE_GROUPS = {
         "label": "Provider: OpenRouter",
         "modules": ["test_openrouter", "test_openrouter_live"],
     },
+    "Mammouth": {
+        "label": "Provider: Mammouth AI",
+        "modules": ["test_mammouth", "test_mammouth_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -555,8 +575,10 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     # Header with date
     lines.append(f"# Test Report - {report_date}")
     lines.append("")
-    lines.append(f"**eq_chatbot_core v{version}** | {_format_duration(total_duration)} | "
-                 f"Python {platform.python_version()} | {platform.platform()}")
+    lines.append(
+        f"**eq_chatbot_core v{version}** | {_format_duration(total_duration)} | "
+        f"Python {platform.python_version()} | {platform.platform()}"
+    )
     lines.append("")
     lines.append(f"> **Result: {result_text}**")
     lines.append("")

@@ -10,13 +10,10 @@ Run with: pytest -m local tests/integration/test_local_live.py
 Set SKIP_LOCAL_TESTS=false in .env.test to enable these tests.
 """
 
-import os
-
 import pytest
 
 from eq_chatbot_core.providers import get_provider
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider
-
 
 # =============================================================================
 # Test Configuration

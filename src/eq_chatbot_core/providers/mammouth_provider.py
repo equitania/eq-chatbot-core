@@ -1,8 +1,9 @@
 """
-OpenRouter provider implementation.
+Mammouth AI provider implementation.
 
-OpenRouter provides access to 400+ AI models through a unified API,
-including OpenAI, Anthropic, Google, Meta, Mistral, and many more.
+Mammouth AI (https://mammouth.ai) provides access to 30+ AI models through a
+unified OpenAI-compatible API, including OpenAI, Anthropic, Google, Mistral,
+xAI, DeepSeek, Meta, and more.
 """
 
 import json
@@ -17,46 +18,44 @@ from eq_chatbot_core.providers.base import (
     BaseLLMProvider,
     ContextLengthError,
     LLMResponse,
+    OverloadedError,
     ProviderError,
     RateLimitError,
     StreamChunk,
 )
 from eq_chatbot_core.providers.temperature_constraints import (
-    clamp_temperature,
-    strip_provider_prefix,
+    clamp_temperature as _shared_clamp_temperature,
+)
+from eq_chatbot_core.providers.temperature_constraints import (
+    get_temperature_constraints as _shared_get_temperature_constraints,
 )
 
 _logger = logging.getLogger(__name__)
 
 
-class OpenRouterProvider(BaseLLMProvider):
+class MammouthProvider(BaseLLMProvider):
     """
-    OpenRouter API provider for 400+ AI models.
+    Mammouth AI API provider for 30+ AI models.
 
     Supports models from multiple providers through a unified API:
-    - OpenAI (GPT-4, GPT-4o, O1, O3, O4)
-    - Anthropic (Claude 3, Claude 3.5, Claude 4)
-    - Google (Gemini Pro, Gemini Ultra)
-    - Meta (Llama 3, Llama 4)
-    - Mistral (Mistral Large, Mixtral)
-    - And many more...
+    - OpenAI (GPT-4o, GPT-4.1, GPT-5.x, O1, O3, O4)
+    - Anthropic (Claude Opus/Sonnet/Haiku 4.5)
+    - Google (Gemini 2.5 Pro/Flash)
+    - Mistral (Mistral Large)
+    - xAI (Grok)
+    - DeepSeek (Chat, Reasoner)
+    - Meta (Llama 4)
+    - And more...
 
-    Model IDs follow the format: provider/model-name
-    Examples:
-    - openai/gpt-4o
-    - anthropic/claude-3.5-sonnet
-    - google/gemini-pro-1.5
-    - meta-llama/llama-3.1-70b-instruct
+    Model IDs use simple names without provider prefix (e.g. "gpt-4o",
+    "claude-sonnet-4-5") unlike OpenRouter which uses "provider/model" format.
     """
 
-    DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+    DEFAULT_BASE_URL = "https://api.mammouth.ai/v1"
+    MODELS_URL = "https://api.mammouth.ai/public/models"
 
-    # Reasoning models that don't support temperature
-    REASONING_MODEL_PREFIXES = (
-        "openai/o1",
-        "openai/o3",
-        "openai/o4",
-    )
+    # Reasoning models that don't support temperature parameter
+    REASONING_MODEL_PREFIXES = ("o1", "o3", "o4")
 
     def __init__(
         self,
@@ -64,32 +63,26 @@ class OpenRouterProvider(BaseLLMProvider):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
-        site_url: str | None = None,
-        site_name: str | None = None,
     ):
         """
-        Initialize the OpenRouter provider.
+        Initialize the Mammouth AI provider.
 
         Args:
-            api_key: OpenRouter API key
-            base_url: Optional custom base URL (defaults to OpenRouter API)
+            api_key: Mammouth AI API key
+            base_url: Optional custom base URL (defaults to Mammouth API)
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
-            site_url: Optional site URL for HTTP-Referer header (for rankings)
-            site_name: Optional site name for X-Title header (for display)
         """
         super().__init__(api_key, base_url or self.DEFAULT_BASE_URL, timeout, max_retries)
-        self.site_url = site_url
-        self.site_name = site_name
         self._client: httpx.Client | None = None
 
     @property
     def provider_name(self) -> str:
-        return "openrouter"
+        return "mammouth"
 
     @property
     def default_model(self) -> str:
-        return "openai/gpt-4o"
+        return "gpt-4o"
 
     @property
     def client(self) -> httpx.Client:
@@ -99,11 +92,6 @@ class OpenRouterProvider(BaseLLMProvider):
                 "Authorization": f"Bearer {self.api_key}",
                 "Content-Type": "application/json",
             }
-            if self.site_url:
-                headers["HTTP-Referer"] = self.site_url
-            if self.site_name:
-                headers["X-Title"] = self.site_name
-
             self._client = httpx.Client(
                 base_url=self.base_url,
                 headers=headers,
@@ -114,7 +102,15 @@ class OpenRouterProvider(BaseLLMProvider):
     def _is_reasoning_model(self, model: str) -> bool:
         """Check if model is a reasoning model (O1, O3, O4)."""
         model_lower = model.lower()
-        return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
+        return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODEL_PREFIXES)
+
+    def _get_temperature_constraints(self, model: str) -> dict[str, Any]:
+        """Get temperature constraints for a specific model. Delegates to shared module."""
+        return _shared_get_temperature_constraints(model)
+
+    def _clamp_temperature(self, model: str, temperature: float) -> float | None:
+        """Clamp temperature to valid range for the model. Delegates to shared module."""
+        return _shared_clamp_temperature(model, temperature)
 
     def chat_completion(
         self,
@@ -125,21 +121,19 @@ class OpenRouterProvider(BaseLLMProvider):
         tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> LLMResponse:
-        """Send a chat completion request to OpenRouter."""
+        """Send a chat completion request to Mammouth AI."""
         model = model or self.default_model
 
         try:
-            # Build request payload (OpenAI-compatible format)
             payload: dict[str, Any] = {
                 "model": model,
                 "messages": messages,
             }
 
-            # Clamp temperature per model constraints (strip provider/ prefix first)
-            bare_model = strip_provider_prefix(model)
-            clamped = clamp_temperature(bare_model, temperature)
-            if clamped is not None:
-                payload["temperature"] = clamped
+            # Clamp temperature per model constraints
+            clamped_temp = self._clamp_temperature(model, temperature)
+            if clamped_temp is not None:
+                payload["temperature"] = clamped_temp
 
             if max_tokens:
                 payload["max_tokens"] = max_tokens
@@ -147,7 +141,6 @@ class OpenRouterProvider(BaseLLMProvider):
             if tools:
                 payload["tools"] = tools
 
-            # Add any additional kwargs
             payload.update(kwargs)
 
             response = self.client.post("/chat/completions", json=payload)
@@ -198,22 +191,20 @@ class OpenRouterProvider(BaseLLMProvider):
         tools: list[dict[str, Any]] | None = None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
-        """Stream a chat completion response from OpenRouter."""
+        """Stream a chat completion response from Mammouth AI."""
         model = model or self.default_model
 
         try:
-            # Build request payload
             payload: dict[str, Any] = {
                 "model": model,
                 "messages": messages,
                 "stream": True,
             }
 
-            # Clamp temperature per model constraints (strip provider/ prefix first)
-            bare_model = strip_provider_prefix(model)
-            clamped = clamp_temperature(bare_model, temperature)
-            if clamped is not None:
-                payload["temperature"] = clamped
+            # Clamp temperature per model constraints
+            clamped_temp = self._clamp_temperature(model, temperature)
+            if clamped_temp is not None:
+                payload["temperature"] = clamped_temp
 
             if max_tokens:
                 payload["max_tokens"] = max_tokens
@@ -223,11 +214,9 @@ class OpenRouterProvider(BaseLLMProvider):
 
             payload.update(kwargs)
 
-            # Use streaming request
             with self.client.stream("POST", "/chat/completions", json=payload) as response:
                 response.raise_for_status()
 
-                # Track usage for final chunk
                 final_input_tokens = 0
                 final_output_tokens = 0
 
@@ -240,7 +229,7 @@ class OpenRouterProvider(BaseLLMProvider):
 
                     # Handle SSE format
                     if line.startswith("data: "):
-                        line = line[6:]  # Remove "data: " prefix
+                        line = line[6:]
 
                     if line == "[DONE]":
                         break
@@ -293,7 +282,6 @@ class OpenRouterProvider(BaseLLMProvider):
                                     },
                                 }
 
-                            # Update with new data
                             if tc.get("id"):
                                 accumulated_tool_calls[idx]["id"] = tc["id"]
                             if func.get("name"):
@@ -325,36 +313,53 @@ class OpenRouterProvider(BaseLLMProvider):
 
     def list_models(self) -> list[dict[str, Any]]:
         """
-        List available models from OpenRouter.
+        List available models from Mammouth AI.
+
+        Uses the /public/models endpoint (separate from the v1 base URL).
+        Merges API response data with local temperature constraints.
 
         Returns:
             List of model dicts with 'id', 'name', constraints, pricing, and metadata.
         """
         try:
-            response = self.client.get("/models")
+            # Models endpoint is at a different URL than the chat API
+            response = httpx.get(
+                self.MODELS_URL,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=self.timeout,
+            )
             response.raise_for_status()
             data = response.json()
 
             models = []
-            for model_data in data.get("data", []):
-                model_id = model_data.get("id", "")
-                constraints = self._get_model_constraints(model_data)
-                pricing = self._extract_pricing(model_data)
+            # Mammouth returns a list directly or wrapped in "data"
+            model_list = data if isinstance(data, list) else data.get("data", data.get("models", []))
+
+            for model_data in model_list:
+                model_id = model_data.get("id", model_data.get("model", ""))
+                if not model_id:
+                    continue
+
+                temp_constraints = self._get_temperature_constraints(model_id)
+                is_reasoning = self._is_reasoning_model(model_id)
 
                 models.append(
                     {
                         "id": model_id,
                         "name": model_data.get("name", model_id),
-                        "description": model_data.get("description", ""),
-                        "context_length": model_data.get("context_length"),
                         "provider": self.provider_name,
-                        "created": model_data.get("created"),
-                        **constraints,
-                        **pricing,
+                        "context_length": model_data.get("max_input_tokens"),
+                        "max_output_tokens": model_data.get("max_output_tokens"),
+                        "supports_temperature": temp_constraints["supports_temperature"],
+                        "min_temperature": temp_constraints["min"],
+                        "max_temperature": temp_constraints["max"],
+                        "supports_reasoning": is_reasoning,
+                        "supports_streaming": True,
+                        "input_cost_per_million": model_data.get("input_price"),
+                        "output_cost_per_million": model_data.get("output_price"),
                     }
                 )
 
-            # Sort by model ID for consistent ordering
             models.sort(key=lambda m: m["id"])
             return models
 
@@ -363,98 +368,24 @@ class OpenRouterProvider(BaseLLMProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _get_model_constraints(self, model_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Extract temperature, token, and capability constraints from model data.
-
-        OpenRouter provides:
-        - supported_parameters: list of parameters the model accepts
-        - default_parameters: dict of default values
-        - input_modalities: list like ["text", "image"]
-        - output_modalities: list like ["text"]
-        """
-        model_id = model_data.get("id", "").lower()
-        supported_params = model_data.get("supported_parameters", [])
-        default_params = model_data.get("default_parameters", {})
-        input_modalities = model_data.get("input_modalities", ["text"])
-        output_modalities = model_data.get("output_modalities", ["text"])
-
-        # Check if it's a reasoning model
-        is_reasoning = any(model_id.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
-
-        # Determine temperature support
-        # Either from supported_parameters or by checking if not a reasoning model
-        supports_temperature = "temperature" in supported_params if supported_params else not is_reasoning
-
-        # Get temperature bounds from default_parameters or use defaults
-        if is_reasoning:
-            min_temp = 1.0
-            max_temp = 1.0
-            default_temp = 1.0
-        else:
-            # Try to extract from model data, fallback to standard bounds
-            min_temp = default_params.get("min_temperature", 0.0)
-            max_temp = default_params.get("max_temperature", 2.0)
-            default_temp = default_params.get("temperature", 1.0)
-
-        # Vision support from input modalities
-        supports_vision = "image" in input_modalities
-
-        # Tool/function calling support
-        supports_tools = "tools" in supported_params or "tool_choice" in supported_params
-
-        # Max output tokens
-        max_output = model_data.get("top_provider", {}).get("max_completion_tokens")
-        if not max_output:
-            max_output = model_data.get("max_tokens", 4096)
-
-        return {
-            "supports_temperature": supports_temperature,
-            "default_temperature": default_temp,
-            "min_temperature": min_temp,
-            "max_temperature": max_temp,
-            "supports_reasoning": is_reasoning,
-            "supports_vision": supports_vision,
-            "supports_tools": supports_tools,
-            "supports_streaming": True,  # OpenRouter supports streaming for all models
-            "max_output_tokens": max_output,
-            "default_max_tokens": min(max_output, 4096) if max_output else 4096,
-            "input_modalities": input_modalities,
-            "output_modalities": output_modalities,
-        }
-
-    def _extract_pricing(self, model_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Extract pricing information from model data.
-
-        OpenRouter provides pricing in the 'pricing' field:
-        - prompt: cost per input token (as string like "0.000001")
-        - completion: cost per output token (as string)
-        """
-        pricing = model_data.get("pricing", {})
-
-        try:
-            prompt_price = float(pricing.get("prompt", "0")) if pricing.get("prompt") else None
-            completion_price = float(pricing.get("completion", "0")) if pricing.get("completion") else None
-            image_price = float(pricing.get("image", "0")) if pricing.get("image") else None
-        except (ValueError, TypeError):
-            prompt_price = None
-            completion_price = None
-            image_price = None
-
-        return {
-            "input_cost_per_token": prompt_price,
-            "output_cost_per_token": completion_price,
-            "image_cost_per_token": image_price,
-        }
-
     def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:
         """Convert HTTP errors to ProviderError types."""
         status = error.response.status_code
         try:
+            # For streaming responses, content may not have been read yet
+            if not error.response.is_stream_consumed:
+                try:
+                    error.response.read()
+                except Exception:
+                    pass
             error_data = error.response.json()
-            message = error_data.get("error", {}).get("message", str(error))
-        except (ValueError, KeyError):
+            # Mammouth may return {"error": "message"} (string) or {"error": {"message": "..."}} (dict)
+            err_field = error_data.get("error", str(error))
+            if isinstance(err_field, dict):
+                message = err_field.get("message", str(error))
+            else:
+                message = str(err_field)
+        except (ValueError, KeyError, httpx.ResponseNotRead):
             message = str(error)
 
         if status == 429:
@@ -469,6 +400,13 @@ class OpenRouterProvider(BaseLLMProvider):
                 message=message,
                 provider=self.provider_name,
                 status_code=401,
+            )
+
+        if status in (503, 529):
+            return OverloadedError(
+                message=message,
+                provider=self.provider_name,
+                status_code=status,
             )
 
         if status == 400 and "context" in message.lower():
@@ -496,8 +434,11 @@ class OpenRouterProvider(BaseLLMProvider):
             self._client.close()
             self._client = None
 
-    def __enter__(self) -> "OpenRouterProvider":
+    def __enter__(self) -> "MammouthProvider":
         return self
 
     def __exit__(self, *args) -> None:
+        self.close()
+
+    def __del__(self) -> None:
         self.close()

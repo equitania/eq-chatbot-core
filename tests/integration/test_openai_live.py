@@ -11,12 +11,9 @@ Run with: pytest -m integration tests/integration/test_openai_live.py
 Set SKIP_LIVE_TESTS=false in .env.test to enable these tests.
 """
 
-import os
-
 import pytest
 
 from eq_chatbot_core.providers import get_provider
-
 
 # =============================================================================
 # OpenAI Integration Tests

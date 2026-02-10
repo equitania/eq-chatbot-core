@@ -15,7 +15,6 @@ from cryptography.fernet import Fernet, InvalidToken
 
 from eq_chatbot_core.security.encryption import FernetEncryption
 
-
 # =============================================================================
 # Key Generation Tests
 # =============================================================================
@@ -234,7 +233,7 @@ class TestEncryptDecryptRoundtrip:
 
     def test_roundtrip_with_special_characters(self, enc):
         """Test roundtrip with special ASCII characters."""
-        plaintext = '!@#$%^&*()_+-=[]{}|;:\'",.<>?/\\~`'
+        plaintext = "!@#$%^&*()_+-=[]{}|;:'\",.<>?/\\~`"
         encrypted = enc.encrypt(plaintext)
         decrypted = enc.decrypt(encrypted)
 
@@ -614,9 +613,7 @@ class TestImportErrorHandling:
     def test_init_raises_import_error_without_cryptography(self):
         """Test that __init__ raises ImportError if cryptography is missing."""
         original_modules = {}
-        modules_to_remove = [
-            key for key in sys.modules if key.startswith("cryptography")
-        ]
+        modules_to_remove = [key for key in sys.modules if key.startswith("cryptography")]
         for mod_name in modules_to_remove:
             original_modules[mod_name] = sys.modules.pop(mod_name)
 
@@ -624,11 +621,7 @@ class TestImportErrorHandling:
         original_encryption = sys.modules.pop(encryption_module_key, None)
 
         try:
-            original_import = (
-                __builtins__.__import__
-                if hasattr(__builtins__, "__import__")
-                else __import__
-            )
+            original_import = __builtins__.__import__ if hasattr(__builtins__, "__import__") else __import__
 
             def mock_import(name, *args, **kwargs):
                 if name == "cryptography.fernet" or name.startswith("cryptography"):
@@ -639,9 +632,7 @@ class TestImportErrorHandling:
                 import importlib
 
                 try:
-                    module = importlib.import_module(
-                        "eq_chatbot_core.security.encryption"
-                    )
+                    module = importlib.import_module("eq_chatbot_core.security.encryption")
                     klass = module.FernetEncryption
 
                     with pytest.raises(ImportError, match="cryptography"):
@@ -768,13 +759,8 @@ class TestRealWorldScenarios:
             "langdock": "ld-abcdef",
         }
 
-        encrypted_keys = {
-            name: enc.encrypt_to_string(value) for name, value in keys.items()
-        }
-        decrypted_keys = {
-            name: enc.decrypt_from_string(value)
-            for name, value in encrypted_keys.items()
-        }
+        encrypted_keys = {name: enc.encrypt_to_string(value) for name, value in keys.items()}
+        decrypted_keys = {name: enc.decrypt_from_string(value) for name, value in encrypted_keys.items()}
 
         assert decrypted_keys == keys
 

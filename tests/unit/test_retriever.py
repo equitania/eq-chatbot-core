@@ -5,7 +5,6 @@ Tests retrieval, reranking, collection management, and upsert operations
 with fully mocked Qdrant client and embedder dependencies.
 """
 
-import sys
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -331,9 +330,7 @@ class TestRetrieveWithReranking:
         assert len(results) == 1
         assert results[0].content == "python tutorial for beginners"
 
-    def test_reranking_is_applied_when_results_exceed_top_k(
-        self, mock_qdrant_client, mock_embedder
-    ):
+    def test_reranking_is_applied_when_results_exceed_top_k(self, mock_qdrant_client, mock_embedder):
         """Test that reranking is applied when result count exceeds top_k."""
         # Create more results than top_k
         mock_results = []
@@ -368,9 +365,7 @@ class TestRetrieveWithReranking:
 class TestRetrieveWithoutReranking:
     """Test retrieve() behavior with rerank=False."""
 
-    def test_no_rerank_returns_results_in_original_order(
-        self, retriever_no_rerank, mock_qdrant_client
-    ):
+    def test_no_rerank_returns_results_in_original_order(self, retriever_no_rerank, mock_qdrant_client):
         """Test that results are returned in original Qdrant order when rerank is off."""
         r1 = MagicMock()
         r1.payload = {"content": "first result", "metadata": {}, "source": "a.txt"}
@@ -387,18 +382,14 @@ class TestRetrieveWithoutReranking:
         assert results[0].content == "first result"
         assert results[1].content == "second result"
 
-    def test_no_rerank_uses_top_k_as_limit(
-        self, retriever_no_rerank, mock_qdrant_client
-    ):
+    def test_no_rerank_uses_top_k_as_limit(self, retriever_no_rerank, mock_qdrant_client):
         """Test that without reranking, limit equals top_k (not top_k * 2)."""
         retriever_no_rerank.retrieve("query")
 
         call_kwargs = mock_qdrant_client.search.call_args
         assert call_kwargs.kwargs["limit"] == 5  # top_k=5, no doubling
 
-    def test_no_rerank_preserves_original_scores(
-        self, retriever_no_rerank, mock_qdrant_client
-    ):
+    def test_no_rerank_preserves_original_scores(self, retriever_no_rerank, mock_qdrant_client):
         """Test that original scores are preserved when reranking is off."""
         r1 = MagicMock()
         r1.payload = {"content": "result", "metadata": {}, "source": "a.txt"}
@@ -541,9 +532,7 @@ class TestEnsureCollection:
         assert result == "test_collection"
         mock_qdrant_client.create_collection.assert_not_called()
 
-    def test_uses_embedder_dimensions_when_vector_size_not_given(
-        self, retriever, mock_qdrant_client, mock_embedder
-    ):
+    def test_uses_embedder_dimensions_when_vector_size_not_given(self, retriever, mock_qdrant_client, mock_embedder):
         """Test that embedder.dimensions is used when vector_size is None."""
         mock_collections = MagicMock()
         mock_collections.collections = []
@@ -557,18 +546,14 @@ class TestEnsureCollection:
         # VectorParams should have been created with size=embedder.dimensions (3)
         assert vectors_config.size == mock_embedder.dimensions
 
-    def test_connection_error_on_list_collections_failure(
-        self, retriever, mock_qdrant_client
-    ):
+    def test_connection_error_on_list_collections_failure(self, retriever, mock_qdrant_client):
         """Test that a ConnectionError is raised when listing collections fails."""
         mock_qdrant_client.get_collections.side_effect = Exception("Network error")
 
         with pytest.raises(ConnectionError, match="Vector database connection failed"):
             retriever.ensure_collection()
 
-    def test_connection_error_preserves_original_cause(
-        self, retriever, mock_qdrant_client
-    ):
+    def test_connection_error_preserves_original_cause(self, retriever, mock_qdrant_client):
         """Test that the original exception is chained via __cause__."""
         original_error = Exception("Network error")
         mock_qdrant_client.get_collections.side_effect = original_error
@@ -649,9 +634,7 @@ class TestUpsert:
         assert count == 150
         assert mock_embedder.embed.call_count == 2
 
-    def test_upsert_embedding_failure_raises_runtime_error(
-        self, retriever, mock_embedder
-    ):
+    def test_upsert_embedding_failure_raises_runtime_error(self, retriever, mock_embedder):
         """Test that an embedder failure during upsert raises RuntimeError."""
         mock_embedder.embed.side_effect = ValueError("Model not loaded")
 
@@ -660,9 +643,7 @@ class TestUpsert:
         with pytest.raises(RuntimeError, match="Failed to generate embeddings"):
             retriever.upsert(chunks)
 
-    def test_upsert_qdrant_failure_raises_connection_error(
-        self, retriever, mock_qdrant_client, mock_embedder
-    ):
+    def test_upsert_qdrant_failure_raises_connection_error(self, retriever, mock_qdrant_client, mock_embedder):
         """Test that a Qdrant upsert failure raises ConnectionError."""
         mock_embedder.embed.return_value = np.array([[0.1, 0.2, 0.3]])
         mock_qdrant_client.upsert.side_effect = Exception("Write timeout")

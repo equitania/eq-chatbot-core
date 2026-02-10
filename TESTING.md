@@ -52,9 +52,11 @@ tests/.env.test
 | `OPENAI_API_KEY` | OpenAI API key for integration tests | - |
 | `ANTHROPIC_API_KEY` | Anthropic API key for integration tests | - |
 | `LANGDOCK_API_KEY` | LangDock API key for integration tests | - |
+| `MAMMOUTH_API_KEY` | Mammouth AI API key for integration tests | - |
 | `OPENAI_TEST_MODEL` | Model for OpenAI tests | `gpt-4o-mini` |
 | `ANTHROPIC_TEST_MODEL` | Model for Anthropic tests | `claude-3-haiku-20240307` |
 | `LANGDOCK_TEST_MODEL` | Model for LangDock tests | `gpt-4o-mini` |
+| `MAMMOUTH_TEST_MODEL` | Model for Mammouth tests | `gpt-4o-mini` |
 | `SKIP_LIVE_TESTS` | Skip integration tests | `false` |
 | `SKIP_LOCAL_TESTS` | Skip local LLM tests | `true` |
 | `TEST_MAX_TOKENS` | Max tokens per test completion | `20` |
@@ -86,19 +88,35 @@ tests/.env.test
 
 ```
 tests/
-├── conftest.py              # Fixtures, configuration loading
-├── .env.test                # API keys (gitignored!)
-├── .env.example             # Template for .env.test
-├── unit/                    # Mocked unit tests
-│   ├── test_openai.py       # OpenAI provider tests
-│   ├── test_anthropic.py    # Anthropic provider tests
-│   ├── test_langdock.py     # LangDock provider tests
-│   ├── test_local.py        # Local provider tests
-│   ├── test_factory.py      # Provider factory tests
-│   └── test_exceptions.py   # Exception handling tests
-└── integration/             # Live API tests
-    ├── test_openai_live.py  # OpenAI + Anthropic live tests
-    └── test_local_live.py   # LM Studio / Ollama tests
+├── conftest.py                        # Fixtures, configuration loading
+├── .env.test                          # API keys (gitignored!)
+├── .env.example                       # Template for .env.test
+├── unit/                              # Mocked unit tests (1012 tests)
+│   ├── test_openai.py                 # OpenAI provider tests
+│   ├── test_anthropic.py              # Anthropic provider tests
+│   ├── test_langdock.py               # LangDock provider tests
+│   ├── test_openrouter.py             # OpenRouter provider tests
+│   ├── test_mammouth.py               # Mammouth AI provider tests
+│   ├── test_temperature_constraints.py # Shared temperature clamping tests
+│   ├── test_local.py                  # Local provider tests
+│   ├── test_factory.py                # Provider factory tests
+│   ├── test_exceptions.py             # Exception handling tests
+│   ├── test_cost_service.py           # Token cost calculation tests
+│   ├── test_error_handler.py          # Error handler tests
+│   ├── test_injection.py              # Prompt injection tests
+│   ├── test_encryption.py             # Encryption tests
+│   ├── test_rate_limit.py             # Rate limiting tests
+│   ├── test_file_validator.py         # File validation tests
+│   ├── test_chunker.py                # Text chunking tests
+│   ├── test_retriever.py              # Vector retrieval tests
+│   ├── test_context_manager.py        # RAG context tests
+│   ├── test_knowledge_service.py      # Knowledge export tests
+│   └── test_mcp.py                    # MCP client tests
+└── integration/                       # Live API tests
+    ├── test_openai_live.py            # OpenAI + Anthropic + LangDock live tests
+    ├── test_mammouth_live.py          # Mammouth AI live tests
+    ├── test_mcp_live.py               # MCP server live tests
+    └── test_local_live.py             # LM Studio / Ollama tests
 ```
 
 ---
@@ -120,6 +138,11 @@ pytest tests/unit/ -v --cov=eq_chatbot_core --cov-report=html
 pytest tests/unit/test_openai.py -v
 pytest tests/unit/test_anthropic.py -v
 pytest tests/unit/test_langdock.py -v
+pytest tests/unit/test_openrouter.py -v
+pytest tests/unit/test_mammouth.py -v
+
+# Temperature constraints (shared module)
+pytest tests/unit/test_temperature_constraints.py -v
 
 # Specific test class
 pytest tests/unit/test_openai.py::TestOpenAIChatCompletion -v
@@ -133,7 +156,7 @@ pytest tests/unit/test_openai.py::TestOpenAIChatCompletion::test_simple_completi
 **Caution**: These tests make real API calls and incur costs!
 
 ```bash
-# All integration tests (OpenAI + Anthropic + LangDock)
+# All integration tests (OpenAI + Anthropic + LangDock + Mammouth)
 pytest tests/integration/ -v -m integration
 
 # OpenAI tests only
@@ -147,6 +170,9 @@ pytest tests/integration/test_openai_live.py::TestLangDockLive -v
 
 # LangDock Anthropic backend tests
 pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v
+
+# Mammouth AI tests
+pytest tests/integration/test_mammouth_live.py -v
 
 # Cost-effective pattern tests
 pytest tests/integration/test_openai_live.py::TestCostEffectivePatterns -v
@@ -184,6 +210,16 @@ pytest tests/integration/test_local_live.py -v -m local
 
 **Note:** Tests automatically detect which server is available and skip tests for unavailable servers.
 
+### Mammouth AI Tests
+
+```bash
+# Unit tests (mocked, no API calls)
+pytest tests/unit/test_mammouth.py -v
+
+# Integration tests (real API calls, requires MAMMOUTH_API_KEY)
+pytest tests/integration/test_mammouth_live.py -v -m integration
+```
+
 ### All Tests
 
 ```bash
@@ -220,7 +256,7 @@ pytest tests/ -v --tb=long
 
 ## Cost-Effective Testing
 
-### Model Pricing (as of 2025)
+### Model Pricing (as of 2026)
 
 | Provider | Model | Input $/1M | Output $/1M |
 |----------|-------|-----------|-------------|
@@ -229,6 +265,7 @@ pytest tests/ -v --tb=long
 | Anthropic | claude-3-haiku | $0.25 | $1.25 |
 | Anthropic | claude-3-5-sonnet | $3.00 | $15.00 |
 | Anthropic | claude-sonnet-4 | $3.00 | $15.00 |
+| Mammouth | gpt-4o-mini (via Mammouth) | $0.15 | $0.60 |
 
 ### Recommended Test Settings
 
@@ -407,10 +444,14 @@ jobs:
 | OpenAI unit tests | `pytest tests/unit/test_openai.py -v` |
 | Anthropic unit tests | `pytest tests/unit/test_anthropic.py -v` |
 | LangDock unit tests | `pytest tests/unit/test_langdock.py -v` |
+| OpenRouter unit tests | `pytest tests/unit/test_openrouter.py -v` |
+| Mammouth unit tests | `pytest tests/unit/test_mammouth.py -v` |
+| Temperature constraints | `pytest tests/unit/test_temperature_constraints.py -v` |
 | OpenAI live tests | `pytest tests/integration/test_openai_live.py::TestOpenAILive -v` |
 | Anthropic live tests | `pytest tests/integration/test_openai_live.py::TestAnthropicLive -v` |
 | LangDock live tests | `pytest tests/integration/test_openai_live.py::TestLangDockLive -v` |
 | LangDock Anthropic | `pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v` |
+| Mammouth live tests | `pytest tests/integration/test_mammouth_live.py -v` |
 | With coverage | `pytest tests/ -v --cov=eq_chatbot_core --cov-report=html` |
 | Stop on failure | `pytest tests/ -v -x` |
 | Show prints | `pytest tests/ -v -s` |

@@ -5,18 +5,15 @@ All tests use mocked responses - no real API calls.
 Tests cover 400+ model access through unified API.
 """
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
-    ContextLengthError,
     ProviderError,
     RateLimitError,
 )
-
 
 # =============================================================================
 # Fixtures

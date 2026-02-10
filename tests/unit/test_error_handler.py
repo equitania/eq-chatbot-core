@@ -5,16 +5,16 @@ Tests error classification, retry logic with exponential backoff and jitter,
 provider fallback chains, German user messages, and logging callbacks.
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from eq_chatbot_core.services.error_handler import (
     ChatbotErrorHandler,
+    ErrorCategory,
     ErrorResult,
     ErrorSeverity,
-    ErrorCategory,
 )
-
 
 # =============================================================================
 # Fixtures
@@ -167,9 +167,7 @@ class TestTimeoutRetry:
         error = Exception("Request timed out")
         context = {"retry_count": 0}
 
-        result = handler_with_fallback.handle_llm_error(
-            error, "openai", context, retry_callback=retry_callback
-        )
+        result = handler_with_fallback.handle_llm_error(error, "openai", context, retry_callback=retry_callback)
 
         # After 2 failed retries, should fall back to provider
         assert result.success is True

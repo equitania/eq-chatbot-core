@@ -36,6 +36,18 @@ PRICING: dict[str, ModelPricing] = {
     "claude-3-opus-latest": {"input": 0.015, "output": 0.075},
     "claude-3-sonnet-20240229": {"input": 0.003, "output": 0.015},
     "claude-3-haiku-20240307": {"input": 0.00025, "output": 0.00125},
+    # Mammouth AI models (pricing per 1K tokens, converted from per-million rates)
+    "gpt-5.2-chat": {"input": 0.00175, "output": 0.014},
+    "gpt-5.1-chat": {"input": 0.00125, "output": 0.01},
+    "gpt-5-mini": {"input": 0.00025, "output": 0.002},
+    "gpt-4.1": {"input": 0.002, "output": 0.008},
+    "gpt-4.1-mini": {"input": 0.0004, "output": 0.0016},
+    "gpt-4.1-nano": {"input": 0.0001, "output": 0.0004},
+    "gemini-2.5-pro": {"input": 0.00125, "output": 0.01},
+    "gemini-2.5-flash": {"input": 0.00015, "output": 0.0006},
+    "mistral-large-latest": {"input": 0.002, "output": 0.006},
+    "deepseek-chat": {"input": 0.00027, "output": 0.0011},
+    "deepseek-reasoner": {"input": 0.00055, "output": 0.0022},
     # Embeddings
     "text-embedding-3-small": {"input": 0.00002, "output": 0.0},
     "text-embedding-3-large": {"input": 0.00013, "output": 0.0},

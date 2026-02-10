@@ -25,7 +25,6 @@ sys.modules["tiktoken"] = mock_tiktoken
 
 from eq_chatbot_core.rag.context_manager import ContextBudget, ContextWindowManager
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -242,9 +241,9 @@ class TestTruncateMessages:
         """Newest messages are retained when total exceeds budget."""
         mgr = ContextWindowManager(model="gpt-4o")
         messages = [
-            {"role": "user", "content": "first message here"},      # 3 tokens
-            {"role": "assistant", "content": "second message here"}, # 3 tokens
-            {"role": "user", "content": "third"},                    # 1 token
+            {"role": "user", "content": "first message here"},  # 3 tokens
+            {"role": "assistant", "content": "second message here"},  # 3 tokens
+            {"role": "user", "content": "third"},  # 1 token
         ]
         # Budget of 4 tokens should keep last two messages (3 + 1 = 4)
         result = mgr.truncate_messages(messages, max_tokens=4)
@@ -280,9 +279,9 @@ class TestTruncateRagContext:
         """Highest-scored results are selected within budget."""
         mgr = ContextWindowManager(model="gpt-4o")
         results = [
-            FakeRetrievalResult(content="low score content here", score=0.3, source="a.txt"),    # 4 tokens
-            FakeRetrievalResult(content="high", score=0.9, source="b.txt"),                       # 1 token
-            FakeRetrievalResult(content="medium score", score=0.6, source="c.txt"),               # 2 tokens
+            FakeRetrievalResult(content="low score content here", score=0.3, source="a.txt"),  # 4 tokens
+            FakeRetrievalResult(content="high", score=0.9, source="b.txt"),  # 1 token
+            FakeRetrievalResult(content="medium score", score=0.6, source="c.txt"),  # 2 tokens
         ]
         # Budget of 3 tokens: should pick "high" (1, score=0.9) + "medium score" (2, score=0.6)
         selected = mgr.truncate_rag_context(results, max_tokens=3)

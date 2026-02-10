@@ -18,8 +18,9 @@ Originally developed for Odoo 18 chatbot integration, but works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support**: OpenAI, Anthropic, LangDock, OpenRouter, Local (LM Studio/Ollama)
+- **Multi-Provider Support**: OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Unified API**: Same interface regardless of provider
+- **Temperature Safety**: Automatic model-specific temperature clamping (GPT-4.1 min=1.0, Claude max=1.0, reasoning models skip)
 - **Security**:
   - Fernet encryption for API key storage
   - Prompt injection protection
@@ -112,13 +113,14 @@ decrypted = encryption.decrypt(encrypted, key)
 
 ### Supported Providers
 
-| Provider | Models | Vision | Streaming |
-|----------|--------|--------|-----------|
-| OpenAI | GPT-4, GPT-4o, o1, o3, o4 | Yes | Yes |
-| Anthropic | Claude 3, Claude 3.5, Claude 4 | Yes | Yes |
-| LangDock | All via gateway | Yes | Yes |
-| OpenRouter | 400+ models via gateway | Yes | Yes |
-| Local (LM Studio/Ollama) | Local models | No | Yes |
+| Provider | Models | Vision | Streaming | Temp. Clamping |
+|----------|--------|--------|-----------|----------------|
+| OpenAI | GPT-4, GPT-4o, GPT-4.1, GPT-5, o1, o3, o4 | Yes | Yes | Yes |
+| Anthropic | Claude 3, Claude 3.5, Claude 4 | Yes | Yes | Yes |
+| LangDock | All via gateway | Yes | Yes | Yes |
+| OpenRouter | 400+ models via gateway | Yes | Yes | Yes |
+| Mammouth AI | 30+ models via unified API | Yes | Yes | Yes |
+| Local (LM Studio/Ollama) | Local models | No | Yes | No |
 
 ---
 
@@ -132,8 +134,9 @@ Ursprünglich für die Odoo 18 Chatbot-Integration entwickelt, funktioniert aber
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, LangDock, OpenRouter, Local (LM Studio/Ollama)
+- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Einheitliche API**: Gleiche Schnittstelle unabhängig vom Provider
+- **Temperature-Sicherheit**: Automatisches modellspezifisches Temperature-Clamping (GPT-4.1 min=1.0, Claude max=1.0, Reasoning-Modelle werden übersprungen)
 - **Sicherheit**:
   - Fernet-Verschlüsselung für API-Key-Speicherung
   - Schutz vor Prompt-Injection
@@ -213,7 +216,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 0.15.0 |
+| **Version** | 1.0.0 |
 | **Author** | Equitania Software GmbH |
 | **License** | MIT |
 | **Python** | >=3.10 |

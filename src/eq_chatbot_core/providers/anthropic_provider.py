@@ -18,6 +18,10 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.temperature_constraints import (
+    clamp_temperature,
+    get_temperature_constraints,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +39,6 @@ class AnthropicProvider(BaseLLMProvider):
     """
 
     DEFAULT_BASE_URL = "https://api.anthropic.com"
-
-    # Models that don't support temperature
-    NO_TEMPERATURE_MODELS = ("claude-3-opus",)
 
     # Retry configuration for transient errors (overloaded)
     OVERLOAD_MAX_RETRIES = 3
@@ -237,9 +238,10 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Only add temperature if model supports it
-        if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
-            params["temperature"] = temperature
+        # Clamp temperature per model constraints
+        clamped = clamp_temperature(model, temperature)
+        if clamped is not None:
+            params["temperature"] = clamped
 
         if system_prompt:
             params["system"] = system_prompt
@@ -326,9 +328,10 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Only add temperature if model supports it
-        if not any(prefix in model.lower() for prefix in self.NO_TEMPERATURE_MODELS):
-            params["temperature"] = temperature
+        # Clamp temperature per model constraints
+        clamped = clamp_temperature(model, temperature)
+        if clamped is not None:
+            params["temperature"] = clamped
 
         if system_prompt:
             params["system"] = system_prompt
@@ -460,8 +463,9 @@ class AnthropicProvider(BaseLLMProvider):
         """Get temperature, token, and capability constraints for a model."""
         model_lower = model_id.lower()
 
-        # Check if it's a model that doesn't support temperature
-        supports_temp = not any(prefix in model_lower for prefix in self.NO_TEMPERATURE_MODELS)
+        # Use shared temperature constraints
+        temp_constraints = get_temperature_constraints(model_id)
+        supports_temp = temp_constraints["supports_temperature"]
 
         # All Claude 3.x and 4.x models support vision
         # Check for various naming patterns: claude-3-*, claude-4-*, claude-haiku-*, etc.
@@ -482,8 +486,8 @@ class AnthropicProvider(BaseLLMProvider):
         return {
             "supports_temperature": supports_temp,
             "default_temperature": 1.0,
-            "min_temperature": 0.0,
-            "max_temperature": 1.0,  # Anthropic max is 1.0
+            "min_temperature": temp_constraints["min"],
+            "max_temperature": temp_constraints["max"],
             "supports_reasoning": False,
             "supports_vision": supports_vision,
             "max_output_tokens": max_output,

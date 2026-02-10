@@ -35,7 +35,6 @@ sys.modules["tiktoken"] = mock_tiktoken
 
 from eq_chatbot_core.rag.chunker import Chunk, DocumentChunker  # noqa: E402
 
-
 # =============================================================================
 # Helper utilities
 # =============================================================================
@@ -43,9 +42,7 @@ from eq_chatbot_core.rag.chunker import Chunk, DocumentChunker  # noqa: E402
 MAX_CHUNKS = 200  # Safety bail-out for generators
 
 
-def _collect_chunks(
-    chunker: DocumentChunker, text: str, metadata: dict | None = None
-) -> list[Chunk]:
+def _collect_chunks(chunker: DocumentChunker, text: str, metadata: dict | None = None) -> list[Chunk]:
     """Materialize the chunk_text generator into a list with safety limit."""
     chunks = []
     for i, chunk in enumerate(chunker.chunk_text(text, metadata=metadata)):
@@ -234,9 +231,7 @@ class TestSentenceBoundaryAdjustment:
 
             result = chunker._adjust_to_sentence_boundary(text)
 
-            assert result == prefix + pattern[0], (
-                f"Failed for pattern {pattern!r}: got {result[-5:]!r}"
-            )
+            assert result == prefix + pattern[0], f"Failed for pattern {pattern!r}: got {result[-5:]!r}"
 
 
 # =============================================================================

@@ -27,6 +27,10 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.temperature_constraints import (
+    clamp_temperature,
+    get_temperature_constraints,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -277,9 +281,10 @@ class LangDockProvider(BaseLLMProvider):
                 "model": model,
             }
 
-            # Handle temperature for reasoning models
-            if not self._is_reasoning_model(model):
-                params["temperature"] = temperature
+            # Clamp temperature per model constraints (skip for reasoning models)
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             # Handle max_tokens
             if max_tokens:
@@ -542,8 +547,12 @@ class LangDockProvider(BaseLLMProvider):
                 "model": model,
                 "messages": filtered_messages,
                 "max_tokens": max_tokens or 4096,
-                "temperature": temperature,
             }
+
+            # Clamp temperature per model constraints
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -638,10 +647,13 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
+            # Clamp temperature per model constraints
+            clamped = clamp_temperature(model, temperature)
+
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": temperature,
+                    "temperature": clamped if clamped is not None else temperature,
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }
@@ -815,8 +827,10 @@ class LangDockProvider(BaseLLMProvider):
                 "stream_options": {"include_usage": True},
             }
 
-            if not self._is_reasoning_model(model):
-                params["temperature"] = temperature
+            # Clamp temperature per model constraints (skip for reasoning models)
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             if max_tokens:
                 if self._uses_new_token_api(model):
@@ -1194,8 +1208,12 @@ class LangDockProvider(BaseLLMProvider):
                 "model": model,
                 "messages": filtered_messages,
                 "max_tokens": max_tokens or 4096,
-                "temperature": temperature,
             }
+
+            # Clamp temperature per model constraints
+            clamped = clamp_temperature(model, temperature)
+            if clamped is not None:
+                params["temperature"] = clamped
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -1405,10 +1423,13 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
+            # Clamp temperature per model constraints
+            clamped = clamp_temperature(model, temperature)
+
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": temperature,
+                    "temperature": clamped if clamped is not None else temperature,
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }
@@ -1479,8 +1500,9 @@ class LangDockProvider(BaseLLMProvider):
         """Get temperature, token, and capability constraints for a model."""
         model_lower = model_id.lower()
 
-        # Check if it's a reasoning model
-        is_reasoning = self._is_reasoning_model(model_id)
+        # Use shared temperature constraints for accurate min/max
+        temp_constraints = get_temperature_constraints(model_id)
+        is_reasoning = not temp_constraints["supports_temperature"]
 
         # Check if model supports vision
         # GPT-4o/4-turbo/5, Claude 3+, Gemini, O1/O3/O4 support vision
@@ -1496,9 +1518,7 @@ class LangDockProvider(BaseLLMProvider):
         elif model_lower.startswith("gemini"):
             supports_vision = True
         # Claude 3+ models (various naming patterns)
-        # Patterns: claude-3-..., claude-4-..., claude-haiku-4-..., claude-sonnet-..., claude-opus-...
         elif "claude" in model_lower:
-            # Check for version 3 or 4 anywhere, or known vision-capable variants
             if any(v in model_lower for v in ("-3-", "-3.", "-4-", "-4.", "haiku", "sonnet", "opus")):
                 supports_vision = True
 
@@ -1525,22 +1545,18 @@ class LangDockProvider(BaseLLMProvider):
             # Determine max_output based on model family
             if "claude" in model_lower:
                 max_output = 8192
-                max_temp = 1.0
             elif "gemini" in model_lower:
                 max_output = 8192
-                max_temp = 2.0
             elif "codestral" in model_lower:
                 max_output = 16384
-                max_temp = 0.0  # Codestral uses temperature 0 by default
             else:
                 max_output = 16384
-                max_temp = 2.0
 
             return {
                 "supports_temperature": True,
                 "default_temperature": 1.0,
-                "min_temperature": 0.0,
-                "max_temperature": max_temp,
+                "min_temperature": temp_constraints["min"],
+                "max_temperature": temp_constraints["max"],
                 "supports_reasoning": False,
                 "supports_vision": supports_vision,
                 "max_output_tokens": max_output,

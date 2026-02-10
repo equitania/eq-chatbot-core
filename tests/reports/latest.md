@@ -1,39 +1,41 @@
-# Test Report - 2026-02-09 11:50:51
+# Test Report - 2026-02-10 11:02:08
 
-**eq_chatbot_core v0.15.0** | 3.36s | Python 3.13.2 | macOS-26.2-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.0.0** | 2.60s | Python 3.13.2 | macOS-26.2-arm64-arm-64bit-Mach-O
 
-> **Result: ALL PASSED - 940 tests OK, 5 expected failures**
+> **Result: ALL PASSED - 1012 tests OK, 5 expected failures**
 
-Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.13/site-packages/pytest/__main__.py tests/unit/ -v --tb=short`
+Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/ -q --tb=short`
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Passed | 940 |
+| Passed | 1012 |
 | Failed | 0 |
 | XFailed (expected) | 5 |
-| **Total** | **945** |
+| **Total** | **1017** |
 
 ## Results by Module
 
 | Module | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|--------|--------|---------|---------|-------|----------|
-| **Provider: OpenAI** | 38 | 0 | 0 | 0 | 38 | 0.01s |
-| **Provider: Anthropic** | 43 | 0 | 0 | 0 | 43 | <0.01s |
-| **Provider: LangDock** | 56 | 0 | 0 | 0 | 56 | 0.02s |
+| **Provider: OpenAI** | 41 | 0 | 0 | 0 | 41 | 0.01s |
+| **Provider: Anthropic** | 44 | 0 | 0 | 0 | 44 | <0.01s |
+| **Provider: LangDock** | 56 | 0 | 0 | 0 | 56 | 0.01s |
 | **Provider: OpenRouter** | 31 | 0 | 0 | 0 | 31 | <0.01s |
-| **Provider: Local (LM Studio / Ollama)** | 32 | 0 | 0 | 0 | 32 | 0.01s |
-| **Security** | 410 | 0 | 0 | 5 | 415 | 0.05s |
-| **RAG Pipeline** | 116 | 0 | 0 | 0 | 116 | 0.78s |
-| **Services & Core** | 134 | 0 | 0 | 0 | 134 | 0.01s |
-| **MCP Client** | 80 | 0 | 0 | 0 | 80 | 1.55s |
+| **Provider: Mammouth AI** | 37 | 0 | 0 | 0 | 37 | <0.01s |
+| **Provider: Local (LM Studio / Ollama)** | 32 | 0 | 0 | 0 | 32 | 0.02s |
+| **Security** | 410 | 0 | 0 | 5 | 415 | 0.04s |
+| **RAG Pipeline** | 116 | 0 | 0 | 0 | 116 | 0.34s |
+| **Services & Core** | 134 | 0 | 0 | 0 | 134 | <0.01s |
+| **MCP Client** | 80 | 0 | 0 | 0 | 80 | 1.54s |
+| **Other** | 31 | 0 | 0 | 0 | 31 | <0.01s |
 
 ## Detailed Results
 
-### Unit Tests (940 passed, 5 xfailed)
+### Unit Tests (1012 passed, 5 xfailed)
 
-#### Provider: OpenAI (38 passed) - 0.01s
+#### Provider: OpenAI (41 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -49,6 +51,8 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_with_max_tokens_new_api` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_extra_kwargs` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_reasoning_model_no_temperature` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_gpt41_temperature_clamped` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_completion` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_includes_usage` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_with_max_tokens` | PASSED | <0.01s |
@@ -74,9 +78,10 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_default_base_url` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_repr` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_chat_model_prefixes` | PASSED | <0.01s |
-| `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_models` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_model_no_temperature` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderProperties::test_gpt41_temperature_clamped` | PASSED | <0.01s |
 
-#### Provider: Anthropic (43 passed) - <0.01s
+#### Provider: Anthropic (44 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -96,7 +101,8 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_system_prompt` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_model` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_temperature` | PASSED | <0.01s |
-| `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_no_temp_for_opus3` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_claude_opus3_gets_temperature` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_temperature_clamped_above_max` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_max_tokens` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_default_max_tokens` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
@@ -121,10 +127,10 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_provider_name` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_default_model` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_default_base_url` | PASSED | <0.01s |
-| `unit/test_anthropic.py::TestAnthropicProviderProperties::test_no_temperature_models` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicProviderProperties::test_claude_temperature_clamped_to_max` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_repr` | PASSED | <0.01s |
 
-#### Provider: LangDock (56 passed) - 0.02s
+#### Provider: LangDock (56 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -221,7 +227,49 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_openrouter.py::TestOpenRouterContextManager::test_context_manager` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterFactoryIntegration::test_get_provider_returns_openrouter` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.01s
+#### Provider: Mammouth AI (37 passed) - <0.01s
+
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/test_mammouth.py::TestMammouthProviderInit::test_basic_init` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthProviderInit::test_init_with_custom_base_url` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthProviderInit::test_init_with_timeout` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthProviderProperties::test_provider_name` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthProviderProperties::test_default_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_reasoning_model_no_temperature` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_gpt5_min_temperature_clamped` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_gpt41_min_temperature_clamped` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_gpt41_valid_temperature_passes_through` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_legacy_model_passthrough` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_claude_max_temperature_clamped` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_unknown_model_uses_defaults` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthTemperatureConstraints::test_constraints_in_list_models` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthReasoningModels::test_o1_is_reasoning_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthReasoningModels::test_o3_is_reasoning_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthReasoningModels::test_o4_is_reasoning_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthReasoningModels::test_gpt_not_reasoning_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthReasoningModels::test_claude_not_reasoning_model` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthChatCompletion::test_simple_completion` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthChatCompletion::test_completion_temperature_clamped_for_gpt41` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthChatCompletion::test_completion_no_temperature_for_reasoning` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthChatCompletion::test_completion_with_max_tokens` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthStreamCompletion::test_basic_streaming` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthStreamCompletion::test_streaming_temperature_clamped` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthListModels::test_list_models_returns_all` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthListModels::test_list_models_includes_metadata` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthListModels::test_list_models_includes_pricing` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthListModels::test_list_models_sorted` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_authentication_error` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_overloaded_error` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_context_length_error` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_generic_error` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthContextManager::test_close_client` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthContextManager::test_context_manager` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthFactoryIntegration::test_get_provider_returns_mammouth` | PASSED | <0.01s |
+
+#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.02s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -243,7 +291,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_local.py::TestLocalLLMProviderErrors::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderErrors::test_context_length_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderStreaming::test_stream_completion_success` | PASSED | <0.01s |
-| `unit/test_local.py::TestLocalLLMProviderStreaming::test_stream_completion_handles_done_marker` | PASSED | <0.01s |
+| `unit/test_local.py::TestLocalLLMProviderStreaming::test_stream_completion_handles_done_marker` | PASSED | 0.01s |
 | `unit/test_local.py::TestLocalLLMProviderStreaming::test_stream_completion_skips_empty_lines` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderStreaming::test_stream_completion_connection_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderListModels::test_list_models_success` | PASSED | <0.01s |
@@ -258,7 +306,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (410 passed, 5 xfailed) - 0.05s
+#### Security (410 passed, 5 xfailed) - 0.04s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -678,7 +726,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.78s
+#### RAG Pipeline (116 passed) - 0.34s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -755,7 +803,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.76s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.33s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -799,7 +847,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (134 passed) - 0.01s
+#### Services & Core (134 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -938,11 +986,11 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_factory.py::TestFactoryProviderProperties::test_provider_names_correct` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryProviderProperties::test_openrouter_default_model` | PASSED | <0.01s |
 
-#### MCP Client (80 passed) - 1.55s
+#### MCP Client (80 passed) - 1.54s
 
 | Test | Status | Duration |
 |------|--------|----------|
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | 0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |
@@ -960,11 +1008,11 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.00s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
@@ -1001,7 +1049,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | 0.03s |
+| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |
@@ -1022,3 +1070,39 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 | `unit/test_mcp.py::TestStdioCommandValidation::test_clean_args_accepted` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_command` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_args` | PASSED | <0.01s |
+
+#### Other (31 passed) - <0.01s
+
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_gpt41` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_reasoning_model` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_legacy_openai` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude_opus` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_gemini` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_mistral` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_longest_prefix_match` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_default_fallback_unknown_model` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_reasoner` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_chat` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_below_min_gpt41` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_below_min_gpt5` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_claude` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_mistral` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_reasoning_model_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_in_range_passthrough` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_min_boundary` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_max_boundary` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_unknown_model_wide_range` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_deepseek_reasoner_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_openai_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_anthropic_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_google_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_no_prefix_unchanged` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_meta_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_only_first_slash` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_gpt41_clamped` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_claude_clamped` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |

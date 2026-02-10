@@ -18,7 +18,6 @@ from eq_chatbot_core.providers.base import (
 )
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider
 
-
 # =============================================================================
 # Fixtures
 # =============================================================================

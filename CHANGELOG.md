@@ -5,6 +5,40 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-02-10
+
+### Added
+
+- **Mammouth AI Provider**: New provider for 30+ AI models via unified API
+  - Supports OpenAI, Anthropic, Google, Mistral, xAI, DeepSeek, Meta models
+  - OpenAI-compatible API (simple model IDs without provider prefix)
+  - Temperature clamping, streaming, tool calls, model listing with pricing
+  - Factory support: `get_provider("mammouth", api_key="mm-...")`
+  - 37 unit tests + integration test suite
+- **Shared Temperature Constraints Module** (`temperature_constraints.py`)
+  - Single source of truth for model-specific temperature limits
+  - Exact match + longest-prefix matching for model ID lookup
+  - `clamp_temperature()` — returns `None` for reasoning models (skip parameter)
+  - `strip_provider_prefix()` — handles OpenRouter `provider/model` format
+  - 31 unit tests covering all constraint lookup and clamping logic
+
+### Changed
+
+- **Unified temperature clamping across all providers** (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth)
+  - GPT-4.1/GPT-5.x: enforce min temperature=1.0 (was unclamped)
+  - Claude models: enforce max temperature=1.0 (was unclamped)
+  - Reasoning models (o1/o3/o4, deepseek-reasoner): temperature parameter omitted entirely
+  - Unknown models: safe default 0.0–2.0 range
+- All providers now delegate to shared `temperature_constraints` module instead of local logic
+- Unit test count: 1012 passed (up from 940)
+
+### Fixed
+
+- **OpenAI provider**: Temperature was always sent to reasoning models (o1/o3/o4), causing API errors
+- **Anthropic provider**: Temperature above 1.0 was not clamped, causing API errors
+- **LangDock provider**: Temperature not clamped for GPT-4.1/5.x models across all backends
+- **OpenRouter provider**: Temperature not clamped for GPT-4.1/5.x models (only reasoning skip existed)
+
 ## [0.15.0] - 2026-02-09
 
 ### Changed
