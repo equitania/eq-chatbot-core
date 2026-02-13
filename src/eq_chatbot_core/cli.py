@@ -27,7 +27,7 @@ def main() -> None:
 
 
 # Available providers for CLI choices
-CLOUD_PROVIDERS = ["openai", "anthropic", "langdock"]
+CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "azure"]
 LOCAL_PROVIDERS = ["local", "lm_studio", "ollama"]
 ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
@@ -267,6 +267,7 @@ def info() -> None:
     click.echo("    • openai    - GPT-4, GPT-4o, o1, o3, o4 series")
     click.echo("    • anthropic - Claude 3, Claude 3.5, Claude 4")
     click.echo("    • langdock  - Multi-provider gateway (EU/US regions)")
+    click.echo("    • azure     - Azure AI Foundry (GPT, Claude, Mistral)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")

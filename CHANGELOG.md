@@ -5,6 +5,29 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-02-13
+
+### Added
+
+- **Azure AI Provider**: New provider for Azure AI Foundry models via `azure-ai-inference` SDK
+  - Supports models deployed on Azure AI (GPT-4o, GPT-4.1, O1, O3, O4, Claude, Mistral, Llama, Phi, DeepSeek)
+  - AzureKeyCredential authentication with required `base_url` endpoint
+  - Chat completion and streaming with tool call support
+  - Static model catalog via `list_models()` (Azure has no list API)
+  - Temperature clamping via shared constraints module
+  - Graceful import: works without `azure-ai-inference` installed (raises ImportError on use)
+  - Context manager support (`with get_provider("azure", ...) as provider:`)
+  - Factory support: `get_provider("azure", api_key="...", base_url="...")`
+  - Optional dependency: `pip install eq-chatbot-core[azure]`
+  - 38 unit tests + 5 integration tests
+- Azure section in CLI `info` command
+
+### Changed
+
+- Unit test count: 1051 passed (up from 1012)
+- Updated CLI `--provider` help text to include `azure`
+- Updated factory error messages to list `azure` as available provider
+
 ## [1.0.0] - 2026-02-10
 
 ### Added

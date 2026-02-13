@@ -52,6 +52,9 @@ def test_config() -> dict[str, Any]:
         "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
         "langdock_api_key": os.getenv("LANGDOCK_API_KEY"),
         "mammouth_api_key": os.getenv("MAMMOUTH_API_KEY"),
+        "azure_api_key": os.getenv("AZURE_API_KEY"),
+        "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
+        "azure_model": os.getenv("AZURE_TEST_MODEL", "gpt-4o"),
         # Local Server URLs
         "lm_studio_url": os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1"),
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434/v1"),
@@ -91,6 +94,12 @@ def langdock_api_key(test_config) -> str | None:
 def mammouth_api_key(test_config) -> str | None:
     """Mammouth AI API key from environment."""
     return test_config["mammouth_api_key"]
+
+
+@pytest.fixture
+def azure_api_key(test_config) -> str | None:
+    """Azure API key from environment."""
+    return test_config["azure_api_key"]
 
 
 @pytest.fixture
@@ -139,6 +148,14 @@ def skip_if_no_mammouth_key():
     return pytest.mark.skipif(
         not os.getenv("MAMMOUTH_API_KEY"),
         reason="MAMMOUTH_API_KEY not set",
+    )
+
+
+def skip_if_no_azure_key():
+    """Skip test if AZURE_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("AZURE_API_KEY"),
+        reason="AZURE_API_KEY not set",
     )
 
 
@@ -410,6 +427,10 @@ _MODULE_GROUPS = {
         "label": "Provider: Mammouth AI",
         "modules": ["test_mammouth", "test_mammouth_live"],
     },
+    "Azure": {
+        "label": "Provider: Azure AI",
+        "modules": ["test_azure", "test_azure_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -424,13 +445,37 @@ _MODULE_GROUPS = {
     },
     "Services": {
         "label": "Services & Core",
-        "modules": ["test_cost_service", "test_error_handler", "test_factory", "test_exceptions"],
+        "modules": [
+            "test_cost_service",
+            "test_error_handler",
+            "test_factory",
+            "test_exceptions",
+            "test_temperature_constraints",
+        ],
     },
     "MCP": {
         "label": "MCP Client",
         "modules": ["test_mcp", "test_mcp_live"],
     },
 }
+
+# Mapping from module group to test model environment variable and default
+_GROUP_TEST_MODELS = {
+    "OpenAI": ("OPENAI_TEST_MODEL", "gpt-4o-mini"),
+    "Anthropic": ("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
+    "LangDock": ("LANGDOCK_TEST_MODEL", "gpt-5.2"),
+    "Mammouth": ("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
+    "Azure": ("AZURE_TEST_MODEL", "gpt-4o"),
+    "Local": ("LOCAL_TEST_MODEL", "phi-4-mini"),
+}
+
+
+def _get_test_models() -> dict[str, str]:
+    """Read configured test models from environment variables."""
+    models = {}
+    for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
+        models[group_key] = os.getenv(env_var, default)
+    return models
 
 
 def _get_module_group(nodeid: str) -> str:
@@ -605,6 +650,19 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     lines.append(f"| **Total** | **{total}** |")
     lines.append("")
 
+    # Test Configuration section - show configured models
+    test_models = _get_test_models()
+    lines.append("## Test Configuration")
+    lines.append("")
+    lines.append("| Provider | Test Model | Source |")
+    lines.append("|----------|------------|--------|")
+    for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
+        model = test_models.get(group_key, default)
+        env_value = os.getenv(env_var)
+        source = f"`{env_var}`" if env_value else f"default"
+        lines.append(f"| {group_key} | `{model}` | {source} |")
+    lines.append("")
+
     # Failed tests section
     failed = [r for r in results if r["outcome"] == "failed"]
     if failed:
@@ -634,8 +692,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     # Module group overview table
     lines.append("## Results by Module")
     lines.append("")
-    lines.append("| Module | Passed | Failed | Skipped | XFailed | Total | Duration |")
-    lines.append("|--------|--------|--------|---------|---------|-------|----------|")
+    lines.append("| Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |")
+    lines.append("|--------|------------|--------|--------|---------|---------|-------|----------|")
 
     # Build group stats - ordered by _MODULE_GROUPS definition
     all_group_keys = list(_MODULE_GROUPS.keys())
@@ -649,6 +707,8 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             continue
 
         label = _MODULE_GROUPS[group_key]["label"] if group_key in _MODULE_GROUPS else "Other"
+        model = test_models.get(group_key, "-")
+        model_cell = f"`{model}`" if model != "-" else "-"
         g_passed = sum(1 for r in group_results if r["outcome"] == "passed")
         g_failed = sum(1 for r in group_results if r["outcome"] == "failed")
         g_skipped = sum(1 for r in group_results if r["outcome"] == "skipped")
@@ -659,7 +719,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         # Mark failed groups
         status_marker = " **!!**" if g_failed > 0 else ""
         lines.append(
-            f"| **{label}**{status_marker} | {g_passed} | {g_failed} | "
+            f"| **{label}**{status_marker} | {model_cell} | {g_passed} | {g_failed} | "
             f"{g_skipped} | {g_xfailed} | {g_total} | {_format_duration(g_duration)} |"
         )
 
@@ -717,7 +777,15 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             if gx:
                 sub_parts.append(f"{gx} xfailed")
 
-            lines.append(f"#### {group_info['label']} ({', '.join(sub_parts)}) - {_format_duration(g_dur)}")
+            model_suffix = ""
+            group_model = test_models.get(group_key)
+            if group_model:
+                model_suffix = f" | Model: `{group_model}`"
+
+            lines.append(
+                f"#### {group_info['label']} ({', '.join(sub_parts)}) - "
+                f"{_format_duration(g_dur)}{model_suffix}"
+            )
             lines.append("")
 
             has_details = any(r["skip_reason"] or r["error_msg"] for r in group_cat_results)

@@ -69,6 +69,7 @@ provider = get_provider("anthropic", api_key="sk-ant-...")
 provider = get_provider("langdock", api_key="ld-...")
 provider = get_provider("openrouter", api_key="sk-or-...")
 provider = get_provider("mammouth", api_key="mm-...")
+provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/models")
 
 # Local providers (LM Studio, Ollama)
 provider = get_provider("lm_studio")  # defaults to localhost:1234
@@ -112,8 +113,9 @@ ProviderError (base)
 src/eq_chatbot_core/
 ├── providers/              # LLM adapters
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
-│   ├── openai_provider.py  # OpenAI + Azure
+│   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
+│   ├── azure_provider.py   # Azure AI Foundry (requires [azure] extra)
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
 │   ├── openrouter_provider.py # OpenRouter (400+ models)
 │   └── local_provider.py   # LM Studio, Ollama (OpenAI-compatible)
@@ -169,7 +171,7 @@ from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
 Copy `tests/.env.example` to `tests/.env.test` for API keys. Environment variables:
 
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `MAMMOUTH_API_KEY`
+- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `AZURE_ENDPOINT`
 - `SKIP_LIVE_TESTS=true` - Skip integration tests
 - `SKIP_LOCAL_TESTS=true` - Skip local server tests
 - `TEST_MAX_TOKENS=20` - Limit tokens for cost control
@@ -198,4 +200,5 @@ openai, anthropic, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
 - `[dev]` - pytest, ruff, mypy, twine, pytest-cov, pytest-asyncio
 - `[security]` - puremagic (MIME validation)
 - `[pdf]` - pymupdf (PDF to image conversion)
+- `[azure]` - azure-ai-inference, azure-core (Azure AI Foundry)
 - `[local]` - sentence-transformers (local embeddings)

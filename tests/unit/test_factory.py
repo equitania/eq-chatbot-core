@@ -4,6 +4,8 @@ Unit tests for the provider factory (get_provider function).
 Tests provider instantiation, alias handling, and error cases.
 """
 
+from unittest.mock import patch
+
 import pytest
 
 from eq_chatbot_core.providers import get_provider
@@ -53,6 +55,22 @@ class TestFactoryCloudProviders:
         assert isinstance(provider, OpenRouterProvider)
         assert provider.api_key == "sk-or-test-key"
         assert provider.provider_name == "openrouter"
+
+    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
+    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
+    def test_get_azure_provider(self, mock_credential, mock_client_class):
+        """Test creating Azure provider."""
+        from eq_chatbot_core.providers.azure_provider import AzureProvider
+
+        provider = get_provider(
+            "azure",
+            api_key="test-azure-key",
+            base_url="https://test.services.ai.azure.com/",
+        )
+
+        assert isinstance(provider, AzureProvider)
+        assert provider.api_key == "test-azure-key"
+        assert provider.provider_name == "azure"
 
     def test_provider_name_case_insensitive(self):
         """Test that provider names are case insensitive."""
@@ -169,6 +187,7 @@ class TestFactoryErrors:
         assert "anthropic" in error_msg
         assert "langdock" in error_msg
         assert "openrouter" in error_msg
+        assert "azure" in error_msg
         assert "local" in error_msg
         assert "lm_studio" in error_msg
         assert "ollama" in error_msg

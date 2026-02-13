@@ -27,6 +27,9 @@ pytest tests/ -v
 | `OPENAI_API_KEY` | OpenAI tests | - | API key from platform.openai.com |
 | `ANTHROPIC_API_KEY` | Anthropic tests | - | API key from console.anthropic.com |
 | `LANGDOCK_API_KEY` | LangDock tests | - | API key from app.langdock.com |
+| `AZURE_API_KEY` | Azure AI tests | - | API key from ai.azure.com |
+| `AZURE_ENDPOINT` | Azure AI tests | - | Azure endpoint URL (e.g. `https://your-resource.services.ai.azure.com/models`) |
+| `AZURE_TEST_MODEL` | Azure AI tests | `gpt-4o` | Deployed model name (must be available on your endpoint) |
 | `MCP_TEST_URL` | MCP SSE tests | - | MCP server URL (e.g. `http://localhost:8000/sse`) |
 | `LM_STUDIO_URL` | LM Studio tests | `http://localhost:1234/v1` | LM Studio server URL |
 | `OLLAMA_URL` | Ollama tests | `http://localhost:11434/v1` | Ollama server URL |
@@ -106,11 +109,31 @@ pytest tests/ -v
 
 ---
 
+### File: `tests/integration/test_azure_live.py`
+
+**Required Key:** `AZURE_API_KEY` + `AZURE_ENDPOINT`
+**Default Model:** Depends on deployed models (e.g. `Phi-4`, `DeepSeek-R1`, `Llama-3.3-70B-Instruct`)
+**Extra Required:** `pip install eq-chatbot-core[azure]`
+
+| # | Test Class | Test Method | What It Does | Tokens Used |
+|---|-----------|-------------|--------------|-------------|
+| 18 | `TestAzureLive` | `test_simple_completion` | Chat completion with "Say 'test' only." | ~10 in / ~5 out |
+| 19 | `TestAzureLive` | `test_streaming_completion` | Streaming with "Count: 1, 2, 3" | ~10 in / ~20 out |
+| 20 | `TestAzureLive` | `test_system_message` | System message forcing "ACKNOWLEDGED" response | ~20 in / ~5 out |
+| 21 | `TestAzureLive` | `test_list_models` | Returns static catalog of known Azure models | 0 (local data) |
+| 22 | `TestAzureLive` | `test_context_manager` | Provider works as context manager | ~5 in / ~5 out |
+
+**Estimated cost per full run:** Depends on model (serverless models may be free or pay-per-token)
+
+**Note:** Azure AI Foundry uses serverless model deployments. The `AZURE_ENDPOINT` must point to the `/models` inference path (e.g. `https://your-resource.services.ai.azure.com/models`), and the `AZURE_TEST_MODEL` must be a model that is actually deployed on your endpoint. Use the Azure AI Foundry portal to check available models.
+
+---
+
 ### Cost-Effective Testing Pattern
 
 | # | Test Class | Test Method | What It Does | Tokens Used |
 |---|-----------|-------------|--------------|-------------|
-| 17 | `TestCostEffectivePatterns` | `test_minimal_token_usage` | Demonstrates minimal API usage pattern (1 token in, 1 out) | ~5 in / ~1 out |
+| 23 | `TestCostEffectivePatterns` | `test_minimal_token_usage` | Demonstrates minimal API usage pattern (1 token in, 1 out) | ~5 in / ~1 out |
 
 **Estimated cost:** < $0.0001
 
@@ -127,36 +150,36 @@ pytest tests/ -v
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 18 | `TestLMStudioLive` | `test_connection` | Verifies server availability |
-| 19 | `TestLMStudioLive` | `test_list_models` | Lists loaded models |
-| 20 | `TestLMStudioLive` | `test_simple_completion` | Simple chat completion |
-| 21 | `TestLMStudioLive` | `test_system_message` | System message handling |
-| 22 | `TestLMStudioLive` | `test_streaming_completion` | Streaming response |
-| 23 | `TestLMStudioLive` | `test_multiple_turns` | Multi-turn conversation (remembers "42") |
+| 24 | `TestLMStudioLive` | `test_connection` | Verifies server availability |
+| 25 | `TestLMStudioLive` | `test_list_models` | Lists loaded models |
+| 26 | `TestLMStudioLive` | `test_simple_completion` | Simple chat completion |
+| 27 | `TestLMStudioLive` | `test_system_message` | System message handling |
+| 28 | `TestLMStudioLive` | `test_streaming_completion` | Streaming response |
+| 29 | `TestLMStudioLive` | `test_multiple_turns` | Multi-turn conversation (remembers "42") |
 
 #### Ollama Tests (localhost:11434)
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 24 | `TestOllamaLive` | `test_connection` | Verifies server availability |
-| 25 | `TestOllamaLive` | `test_list_models` | Lists downloaded models |
-| 26 | `TestOllamaLive` | `test_simple_completion` | Simple chat completion |
-| 27 | `TestOllamaLive` | `test_streaming_completion` | Streaming response |
+| 30 | `TestOllamaLive` | `test_connection` | Verifies server availability |
+| 31 | `TestOllamaLive` | `test_list_models` | Lists downloaded models |
+| 32 | `TestOllamaLive` | `test_simple_completion` | Simple chat completion |
+| 33 | `TestOllamaLive` | `test_streaming_completion` | Streaming response |
 
 #### Generic Local Provider Tests (uses first available server)
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 28 | `TestLocalProviderGeneric` | `test_provider_properties` | Validates provider_name, timeout, availability |
-| 29 | `TestLocalProviderGeneric` | `test_chat_completion_returns_llm_response` | Validates LLMResponse structure |
-| 30 | `TestLocalProviderGeneric` | `test_stream_completion_yields_chunks` | Validates StreamChunk structure |
-| 31 | `TestLocalProviderGeneric` | `test_temperature_parameter` | Temperature=0.0 consistency check |
+| 34 | `TestLocalProviderGeneric` | `test_provider_properties` | Validates provider_name, timeout, availability |
+| 35 | `TestLocalProviderGeneric` | `test_chat_completion_returns_llm_response` | Validates LLMResponse structure |
+| 36 | `TestLocalProviderGeneric` | `test_stream_completion_yields_chunks` | Validates StreamChunk structure |
+| 37 | `TestLocalProviderGeneric` | `test_temperature_parameter` | Temperature=0.0 consistency check |
 
 #### Error Handling Tests
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 32 | `TestLocalProviderErrorsLive` | `test_invalid_url_connection_error` | Validates ProviderError on bad URL |
+| 38 | `TestLocalProviderErrorsLive` | `test_invalid_url_connection_error` | Validates ProviderError on bad URL |
 
 ---
 
@@ -171,30 +194,32 @@ pytest tests/ -v
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 33 | `TestMCPLive` | `test_connect_to_server` | Establishes SSE connection, verifies initialization |
-| 34 | `TestMCPLive` | `test_list_tools_live` | Lists available MCP tools |
-| 35 | `TestMCPLive` | `test_list_tools_detailed` | Lists all tools with parameters and schema |
-| 36 | `TestMCPLive` | `test_call_tool_live` | Calls first available tool with empty args |
-| 37 | `TestMCPLive` | `test_connection_error_handling` | Validates error on non-existent server |
+| 39 | `TestMCPLive` | `test_connect_to_server` | Establishes SSE connection, verifies initialization |
+| 40 | `TestMCPLive` | `test_list_tools_live` | Lists available MCP tools |
+| 41 | `TestMCPLive` | `test_list_tools_detailed` | Lists all tools with parameters and schema |
+| 42 | `TestMCPLive` | `test_call_tool_live` | Calls first available tool with empty args |
+| 43 | `TestMCPLive` | `test_connection_error_handling` | Validates error on non-existent server |
 
 #### stdio Transport Tests
 
 | # | Test Class | Test Method | What It Does |
 |---|-----------|-------------|--------------|
-| 38 | `TestMCPStdioLive` | `test_stdio_client_not_installed` | Validates error on unavailable command |
+| 44 | `TestMCPStdioLive` | `test_stdio_client_not_installed` | Validates error on unavailable command |
 
 ---
 
 ## Unit Tests (No API Keys Required)
 
-18 test files in `tests/unit/` with ~940 tests total. All mocked, no external dependencies.
+20 test files in `tests/unit/` with 1051 tests total. All mocked, no external dependencies.
 
 | File | Module Tested | Key Coverage |
 |------|--------------|--------------|
 | `test_openai.py` | OpenAI provider | Init, completion, streaming, error handling |
 | `test_anthropic.py` | Anthropic provider | Init, completion, streaming, system messages |
+| `test_azure.py` | Azure AI provider | Init, completion, streaming, temperature, error handling |
 | `test_langdock.py` | LangDock provider | Both backends, regions, model listing |
 | `test_openrouter.py` | OpenRouter provider | Init, completion, model routing |
+| `test_mammouth.py` | Mammouth AI provider | Init, completion, streaming, model listing |
 | `test_local.py` | Local provider | LM Studio, Ollama, connection errors |
 | `test_factory.py` | Provider factory | `get_provider()` routing for all providers |
 | `test_exceptions.py` | Exception hierarchy | All exception types, attributes |
@@ -220,13 +245,14 @@ pytest tests/ -v
 | Anthropic | 4 | claude-3-haiku | < $0.001 |
 | LangDock (OpenAI) | 5 | gpt-4o-mini | < $0.001 |
 | LangDock (Anthropic) | 2 | claude-haiku-4-5 | < $0.001 |
+| Azure AI | 5 | deployed model | Depends on model |
 | Cost Pattern | 1 | gpt-4o-mini | < $0.0001 |
 | Local (LM Studio) | 6 | local model | Free |
 | Local (Ollama) | 4 | local model | Free |
 | Local (Generic) | 5 | local model | Free |
 | MCP (SSE) | 5 | - | Free |
 | MCP (stdio) | 1 | - | Free |
-| **Total** | **38** | | **< $0.005** |
+| **Total** | **43** | | **< $0.005 + Azure** |
 
 All cloud API tests use `TEST_MAX_TOKENS=20` by default to minimize costs.
 
@@ -243,6 +269,12 @@ pytest tests/integration/test_openai_live.py::TestAnthropicLive -v
 
 # Only LangDock (both backends)
 pytest tests/integration/test_openai_live.py::TestLangDockLive tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v
+
+# Only Azure AI
+pytest tests/integration/test_azure_live.py -v
+
+# Only Mammouth AI
+pytest tests/integration/test_mammouth_live.py -v
 
 # Only LM Studio
 pytest tests/integration/test_local_live.py::TestLMStudioLive -v

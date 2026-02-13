@@ -53,10 +53,13 @@ tests/.env.test
 | `ANTHROPIC_API_KEY` | Anthropic API key for integration tests | - |
 | `LANGDOCK_API_KEY` | LangDock API key for integration tests | - |
 | `MAMMOUTH_API_KEY` | Mammouth AI API key for integration tests | - |
+| `AZURE_API_KEY` | Azure AI API key for integration tests | - |
+| `AZURE_ENDPOINT` | Azure AI endpoint URL (e.g. `https://your-resource.services.ai.azure.com/models`) | - |
 | `OPENAI_TEST_MODEL` | Model for OpenAI tests | `gpt-4o-mini` |
 | `ANTHROPIC_TEST_MODEL` | Model for Anthropic tests | `claude-3-haiku-20240307` |
 | `LANGDOCK_TEST_MODEL` | Model for LangDock tests | `gpt-5.2` |
 | `MAMMOUTH_TEST_MODEL` | Model for Mammouth tests | `gpt-4.1-nano` |
+| `AZURE_TEST_MODEL` | Model for Azure tests | `gpt-4o` |
 | `SKIP_LIVE_TESTS` | Skip integration tests | `false` |
 | `SKIP_LOCAL_TESTS` | Skip local LLM tests | `true` |
 | `TEST_MAX_TOKENS` | Max tokens per test completion | `20` |
@@ -90,9 +93,10 @@ tests/
 ├── conftest.py                        # Fixtures, configuration loading
 ├── .env.test                          # API keys (gitignored!)
 ├── .env.example                       # Template for .env.test
-├── unit/                              # Mocked unit tests (1012 tests)
+├── unit/                              # Mocked unit tests (1051 tests)
 │   ├── test_openai.py                 # OpenAI provider tests
 │   ├── test_anthropic.py              # Anthropic provider tests
+│   ├── test_azure.py                  # Azure AI provider tests
 │   ├── test_langdock.py               # LangDock provider tests
 │   ├── test_openrouter.py             # OpenRouter provider tests
 │   ├── test_mammouth.py               # Mammouth AI provider tests
@@ -113,6 +117,7 @@ tests/
 │   └── test_mcp.py                    # MCP client tests
 └── integration/                       # Live API tests
     ├── test_openai_live.py            # OpenAI + Anthropic + LangDock live tests
+    ├── test_azure_live.py             # Azure AI live tests
     ├── test_mammouth_live.py          # Mammouth AI live tests
     ├── test_mcp_live.py               # MCP server live tests
     └── test_local_live.py             # LM Studio local tests
@@ -139,6 +144,7 @@ pytest tests/unit/test_anthropic.py -v
 pytest tests/unit/test_langdock.py -v
 pytest tests/unit/test_openrouter.py -v
 pytest tests/unit/test_mammouth.py -v
+pytest tests/unit/test_azure.py -v
 
 # Temperature constraints (shared module)
 pytest tests/unit/test_temperature_constraints.py -v
@@ -155,7 +161,7 @@ pytest tests/unit/test_openai.py::TestOpenAIChatCompletion::test_simple_completi
 **Caution**: These tests make real API calls and incur costs!
 
 ```bash
-# All integration tests (OpenAI + Anthropic + LangDock + Mammouth)
+# All integration tests (OpenAI + Anthropic + LangDock + Azure + Mammouth)
 pytest tests/integration/ -v -m integration
 
 # OpenAI tests only
@@ -169,6 +175,9 @@ pytest tests/integration/test_openai_live.py::TestLangDockLive -v
 
 # LangDock Anthropic backend tests
 pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v
+
+# Azure AI tests
+pytest tests/integration/test_azure_live.py -v
 
 # Mammouth AI tests
 pytest tests/integration/test_mammouth_live.py -v
@@ -201,6 +210,18 @@ pytest tests/integration/test_local_live.py -v -m local
 | `TestLocalProviderErrorsLive` | 1 | Error handling with invalid URL |
 
 **Note:** Tests automatically detect if LM Studio is available and skip if the server is not running.
+
+### Azure AI Tests
+
+```bash
+# Unit tests (mocked, no API calls)
+pytest tests/unit/test_azure.py -v
+
+# Integration tests (real API calls, requires AZURE_API_KEY + AZURE_ENDPOINT)
+pytest tests/integration/test_azure_live.py -v -m integration
+```
+
+**Note:** Azure AI requires the `[azure]` extra: `uv pip install -e ".[dev,azure]"`
 
 ### Mammouth AI Tests
 
@@ -433,11 +454,13 @@ jobs:
 | LangDock unit tests | `pytest tests/unit/test_langdock.py -v` |
 | OpenRouter unit tests | `pytest tests/unit/test_openrouter.py -v` |
 | Mammouth unit tests | `pytest tests/unit/test_mammouth.py -v` |
+| Azure unit tests | `pytest tests/unit/test_azure.py -v` |
 | Temperature constraints | `pytest tests/unit/test_temperature_constraints.py -v` |
 | OpenAI live tests | `pytest tests/integration/test_openai_live.py::TestOpenAILive -v` |
 | Anthropic live tests | `pytest tests/integration/test_openai_live.py::TestAnthropicLive -v` |
 | LangDock live tests | `pytest tests/integration/test_openai_live.py::TestLangDockLive -v` |
 | LangDock Anthropic | `pytest tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v` |
+| Azure live tests | `pytest tests/integration/test_azure_live.py -v` |
 | Mammouth live tests | `pytest tests/integration/test_mammouth_live.py -v` |
 | LM Studio live tests | `pytest tests/integration/test_local_live.py -v -m local` |
 | With coverage | `pytest tests/ -v --cov=eq_chatbot_core --cov-report=html` |

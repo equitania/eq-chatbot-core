@@ -18,7 +18,7 @@ Originally developed for Odoo 18 chatbot integration, but works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support**: OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
+- **Multi-Provider Support**: OpenAI, Anthropic, Azure AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Unified API**: Same interface regardless of provider
 - **Temperature Safety**: Automatic model-specific temperature clamping (GPT-4.1 min=1.0, Claude max=1.0, reasoning models skip)
 - **Security**:
@@ -46,8 +46,11 @@ pip install eq-chatbot-core[pdf]
 # With file validation
 pip install eq-chatbot-core[security]
 
+# With Azure AI support
+pip install eq-chatbot-core[azure]
+
 # All optional dependencies
-pip install eq-chatbot-core[pdf,security,dev]
+pip install eq-chatbot-core[pdf,security,azure,dev]
 ```
 
 ### CLI Usage
@@ -117,6 +120,7 @@ decrypted = encryption.decrypt(encrypted, key)
 |----------|--------|--------|-----------|----------------|
 | OpenAI | GPT-4, GPT-4o, GPT-4.1, GPT-5, o1, o3, o4 | Yes | Yes | Yes |
 | Anthropic | Claude 3, Claude 3.5, Claude 4 | Yes | Yes | Yes |
+| Azure AI | GPT-4o, GPT-4.1, o1, o3, o4, Claude, Mistral, Llama, Phi, DeepSeek | Depends on model | Yes | Yes |
 | LangDock | All via gateway | Yes | Yes | Yes |
 | OpenRouter | 400+ models via gateway | Yes | Yes | Yes |
 | Mammouth AI | 30+ models via unified API | Yes | Yes | Yes |
@@ -134,7 +138,7 @@ Ursprünglich für die Odoo 18 Chatbot-Integration entwickelt, funktioniert aber
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
+- **Multi-Provider-Unterstützung**: OpenAI, Anthropic, Azure AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Einheitliche API**: Gleiche Schnittstelle unabhängig vom Provider
 - **Temperature-Sicherheit**: Automatisches modellspezifisches Temperature-Clamping (GPT-4.1 min=1.0, Claude max=1.0, Reasoning-Modelle werden übersprungen)
 - **Sicherheit**:
@@ -162,8 +166,11 @@ pip install eq-chatbot-core[pdf]
 # Mit Datei-Validierung
 pip install eq-chatbot-core[security]
 
+# Mit Azure AI Unterstützung
+pip install eq-chatbot-core[azure]
+
 # Alle optionalen Abhängigkeiten
-pip install eq-chatbot-core[pdf,security,dev]
+pip install eq-chatbot-core[pdf,security,azure,dev]
 ```
 
 ### CLI-Verwendung
@@ -216,7 +223,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.0.0 |
+| **Version** | 1.1.0 |
 | **Author** | Equitania Software GmbH |
 | **License** | MIT |
 | **Python** | >=3.10 |
