@@ -5,7 +5,7 @@ Provides schema generation, data transformation, and export orchestration
 for vector databases (Qdrant) and LangDock Knowledge Folders.
 """
 
-import json
+import datetime
 import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -493,15 +493,102 @@ class KnowledgeExporter:
 
         return chunks
 
+    def _records_to_markdown(
+        self,
+        config: ModelConfig,
+        records: list[dict[str, Any]],
+        batch_num: int,
+        total_records: int,
+        batch_start: int,
+    ) -> str:
+        """
+        Generate self-describing Markdown with YAML frontmatter for a batch of records.
+
+        Each chunk must be self-contained (LangDock chunking requirement).
+
+        Args:
+            config: Model configuration with fields
+            records: Records in this batch
+            batch_num: 1-based batch number
+            total_records: Total number of records across all batches
+            batch_start: 1-based index of the first record in this batch
+
+        Returns:
+            Markdown string with YAML frontmatter and record data
+        """
+        batch_end = batch_start + len(records) - 1
+        export_date = datetime.date.today().isoformat()
+
+        lines = [
+            "---",
+            "source: odoo-18",
+            f"model: {config.model_name}",
+            f"model_label: {config.model_label}",
+            f"export_date: {export_date}",
+            f"records: {batch_start}-{batch_end}/{total_records}",
+            f"batch: {batch_num}",
+            "---",
+            "",
+            f"# {config.model_label}",
+            "",
+        ]
+
+        for record in records:
+            record_id = record["id"]
+            values = record.get("values", {})
+            display_values = record.get("display_values", {})
+
+            # Heading: prefer display value of 'name' field, fallback to Record ID
+            heading = (
+                display_values.get("name")
+                or (str(values.get("name")) if values.get("name") else "")
+                or f"Record {record_id}"
+            )
+
+            lines.append(f"## {heading} (ID: {record_id})")
+
+            for field in config.fields:
+                field_name = field.name
+
+                # For relational fields, prefer human-readable display value
+                if field.field_type in ("many2one", "one2many", "many2many"):
+                    value_str = display_values.get(field_name) or ""
+                else:
+                    raw = values.get(field_name)
+                    if raw is None or raw is False or raw == "":
+                        value_str = ""
+                    else:
+                        value_str = str(raw)
+
+                # Skip empty / falsy values
+                if not value_str:
+                    continue
+
+                # Skip zero for integer fields
+                if field.field_type == "integer" and value_str == "0":
+                    continue
+
+                lines.append(f"- **{field.label}**: {value_str}")
+
+            lines.append("")  # Blank line between records
+
+        return "\n".join(lines)
+
     def prepare_for_langdock(
         self,
         records_by_model: dict[str, list[dict[str, Any]]],
+        batch_size: int = 50,
     ) -> dict[str, str]:
         """
         Prepare files for LangDock Knowledge upload.
 
+        Each Odoo model is split into batches of Markdown files.
+        Each file contains YAML frontmatter and self-describing records
+        so that every LangDock chunk is understandable without context.
+
         Args:
             records_by_model: Records grouped by model name
+            batch_size: Number of records per Markdown file (default: 50)
 
         Returns:
             Dictionary of filename -> content for upload
@@ -514,24 +601,25 @@ class KnowledgeExporter:
         files["relations.md"] = docs["relations"]
         files["search_instructions.md"] = docs["instructions"]
 
-        # Add data files as JSON
+        # Add data files as Markdown batches
         for config in self.model_configs:
             model_records = records_by_model.get(config.model_name, [])
             if not model_records:
                 continue
 
-            # Simplified JSON format for LangDock
-            data = []
-            for record in model_records:
-                record_data = {"id": record["id"], **record.get("values", {})}
-                # Add display values for relations
-                for key, value in record.get("display_values", {}).items():
-                    if value:
-                        record_data[f"{key}_name"] = value
-                data.append(record_data)
+            total = len(model_records)
+            file_base = config.model_name.replace(".", "_")
 
-            filename = f"{config.model_name.replace('.', '_')}.json"
-            files[filename] = json.dumps({config.model_name: data}, indent=2, default=str)
+            for batch_idx, range_start in enumerate(range(0, total, batch_size), start=1):
+                batch = model_records[range_start : range_start + batch_size]
+                filename = f"{file_base}_{batch_idx:03d}.md"
+                files[filename] = self._records_to_markdown(
+                    config=config,
+                    records=batch,
+                    batch_num=batch_idx,
+                    total_records=total,
+                    batch_start=range_start + 1,  # Convert to 1-based
+                )
 
         return files
 
@@ -541,6 +629,7 @@ class KnowledgeExporter:
         folder_id: str,
         records_by_model: dict[str, list[dict[str, Any]]],
         clear_existing: bool = True,
+        batch_size: int = 50,
     ) -> dict[str, Any]:
         """
         Export to LangDock Knowledge Folder.
@@ -557,7 +646,7 @@ class KnowledgeExporter:
         import os
         import tempfile
 
-        files = self.prepare_for_langdock(records_by_model)
+        files = self.prepare_for_langdock(records_by_model, batch_size=batch_size)
 
         # Clear existing files if requested
         if clear_existing:
