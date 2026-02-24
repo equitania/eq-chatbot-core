@@ -62,22 +62,75 @@ class AzureProvider(BaseLLMProvider):
     """
 
     # Reasoning models that don't support temperature parameter
-    REASONING_MODEL_PREFIXES = ("o1", "o3", "o4")
+    REASONING_MODEL_PREFIXES = ("o1", "o3", "o4", "codex-mini", "deepseek-r1", "DeepSeek-R1", "MAI-DS-R1")
 
-    # Static model catalog for list_models() (Azure has no list endpoint)
+    # Static model catalog for list_models() (Azure has no list endpoint).
+    # Based on: https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure
     KNOWN_MODELS = [
+        # --- OpenAI: GPT-4o ---
         {"id": "gpt-4o", "name": "GPT-4o", "context_length": 128000, "max_output_tokens": 16384},
         {"id": "gpt-4o-mini", "name": "GPT-4o Mini", "context_length": 128000, "max_output_tokens": 16384},
+        # --- OpenAI: GPT-4.1 ---
         {"id": "gpt-4.1", "name": "GPT-4.1", "context_length": 1048576, "max_output_tokens": 32768},
         {"id": "gpt-4.1-mini", "name": "GPT-4.1 Mini", "context_length": 1048576, "max_output_tokens": 32768},
         {"id": "gpt-4.1-nano", "name": "GPT-4.1 Nano", "context_length": 1048576, "max_output_tokens": 32768},
+        # --- OpenAI: GPT-5 ---
+        {"id": "gpt-5", "name": "GPT-5", "context_length": 400000, "max_output_tokens": 128000},
+        {"id": "gpt-5-mini", "name": "GPT-5 Mini", "context_length": 400000, "max_output_tokens": 128000},
+        {"id": "gpt-5-nano", "name": "GPT-5 Nano", "context_length": 400000, "max_output_tokens": 128000},
+        {"id": "gpt-5-chat", "name": "GPT-5 Chat", "context_length": 128000, "max_output_tokens": 16384},
+        # --- OpenAI: GPT-5.1 ---
+        {"id": "gpt-5.1", "name": "GPT-5.1", "context_length": 400000, "max_output_tokens": 128000},
+        {"id": "gpt-5.1-chat", "name": "GPT-5.1 Chat", "context_length": 128000, "max_output_tokens": 16384},
+        # --- OpenAI: GPT-5.2 ---
+        {"id": "gpt-5.2", "name": "GPT-5.2", "context_length": 400000, "max_output_tokens": 128000},
+        {"id": "gpt-5.2-chat", "name": "GPT-5.2 Chat", "context_length": 128000, "max_output_tokens": 16384},
+        # --- OpenAI: O-Series (Reasoning) ---
         {"id": "o1", "name": "O1", "context_length": 200000, "max_output_tokens": 100000},
+        {"id": "o1-mini", "name": "O1 Mini", "context_length": 128000, "max_output_tokens": 65536},
         {"id": "o3", "name": "O3", "context_length": 200000, "max_output_tokens": 100000},
+        {"id": "o3-pro", "name": "O3 Pro", "context_length": 200000, "max_output_tokens": 100000},
         {"id": "o3-mini", "name": "O3 Mini", "context_length": 200000, "max_output_tokens": 100000},
         {"id": "o4-mini", "name": "O4 Mini", "context_length": 200000, "max_output_tokens": 100000},
-        {"id": "claude-sonnet-4-5", "name": "Claude Sonnet 4.5", "context_length": 200000, "max_output_tokens": 8192},
-        {"id": "mistral-large", "name": "Mistral Large", "context_length": 128000, "max_output_tokens": 8192},
+        {"id": "codex-mini", "name": "Codex Mini", "context_length": 200000, "max_output_tokens": 100000},
+        # --- DeepSeek ---
+        {"id": "DeepSeek-R1-0528", "name": "DeepSeek R1 0528", "context_length": 163840, "max_output_tokens": 163840},
+        {"id": "DeepSeek-R1", "name": "DeepSeek R1", "context_length": 163840, "max_output_tokens": 163840},
+        {
+            "id": "DeepSeek-V3.2-Speciale",
+            "name": "DeepSeek V3.2 Speciale",
+            "context_length": 128000,
+            "max_output_tokens": 128000,
+        },
+        {"id": "DeepSeek-V3.2", "name": "DeepSeek V3.2", "context_length": 128000, "max_output_tokens": 128000},
+        {"id": "DeepSeek-V3.1", "name": "DeepSeek V3.1", "context_length": 131072, "max_output_tokens": 131072},
+        {"id": "DeepSeek-V3-0324", "name": "DeepSeek V3 0324", "context_length": 131072, "max_output_tokens": 131072},
+        # --- Meta Llama ---
+        {
+            "id": "Llama-4-Maverick-17B-128E-Instruct-FP8",
+            "name": "Llama 4 Maverick",
+            "context_length": 1000000,
+            "max_output_tokens": 1000000,
+        },
+        {"id": "Llama-3.3-70B-Instruct", "name": "Llama 3.3 70B", "context_length": 128000, "max_output_tokens": 8192},
+        # --- Mistral ---
+        {"id": "Mistral-Large-3", "name": "Mistral Large 3", "context_length": 128000, "max_output_tokens": 8192},
+        # --- Cohere ---
+        {"id": "Cohere-command-a", "name": "Cohere Command A", "context_length": 131072, "max_output_tokens": 8192},
+        # --- xAI Grok ---
+        {"id": "grok-4", "name": "Grok 4", "context_length": 262000, "max_output_tokens": 8192},
+        {"id": "grok-3", "name": "Grok 3", "context_length": 131072, "max_output_tokens": 131072},
+        {"id": "grok-3-mini", "name": "Grok 3 Mini", "context_length": 131072, "max_output_tokens": 131072},
+        # --- Microsoft ---
+        {"id": "MAI-DS-R1", "name": "MAI DeepSeek R1", "context_length": 163840, "max_output_tokens": 163840},
+        # --- Moonshot AI ---
+        {"id": "Kimi-K2.5", "name": "Kimi K2.5", "context_length": 262144, "max_output_tokens": 262144},
+        {"id": "Kimi-K2-Thinking", "name": "Kimi K2 Thinking", "context_length": 262144, "max_output_tokens": 262144},
     ]
+
+    # Default API version for Azure AI Inference SDK.
+    # SDK default (2024-05-01-preview) is outdated for newer Azure AI Foundry endpoints.
+    DEFAULT_API_VERSION = "2025-04-01-preview"
 
     def __init__(
         self,
@@ -85,6 +138,7 @@ class AzureProvider(BaseLLMProvider):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        api_version: str | None = None,
     ):
         """
         Initialize the Azure AI provider.
@@ -94,6 +148,7 @@ class AzureProvider(BaseLLMProvider):
             base_url: REQUIRED - Azure endpoint URL (e.g. https://your-resource.services.ai.azure.com/)
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
+            api_version: Azure API version (default: 2025-04-01-preview)
 
         Raises:
             ImportError: If azure-ai-inference is not installed
@@ -111,6 +166,7 @@ class AzureProvider(BaseLLMProvider):
             )
 
         super().__init__(api_key, base_url, timeout, max_retries)
+        self._api_version = api_version or self.DEFAULT_API_VERSION
         self._client: ChatCompletionsClient | None = None
 
     @property
@@ -128,6 +184,7 @@ class AzureProvider(BaseLLMProvider):
             self._client = ChatCompletionsClient(
                 endpoint=self.base_url,
                 credential=AzureKeyCredential(self.api_key),
+                api_version=self._api_version,
             )
         return self._client
 

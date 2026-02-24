@@ -9,8 +9,8 @@
 | Sprint 3: RAG & Service Hardening | DONE | 100% |
 | Sprint 4: Infrastructure & Polish | IN PROGRESS | 75% |
 
-**Test Suite**: 918 passed, 0 failed, 5 xfailed
-**Linting**: Clean (ruff + black)
+**Test Suite**: 1051 passed, 0 failed, 5 xfailed
+**Linting**: Clean (ruff)
 
 ---
 

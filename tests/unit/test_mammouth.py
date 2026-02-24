@@ -166,28 +166,28 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("o3", 0.5) is None
             assert provider._clamp_temperature("o4-mini", 0.3) is None
 
-    def test_gpt5_min_temperature_clamped(self):
-        """Test GPT-5.x models clamp temperature to min 1.0."""
+    def test_gpt5_temperature_passthrough(self):
+        """Test GPT-5.x models pass through temperature (min=0.0)."""
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
 
-            # Temperature below min should be clamped to 1.0
-            assert provider._clamp_temperature("gpt-5.2-chat", 0.3) == 1.0
-            assert provider._clamp_temperature("gpt-5.1-chat", 0.7) == 1.0
-            assert provider._clamp_temperature("gpt-5-mini", 0.0) == 1.0
+            # Temperature within range should pass through (min=0.0)
+            assert provider._clamp_temperature("gpt-5.2-chat", 0.3) == 0.3
+            assert provider._clamp_temperature("gpt-5.1-chat", 0.7) == 0.7
+            assert provider._clamp_temperature("gpt-5-mini", 0.0) == 0.0
 
-    def test_gpt41_min_temperature_clamped(self):
-        """Test GPT-4.1 models clamp temperature to min 1.0."""
+    def test_gpt41_temperature_passthrough(self):
+        """Test GPT-4.1 models pass through temperature (min=0.0)."""
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
 
-            assert provider._clamp_temperature("gpt-4.1", 0.5) == 1.0
-            assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 1.0
-            assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 1.0
+            assert provider._clamp_temperature("gpt-4.1", 0.5) == 0.5
+            assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
+            assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 0.0
 
     def test_gpt41_valid_temperature_passes_through(self):
         """Test GPT-4.1 models pass through valid temperatures."""
@@ -259,10 +259,10 @@ class TestMammouthTemperatureConstraints:
             assert o3["supports_temperature"] is False
             assert o3["supports_reasoning"] is True
 
-            # GPT-4.1: min temperature 1.0
+            # GPT-4.1: min temperature 0.0
             gpt41 = next(m for m in models if m["id"] == "gpt-4.1")
             assert gpt41["supports_temperature"] is True
-            assert gpt41["min_temperature"] == 1.0
+            assert gpt41["min_temperature"] == 0.0
             assert gpt41["max_temperature"] == 2.0
 
 
@@ -376,12 +376,12 @@ class TestMammouthChatCompletion:
             provider.chat_completion(
                 messages=[{"role": "user", "content": "Hello"}],
                 model="gpt-4.1",
-                temperature=0.3,  # Below min, should be clamped to 1.0
+                temperature=0.3,  # Within range (min=0.0), passes through
             )
 
             call_args = mock_client.post.call_args
             payload = call_args.kwargs.get("json", call_args[1].get("json", {}))
-            assert payload.get("temperature") == 1.0
+            assert payload.get("temperature") == 0.3
 
     def test_completion_no_temperature_for_reasoning(self, mock_chat_response):
         """Test reasoning models don't receive temperature."""
@@ -558,7 +558,7 @@ class TestMammouthStreamCompletion:
 
             call_args = mock_client.stream.call_args
             payload = call_args.kwargs.get("json", call_args[1].get("json", {}))
-            assert payload.get("temperature") == 1.0
+            assert payload.get("temperature") == 0.5
 
 
 # =============================================================================

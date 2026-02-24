@@ -356,7 +356,7 @@ class TestKnowledgeExporter:
         assert "schema.md" in files
         assert "relations.md" in files
         assert "search_instructions.md" in files
-        assert "res_partner.json" in files
+        assert "res_partner_001.md" in files
 
     def test_empty_records(self, sample_configs):
         """Test handling empty records."""
@@ -368,7 +368,9 @@ class TestKnowledgeExporter:
         files = exporter.prepare_for_langdock({})
         # Should still have documentation files
         assert "schema.md" in files
-        assert "res_partner.json" not in files
+        # No data files for empty records
+        data_files = [k for k in files if k not in ("schema.md", "relations.md", "search_instructions.md")]
+        assert len(data_files) == 0
 
 
 # =============================================================================

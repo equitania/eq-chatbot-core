@@ -5,6 +5,25 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-24
+
+### Added
+
+- New model support in Azure provider: DeepSeek-V3, DeepSeek-R1, MAI-DS-R1, Llama (3.3-70B/3.3-8B/4-Scout/4-Maverick), Grok (3/3-mini), Cohere (Command-A/R+/R), Kimi-K2, codex-mini, o3-pro
+- Azure API version parameter (`api_version`, default `2025-04-01-preview`)
+- OpenRouter and Mammouth to CLI provider choices and info command
+
+### Changed
+
+- LangDock knowledge export switched from JSON to Markdown format
+- Azure provider model catalog expanded (8 → 49 models)
+- Temperature constraints: GPT-4.1/GPT-5 min corrected from 1.0 to 0.0 (per OpenAI API docs)
+
+### Fixed
+
+- GPT-4.1 minimum temperature was incorrectly set to 1.0 (should be 0.0 per OpenAI API specification)
+- CLI missing OpenRouter and Mammouth providers in choices and help text
+
 ## [1.1.0] - 2026-02-13
 
 ### Added

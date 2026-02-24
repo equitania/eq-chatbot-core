@@ -21,16 +21,15 @@ MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "o1-preview": {"min": 1.0, "max": 1.0, "supports_temperature": False},
     "o3": {"min": 1.0, "max": 1.0, "supports_temperature": False},
     "o3-mini": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "o3-pro": {"min": 1.0, "max": 1.0, "supports_temperature": False},
     "o4-mini": {"min": 1.0, "max": 1.0, "supports_temperature": False},
-    # New OpenAI models: min temperature = 1.0
-    "gpt-5.2-chat": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-5.1-chat": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-5-mini": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-5-nano": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-5-chat": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-4.1": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-4.1-mini": {"min": 1.0, "max": 2.0, "supports_temperature": True},
-    "gpt-4.1-nano": {"min": 1.0, "max": 2.0, "supports_temperature": True},
+    "codex-mini": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    # GPT-4.1 family: 0.0-2.0 (same as GPT-4o)
+    "gpt-4.1": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "gpt-4.1-mini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "gpt-4.1-nano": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    # GPT-5 family: 0.0-2.0 (prefix match covers all gpt-5* variants)
+    "gpt-5": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     # Legacy OpenAI: 0.0-2.0
     "gpt-4o": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4o-mini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
@@ -39,11 +38,24 @@ MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "claude": {"min": 0.0, "max": 1.0, "supports_temperature": True},
     # Google Gemini: 0.0-2.0
     "gemini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
-    # Mistral: 0.0-1.0
+    # Mistral: 0.0-1.0 (covers Mistral-Large-3 etc.)
     "mistral": {"min": 0.0, "max": 1.0, "supports_temperature": True},
-    # DeepSeek
+    "Mistral": {"min": 0.0, "max": 1.0, "supports_temperature": True},
+    # DeepSeek (lowercase for OpenRouter/direct, uppercase for Azure)
     "deepseek-chat": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "deepseek-reasoner": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "DeepSeek-V3": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "DeepSeek-R1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    # Microsoft MAI (reasoning)
+    "MAI-DS-R1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    # Meta Llama: 0.0-2.0
+    "Llama": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    # xAI Grok: 0.0-2.0
+    "grok": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    # Cohere: 0.0-1.0
+    "Cohere": {"min": 0.0, "max": 1.0, "supports_temperature": True},
+    # Moonshot Kimi: 0.0-1.0
+    "Kimi": {"min": 0.0, "max": 1.0, "supports_temperature": True},
 }
 
 DEFAULT_TEMP_CONSTRAINTS: dict[str, Any] = {

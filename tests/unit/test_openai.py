@@ -355,7 +355,7 @@ class TestOpenAIChatCompletion:
         )
 
         call_args = mock_client.chat.completions.create.call_args
-        assert call_args.kwargs["temperature"] == 1.0
+        assert call_args.kwargs["temperature"] == 0.5
 
 
 # =============================================================================
@@ -759,10 +759,10 @@ class TestOpenAIProviderProperties:
         assert clamp_temperature("o3", 0.5) is None
         assert clamp_temperature("o4-mini", 0.3) is None
 
-    def test_gpt41_temperature_clamped(self):
-        """Test GPT-4.1 models clamp temperature to min 1.0."""
+    def test_gpt41_temperature_passthrough(self):
+        """Test GPT-4.1 models pass through temperature (min=0.0)."""
         from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
 
-        assert clamp_temperature("gpt-4.1", 0.5) == 1.0
-        assert clamp_temperature("gpt-4.1-mini", 0.7) == 1.0
+        assert clamp_temperature("gpt-4.1", 0.5) == 0.5
+        assert clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
         assert clamp_temperature("gpt-4.1", 1.5) == 1.5  # In range, passthrough

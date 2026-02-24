@@ -20,7 +20,7 @@ Originally developed for Odoo 18 chatbot integration, but works standalone witho
 
 - **Multi-Provider Support**: OpenAI, Anthropic, Azure AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Unified API**: Same interface regardless of provider
-- **Temperature Safety**: Automatic model-specific temperature clamping (GPT-4.1 min=1.0, Claude max=1.0, reasoning models skip)
+- **Temperature Safety**: Automatic model-specific temperature clamping (GPT-4.1 range 0-2, Claude max=1.0, reasoning models skip)
 - **Security**:
   - Fernet encryption for API key storage
   - Prompt injection protection
@@ -140,7 +140,7 @@ Ursprünglich für die Odoo 18 Chatbot-Integration entwickelt, funktioniert aber
 
 - **Multi-Provider-Unterstützung**: OpenAI, Anthropic, Azure AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
 - **Einheitliche API**: Gleiche Schnittstelle unabhängig vom Provider
-- **Temperature-Sicherheit**: Automatisches modellspezifisches Temperature-Clamping (GPT-4.1 min=1.0, Claude max=1.0, Reasoning-Modelle werden übersprungen)
+- **Temperature-Sicherheit**: Automatisches modellspezifisches Temperature-Clamping (GPT-4.1 Bereich 0-2, Claude max=1.0, Reasoning-Modelle werden übersprungen)
 - **Sicherheit**:
   - Fernet-Verschlüsselung für API-Key-Speicherung
   - Schutz vor Prompt-Injection
@@ -223,7 +223,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.1.0 |
+| **Version** | 1.2.0 |
 | **Author** | Equitania Software GmbH |
 | **License** | MIT |
 | **Python** | >=3.10 |

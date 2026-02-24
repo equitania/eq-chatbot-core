@@ -27,7 +27,7 @@ def main() -> None:
 
 
 # Available providers for CLI choices
-CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "azure"]
+CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure"]
 LOCAL_PROVIDERS = ["local", "lm_studio", "ollama"]
 ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
@@ -38,7 +38,7 @@ ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to test (cloud: openai, anthropic, langdock; local: local, lm_studio, ollama)",
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -142,7 +142,7 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to query (cloud: openai, anthropic, langdock; local: local, lm_studio, ollama)",
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -264,10 +264,12 @@ def info() -> None:
 
     click.echo(click.style("Supported Providers:", fg="blue"))
     click.echo("  Cloud:")
-    click.echo("    • openai    - GPT-4, GPT-4o, o1, o3, o4 series")
-    click.echo("    • anthropic - Claude 3, Claude 3.5, Claude 4")
-    click.echo("    • langdock  - Multi-provider gateway (EU/US regions)")
-    click.echo("    • azure     - Azure AI Foundry (GPT, Claude, Mistral)")
+    click.echo("    • openai     - GPT-4, GPT-4o, GPT-4.1, o1, o3, o4 series")
+    click.echo("    • anthropic  - Claude 3, Claude 3.5, Claude 4")
+    click.echo("    • langdock   - Multi-provider gateway (EU/US regions)")
+    click.echo("    • openrouter - 400+ models via unified gateway")
+    click.echo("    • mammouth   - 30+ AI models via unified API")
+    click.echo("    • azure      - Azure AI Foundry (GPT, Claude, Mistral, Llama, DeepSeek)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")

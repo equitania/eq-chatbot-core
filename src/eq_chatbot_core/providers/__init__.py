@@ -140,6 +140,7 @@ def get_provider(
 
 
 # Exports for public API - after get_provider to avoid circular imports
+from eq_chatbot_core.providers.azure_provider import AzureProvider  # noqa: E402
 from eq_chatbot_core.providers.base import (  # noqa: E402
     AuthenticationError,
     BaseLLMProvider,
@@ -151,7 +152,6 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     RateLimitError,
     StreamChunk,
 )
-from eq_chatbot_core.providers.azure_provider import AzureProvider  # noqa: E402
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402

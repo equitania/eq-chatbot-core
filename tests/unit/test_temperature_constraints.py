@@ -24,9 +24,9 @@ class TestGetTemperatureConstraints:
     """Test temperature constraint lookup."""
 
     def test_exact_match_gpt41(self):
-        """Test exact match for GPT-4.1 returns min=1.0."""
+        """Test exact match for GPT-4.1 returns min=0.0."""
         constraints = get_temperature_constraints("gpt-4.1")
-        assert constraints["min"] == 1.0
+        assert constraints["min"] == 0.0
         assert constraints["max"] == 2.0
         assert constraints["supports_temperature"] is True
 
@@ -71,7 +71,7 @@ class TestGetTemperatureConstraints:
     def test_longest_prefix_match(self):
         """Test longest prefix wins: gpt-4.1-mini over gpt-4.1."""
         constraints = get_temperature_constraints("gpt-4.1-mini")
-        assert constraints["min"] == 1.0
+        assert constraints["min"] == 0.0
         assert constraints["max"] == 2.0
 
     def test_default_fallback_unknown_model(self):
@@ -104,13 +104,13 @@ class TestGetTemperatureConstraints:
 class TestClampTemperature:
     """Test temperature clamping logic."""
 
-    def test_clamp_below_min_gpt41(self):
-        """Test temperature below min for GPT-4.1 → clamped to 1.0."""
-        assert clamp_temperature("gpt-4.1", 0.5) == 1.0
+    def test_clamp_passthrough_gpt41(self):
+        """Test temperature within range for GPT-4.1 passes through (min=0.0)."""
+        assert clamp_temperature("gpt-4.1", 0.5) == 0.5
 
-    def test_clamp_below_min_gpt5(self):
-        """Test temperature below min for GPT-5 → clamped to 1.0."""
-        assert clamp_temperature("gpt-5.2-chat", 0.3) == 1.0
+    def test_clamp_passthrough_gpt5(self):
+        """Test temperature within range for GPT-5 passes through (min=0.0)."""
+        assert clamp_temperature("gpt-5.2-chat", 0.3) == 0.3
 
     def test_clamp_above_max_claude(self):
         """Test temperature above max for Claude → clamped to 1.0."""
@@ -134,7 +134,7 @@ class TestClampTemperature:
 
     def test_exact_min_boundary(self):
         """Test temperature exactly at min boundary passes through."""
-        assert clamp_temperature("gpt-4.1", 1.0) == 1.0
+        assert clamp_temperature("gpt-4.1", 0.0) == 0.0
 
     def test_exact_max_boundary(self):
         """Test temperature exactly at max boundary passes through."""
@@ -195,10 +195,10 @@ class TestStripProviderPrefix:
 class TestClampWithPrefixStrip:
     """Test clamping combined with prefix stripping (OpenRouter workflow)."""
 
-    def test_openrouter_gpt41_clamped(self):
-        """Test OpenRouter GPT-4.1 gets clamped after prefix strip."""
+    def test_openrouter_gpt41_passthrough(self):
+        """Test OpenRouter GPT-4.1 passes through after prefix strip (min=0.0)."""
         bare = strip_provider_prefix("openai/gpt-4.1")
-        assert clamp_temperature(bare, 0.5) == 1.0
+        assert clamp_temperature(bare, 0.5) == 0.5
 
     def test_openrouter_claude_clamped(self):
         """Test OpenRouter Claude gets max-clamped after prefix strip."""

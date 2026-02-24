@@ -166,15 +166,15 @@ class TestAzureTemperatureConstraints:
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_gpt41_min_temperature_clamped(self, mock_credential, mock_client_class):
-        """Test GPT-4.1 models clamp temperature to min 1.0."""
+    def test_gpt41_temperature_passthrough(self, mock_credential, mock_client_class):
+        """Test GPT-4.1 models pass through temperature (min=0.0)."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
 
-        assert provider._clamp_temperature("gpt-4.1", 0.5) == 1.0
-        assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 1.0
-        assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 1.0
+        assert provider._clamp_temperature("gpt-4.1", 0.5) == 0.5
+        assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
+        assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 0.0
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
@@ -357,8 +357,8 @@ class TestAzureChatCompletion:
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_completion_temperature_clamped_gpt41(self, mock_credential, mock_client_class, mock_chat_response):
-        """Test temperature is clamped to 1.0 for GPT-4.1 models."""
+    def test_completion_temperature_passthrough_gpt41(self, mock_credential, mock_client_class, mock_chat_response):
+        """Test temperature passes through for GPT-4.1 models (min=0.0)."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         mock_client = MagicMock()
@@ -375,7 +375,7 @@ class TestAzureChatCompletion:
         )
 
         call_kwargs = mock_client.complete.call_args.kwargs
-        assert call_kwargs.get("temperature") == 1.0
+        assert call_kwargs.get("temperature") == 0.3
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
@@ -528,8 +528,8 @@ class TestAzureStreamCompletion:
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_streaming_temperature_clamped(self, mock_credential, mock_client_class):
-        """Test streaming also clamps temperature for GPT-4.1 models."""
+    def test_streaming_temperature_passthrough_gpt41(self, mock_credential, mock_client_class):
+        """Test streaming passes through temperature for GPT-4.1 models (min=0.0)."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         chunk = MagicMock()
@@ -555,7 +555,7 @@ class TestAzureStreamCompletion:
         )
 
         call_kwargs = mock_client.complete.call_args.kwargs
-        assert call_kwargs.get("temperature") == 1.0
+        assert call_kwargs.get("temperature") == 0.5
 
 
 # =============================================================================
@@ -631,10 +631,10 @@ class TestAzureListModels:
         assert o3["supports_temperature"] is False
         assert o3["supports_reasoning"] is True
 
-        # GPT-4.1: min 1.0
+        # GPT-4.1: min 0.0
         gpt41 = next(m for m in models if m["id"] == "gpt-4.1")
         assert gpt41["supports_temperature"] is True
-        assert gpt41["min_temperature"] == 1.0
+        assert gpt41["min_temperature"] == 0.0
 
 
 # =============================================================================
