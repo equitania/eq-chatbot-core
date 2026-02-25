@@ -2079,7 +2079,7 @@ class LangDockKnowledgeManager:
         with open(file_path, "rb") as f:
             files = {"file": (filename, f)}
             response = self.client.post(
-                f"/knowledge/{folder_id}/upload",
+                f"/knowledge/{folder_id}",
                 files=files,
             )
             response.raise_for_status()
@@ -2095,9 +2095,9 @@ class LangDockKnowledgeManager:
         Returns:
             List of files
         """
-        response = self.client.get(f"/knowledge/{folder_id}/files")
+        response = self.client.get(f"/knowledge/{folder_id}/list")
         response.raise_for_status()
-        return response.json().get("data", [])
+        return response.json().get("result", [])
 
     def delete_file(self, folder_id: str, file_id: str) -> bool:
         """
@@ -2110,7 +2110,7 @@ class LangDockKnowledgeManager:
         Returns:
             True if successful
         """
-        response = self.client.delete(f"/knowledge/{folder_id}/files/{file_id}")
+        response = self.client.delete(f"/knowledge/{folder_id}/{file_id}")
         response.raise_for_status()
         return True
 

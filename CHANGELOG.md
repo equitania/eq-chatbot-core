@@ -5,6 +5,15 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-02-25
+
+### Fixed
+
+- LangDock Knowledge Manager: Upload endpoint corrected (`/knowledge/{folderId}/upload` → `/knowledge/{folderId}`)
+- LangDock Knowledge Manager: List files endpoint corrected (`/knowledge/{folderId}/files` → `/knowledge/{folderId}/list`)
+- LangDock Knowledge Manager: Delete endpoint corrected (`/knowledge/{folderId}/files/{fileId}` → `/knowledge/{folderId}/{fileId}`)
+- LangDock Knowledge Manager: List response parsing corrected (`.get("data", [])` → `.get("result", [])`)
+
 ## [1.2.0] - 2026-02-24
 
 ### Added
