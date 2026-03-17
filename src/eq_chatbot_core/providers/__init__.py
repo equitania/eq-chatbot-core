@@ -1,8 +1,8 @@
 """
-LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, and local servers.
+LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI, and local servers.
 
-Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure) and local LLM
-servers (LM Studio, Ollama) that expose OpenAI-compatible APIs.
+Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI)
+and local LLM servers (LM Studio, Ollama) that expose OpenAI-compatible APIs.
 
 Usage:
     from eq_chatbot_core.providers import get_provider
@@ -22,6 +22,10 @@ Usage:
     # Azure AI Foundry
     provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/")
     response = provider.chat_completion(messages=[...], model="gpt-4o")
+
+    # Google Vertex AI (Gemini models)
+    provider = get_provider("vertex", project="my-gcp-project", location="europe-west1")
+    response = provider.chat_completion(messages=[...], model="gemini-2.5-flash")
 
     # Local providers (LM Studio or Ollama)
     provider = get_provider("local", base_url="http://localhost:1234/v1")
@@ -45,7 +49,7 @@ def get_provider(
 
     Args:
         provider_name: One of "openai", "anthropic", "langdock", "openrouter",
-                       "mammouth", "azure", "local", "lm_studio", "lmstudio", "ollama"
+                       "mammouth", "azure", "vertex", "local", "lm_studio", "lmstudio", "ollama"
         api_key: API key for the provider (optional for local providers)
         base_url: Optional custom base URL. Required for local providers,
                   optional for cloud providers. For convenience aliases:
@@ -87,6 +91,7 @@ def get_provider(
     from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+    from eq_chatbot_core.providers.vertex_provider import VertexProvider
 
     # Provider class mapping
     providers = {
@@ -96,6 +101,7 @@ def get_provider(
         "openrouter": OpenRouterProvider,
         "mammouth": MammouthProvider,
         "azure": AzureProvider,
+        "vertex": VertexProvider,
         "local": LocalLLMProvider,
     }
 
@@ -116,6 +122,7 @@ def get_provider(
         | type[OpenRouterProvider]
         | type[MammouthProvider]
         | type[AzureProvider]
+        | type[VertexProvider]
         | type[LocalLLMProvider]
         | None
     ) = None
@@ -131,8 +138,8 @@ def get_provider(
         available = list(providers.keys()) + list(local_aliases.keys())
         raise ValueError(f"Unknown provider: {provider_name}. Available: {', '.join(sorted(set(available)))}")
 
-    # Local providers don't require API key
-    if provider_class == LocalLLMProvider:
+    # Local providers and Vertex don't require API key
+    if provider_class in (LocalLLMProvider, VertexProvider):
         api_key = api_key or "not-used"
 
     # api_key is guaranteed to be str at this point for non-local providers
@@ -155,6 +162,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
+from eq_chatbot_core.providers.vertex_provider import VertexProvider  # noqa: E402
 
 __all__ = [
     "get_provider",
@@ -168,6 +176,7 @@ __all__ = [
     "ContextLengthError",
     "OverloadedError",
     "AzureProvider",
+    "VertexProvider",
     "LocalLLMProvider",
     "MammouthProvider",
     "OpenRouterProvider",

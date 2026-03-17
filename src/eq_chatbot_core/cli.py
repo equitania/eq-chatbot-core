@@ -27,7 +27,7 @@ def main() -> None:
 
 
 # Available providers for CLI choices
-CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure"]
+CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex"]
 LOCAL_PROVIDERS = ["local", "lm_studio", "ollama"]
 ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
@@ -85,9 +85,10 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
 
         eq-chatbot test-provider -p local -u http://localhost:1234/v1
     """
-    # Check API key requirement (not needed for local providers)
+    # Check API key requirement (not needed for local providers or Vertex)
     is_local = provider.lower() in LOCAL_PROVIDERS
-    if not api_key and not is_local:
+    is_vertex = provider.lower() == "vertex"
+    if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
             + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
@@ -189,9 +190,10 @@ def list_models(provider: str, api_key: str | None, base_url: str | None, as_jso
 
         eq-chatbot list-models -p local -u http://localhost:1234/v1
     """
-    # Check API key requirement (not needed for local providers)
+    # Check API key requirement (not needed for local providers or Vertex)
     is_local = provider.lower() in LOCAL_PROVIDERS
-    if not api_key and not is_local:
+    is_vertex = provider.lower() == "vertex"
+    if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
             + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
@@ -270,6 +272,7 @@ def info() -> None:
     click.echo("    • openrouter - 400+ models via unified gateway")
     click.echo("    • mammouth   - 30+ AI models via unified API")
     click.echo("    • azure      - Azure AI Foundry (GPT, Claude, Mistral, Llama, DeepSeek)")
+    click.echo("    • vertex     - Google Vertex AI (Gemini 2.5 Flash/Pro)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")

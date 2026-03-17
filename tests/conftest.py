@@ -55,6 +55,10 @@ def test_config() -> dict[str, Any]:
         "azure_api_key": os.getenv("AZURE_API_KEY"),
         "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
         "azure_model": os.getenv("AZURE_TEST_MODEL", "gpt-4o"),
+        # Vertex AI
+        "vertex_project": os.getenv("VERTEX_PROJECT"),
+        "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
+        "vertex_model": os.getenv("VERTEX_TEST_MODEL", "gemini-2.5-flash"),
         # Local Server URLs
         "lm_studio_url": os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1"),
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434/v1"),
@@ -431,6 +435,10 @@ _MODULE_GROUPS = {
         "label": "Provider: Azure AI",
         "modules": ["test_azure", "test_azure_live"],
     },
+    "Vertex": {
+        "label": "Provider: Google Vertex AI",
+        "modules": ["test_vertex", "test_vertex_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -466,6 +474,7 @@ _GROUP_TEST_MODELS = {
     "LangDock": ("LANGDOCK_TEST_MODEL", "gpt-5.2"),
     "Mammouth": ("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
     "Azure": ("AZURE_TEST_MODEL", "gpt-4o"),
+    "Vertex": ("VERTEX_TEST_MODEL", "gemini-2.5-flash"),
     "Local": ("LOCAL_TEST_MODEL", "phi-4-mini"),
 }
 

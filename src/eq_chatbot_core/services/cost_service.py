@@ -43,8 +43,11 @@ PRICING: dict[str, ModelPricing] = {
     "gpt-4.1": {"input": 0.002, "output": 0.008},
     "gpt-4.1-mini": {"input": 0.0004, "output": 0.0016},
     "gpt-4.1-nano": {"input": 0.0001, "output": 0.0004},
+    # Google Gemini (via Vertex AI / Mammouth)
     "gemini-2.5-pro": {"input": 0.00125, "output": 0.01},
     "gemini-2.5-flash": {"input": 0.00015, "output": 0.0006},
+    "gemini-2.0-flash": {"input": 0.0001, "output": 0.0004},
+    "gemini-2.0-flash-lite": {"input": 0.000075, "output": 0.0003},
     "mistral-large-latest": {"input": 0.002, "output": 0.006},
     "deepseek-chat": {"input": 0.00027, "output": 0.0011},
     "deepseek-reasoner": {"input": 0.00055, "output": 0.0022},

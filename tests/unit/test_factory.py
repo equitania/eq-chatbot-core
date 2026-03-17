@@ -72,6 +72,18 @@ class TestFactoryCloudProviders:
         assert provider.api_key == "test-azure-key"
         assert provider.provider_name == "azure"
 
+    @patch("eq_chatbot_core.providers.vertex_provider._google_available", True)
+    @patch("eq_chatbot_core.providers.vertex_provider.genai")
+    def test_get_vertex_provider(self, mock_genai):
+        """Test creating Vertex provider."""
+        from eq_chatbot_core.providers.vertex_provider import VertexProvider
+
+        provider = get_provider("vertex", project="test-project")
+
+        assert isinstance(provider, VertexProvider)
+        assert provider.provider_name == "vertex"
+        assert provider.api_key == "not-used"
+
     def test_provider_name_case_insensitive(self):
         """Test that provider names are case insensitive."""
         provider1 = get_provider("OPENAI", api_key="test")
@@ -188,6 +200,7 @@ class TestFactoryErrors:
         assert "langdock" in error_msg
         assert "openrouter" in error_msg
         assert "azure" in error_msg
+        assert "vertex" in error_msg
         assert "local" in error_msg
         assert "lm_studio" in error_msg
         assert "ollama" in error_msg
