@@ -64,7 +64,7 @@ class LangDockProvider(BaseLLMProvider):
         "anthropic": "/anthropic/{region}",  # SDK adds /v1/messages
         "google": "/google/{region}/v1beta",
         "codestral": "/mistral/{region}/v1",
-        "agent": "/assistant/v1",
+        "agent": "/agent/v1",
     }
 
     # Models that don't support temperature (reasoning models)
@@ -364,6 +364,50 @@ class LangDockProvider(BaseLLMProvider):
                 _logger.warning(f"Unknown message role '{role}' - skipping")
         return filtered
 
+    def _convert_to_agent_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Convert internal message format to Vercel AI SDK UIMessage format.
+
+        Filters messages, converts content to parts array, and moves
+        attachmentIds to metadata.attachments.
+
+        Returns:
+            List of UIMessage dicts ready for Agent API.
+        """
+        filtered = self._filter_agent_messages(messages)
+        agent_messages = []
+
+        for i, msg in enumerate(filtered):
+            content = msg.get("content", "")
+            attachment_ids = msg.get("attachmentIds", [])
+
+            # Convert multimodal list content to plain text
+            if isinstance(content, list):
+                text_parts = []
+                for part in content:
+                    if isinstance(part, dict):
+                        if part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+                    elif isinstance(part, str):
+                        text_parts.append(part)
+                content = " ".join(text_parts)
+
+            text = str(content) if content else ""
+            parts = [{"type": "text", "text": text}]
+
+            agent_msg: dict[str, Any] = {
+                "id": f"msg_{i}",
+                "role": msg.get("role"),
+                "parts": parts,
+            }
+
+            if attachment_ids:
+                agent_msg["metadata"] = {"attachments": attachment_ids}
+                _logger.info(f"Agent message includes {len(attachment_ids)} attachments")
+
+            agent_messages.append(agent_msg)
+
+        return agent_messages
+
     def _agent_chat_completion(
         self,
         messages: list[dict[str, Any]],
@@ -372,23 +416,21 @@ class LangDockProvider(BaseLLMProvider):
     ) -> LLMResponse:
         """LangDock Agent chat completion using httpx directly.
 
-        LangDock Agent API requires assistantId parameter, not model.
-        Uses OpenAI-compatible message format but with agent-specific endpoint.
+        LangDock Agent API requires agentId parameter, not model.
+        Uses Vercel AI SDK UIMessage format with agent-specific endpoint.
         System messages are filtered out - agent instructions are in LangDock.
         """
         try:
-            agent_url = f"{self.base_url}/assistant/v1/chat/completions"
+            agent_url = f"{self.base_url}/agent/v1/chat/completions"
 
-            # Log ORIGINAL messages before filtering
             _logger.info(f"Agent sync: Original messages count: {len(messages)}")
 
-            # Filter messages - Agent API doesn't support system role
-            filtered_messages = self._filter_agent_messages(messages)
+            # Convert to Vercel AI SDK UIMessage format
+            agent_messages = self._convert_to_agent_messages(messages)
 
-            _logger.info(f"Agent sync: Filtered messages count: {len(filtered_messages)}")
+            _logger.info(f"Agent sync: Converted messages count: {len(agent_messages)}")
 
-            # Check for empty messages - Agent needs at least one user message
-            if not filtered_messages:
+            if not agent_messages:
                 _logger.warning("Agent sync: No messages after filtering!")
                 return LLMResponse(
                     content="Der Agent benötigt eine Benutzernachricht. Bitte geben Sie Ihre Frage ein.",
@@ -400,50 +442,15 @@ class LangDockProvider(BaseLLMProvider):
                     raw_response={},
                 )
 
-            # Convert messages for Agent API format
-            # Agent API uses attachmentIds for files, not inline multimodal content
-            clean_messages = []
-            for msg in filtered_messages:
-                content = msg.get("content", "")
-                attachment_ids = msg.get("attachmentIds", [])
-
-                # Convert to string if it's a list (multimodal format)
-                if isinstance(content, list):
-                    text_parts = []
-                    for part in content:
-                        if isinstance(part, dict):
-                            part_type = part.get("type", "")
-                            if part_type == "text":
-                                text_parts.append(part.get("text", ""))
-                            # Ignore image/document - should use attachmentIds instead
-                        elif isinstance(part, str):
-                            text_parts.append(part)
-                    content = " ".join(text_parts)
-
-                clean_msg = {
-                    "role": msg.get("role"),
-                    "content": str(content) if content else "",
-                }
-
-                # Add attachmentIds if present (for Agent file support)
-                if attachment_ids:
-                    clean_msg["attachmentIds"] = attachment_ids
-                    _logger.info(f"Agent message includes {len(attachment_ids)} attachmentIds")
-
-                clean_messages.append(clean_msg)
-
-            # Build minimal payload - only required fields
             payload = {
-                "assistantId": self.agent_id,
-                "messages": clean_messages,
+                "agentId": self.agent_id,
+                "messages": agent_messages,
                 "stream": False,
             }
 
-            # Don't add extra kwargs to keep payload minimal
-
             _logger.info(f"Agent request to {agent_url}")
-            _logger.info(f"Agent payload: assistantId={self.agent_id}, messages_count={len(clean_messages)}")
-            _logger.info(f"Full payload: {json.dumps(payload, default=str)}")
+            _logger.info(f"Agent payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
+            _logger.debug(f"Full payload: {json.dumps(payload, default=str)}")
 
             response = httpx.post(
                 agent_url,
@@ -470,55 +477,24 @@ class LangDockProvider(BaseLLMProvider):
 
             content = ""
             finish_reason = "stop"
-            usage = data.get("usage", {})
 
-            # LangDock Agent format: {"result": [{"role": "assistant", "content": "..."}]}
-            # Note: Agent may return multiple items including tool calls
-            # We need to find the final assistant message with actual text content
-            result = data.get("result", [])
-            if result:
-                _logger.info(f"Agent sync: Found 'result' format with {len(result)} items")
-                # Iterate in reverse to find the last assistant message with text content
-                for item in reversed(result):
+            # Vercel AI SDK format: {"messages": [{"id": "...", "role": "assistant", "content": "..."}]}
+            resp_messages = data.get("messages", [])
+            if resp_messages:
+                _logger.info(f"Agent sync: Found {len(resp_messages)} response messages")
+                # Find the last assistant message
+                for item in reversed(resp_messages):
                     if item.get("role") == "assistant":
-                        item_content = item.get("content", "")
-                        # Content can be a string or a list of tool calls
-                        if isinstance(item_content, str) and item_content:
-                            content = item_content
+                        content = item.get("content", "")
+                        if content:
                             _logger.info(f"Agent sync: Found text content with {len(content)} chars")
                             break
-                        elif isinstance(item_content, list):
-                            # Check if it's a tool call list or actual text content
-                            _logger.info(f"Agent sync: Found list content with {len(item_content)} items")
-                            text_parts = []
-                            for part in item_content:
-                                if isinstance(part, str):
-                                    text_parts.append(part)
-                                elif isinstance(part, dict):
-                                    if part.get("type") == "text":
-                                        text_parts.append(part.get("text", ""))
-                                    elif part.get("type") == "tool-call":
-                                        _logger.debug(f"Agent sync: Skipping tool-call: {part.get('toolName')}")
-                            if text_parts:
-                                content = " ".join(text_parts)
-                                _logger.info(f"Agent sync: Extracted text from list: {len(content)} chars")
-                                break
-
-            # Fallback: OpenAI-compatible format: {"choices": [{"message": {"content": "..."}}]}
-            if not content:
-                choices = data.get("choices", [])
-                if choices:
-                    _logger.info("Agent sync: Found 'choices' format")
-                    choice = choices[0]
-                    message = choice.get("message", {})
-                    content = message.get("content", "")
-                    finish_reason = choice.get("finish_reason", "stop")
 
             return LLMResponse(
                 content=content,
                 model=data.get("model", f"agent:{self.agent_id}"),
-                input_tokens=usage.get("prompt_tokens", 0),
-                output_tokens=usage.get("completion_tokens", 0),
+                input_tokens=0,
+                output_tokens=0,
                 finish_reason=finish_reason,
                 tool_calls=[],
                 raw_response=data,
@@ -928,35 +904,24 @@ class LangDockProvider(BaseLLMProvider):
         max_tokens: int | None,
         **kwargs,
     ) -> Iterator[StreamChunk]:
-        """LangDock Agent streaming using httpx directly with SSE.
+        """LangDock Agent streaming using httpx directly.
 
-        LangDock Agent API requires assistantId parameter, not model.
-        Uses Server-Sent Events (SSE) for streaming responses.
+        LangDock Agent API requires agentId parameter, not model.
+        Uses Vercel AI SDK UIMessage format. Currently non-streaming POST.
         System messages are filtered out - agent instructions are in LangDock.
         """
         try:
-            agent_url = f"{self.base_url}/assistant/v1/chat/completions"
+            agent_url = f"{self.base_url}/agent/v1/chat/completions"
 
-            # Log ORIGINAL messages before filtering
-            _logger.info(f"Agent: Original messages count: {len(messages)}")
-            for i, msg in enumerate(messages):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                content_type = type(content).__name__
-                content_preview = str(content)[:100] if content else "(empty)"
-                _logger.info(
-                    f"Agent ORIGINAL[{i}]: role={role}, content_type={content_type}, preview='{content_preview}'"
-                )
+            _logger.info(f"Agent stream: Original messages count: {len(messages)}")
 
-            # Filter messages - Agent API doesn't support system role
-            filtered_messages = self._filter_agent_messages(messages)
+            # Convert to Vercel AI SDK UIMessage format
+            agent_messages = self._convert_to_agent_messages(messages)
 
-            _logger.info(f"Agent: Filtered messages count: {len(filtered_messages)}")
+            _logger.info(f"Agent stream: Converted messages count: {len(agent_messages)}")
 
-            # Check for empty messages - Agent needs at least one user message
-            if not filtered_messages:
-                _logger.warning("Agent: No messages after filtering! Agent requires user messages.")
-                # Return a helpful error message
+            if not agent_messages:
+                _logger.warning("Agent stream: No messages after filtering!")
                 yield StreamChunk(
                     content="Der Agent benötigt eine Benutzernachricht. Bitte geben Sie Ihre Frage ein.",
                     is_final=True,
@@ -966,64 +931,21 @@ class LangDockProvider(BaseLLMProvider):
                 )
                 return
 
-            # Convert messages for Agent API format
-            # Agent API uses attachmentIds for files, not inline multimodal content
-            clean_messages = []
-            for msg in filtered_messages:
-                content = msg.get("content", "")
-                attachment_ids = msg.get("attachmentIds", [])
-
-                # Convert to string if it's a list (multimodal format)
-                if isinstance(content, list):
-                    text_parts = []
-                    for part in content:
-                        if isinstance(part, dict):
-                            part_type = part.get("type", "")
-                            if part_type == "text":
-                                text_parts.append(part.get("text", ""))
-                            # Ignore image/document - should use attachmentIds instead
-                        elif isinstance(part, str):
-                            text_parts.append(part)
-                    content = " ".join(text_parts)
-
-                clean_msg = {
-                    "role": msg.get("role"),
-                    "content": str(content) if content else "",
-                }
-
-                # Add attachmentIds if present (for Agent file support)
-                if attachment_ids:
-                    clean_msg["attachmentIds"] = attachment_ids
-                    _logger.info(f"Agent message includes {len(attachment_ids)} attachmentIds")
-
-                clean_messages.append(clean_msg)
-
-            # Build minimal payload - only required fields
             payload = {
-                "assistantId": self.agent_id,
-                "messages": clean_messages,
-                "stream": False,  # Non-streaming for debugging
+                "agentId": self.agent_id,
+                "messages": agent_messages,
+                "stream": False,
             }
 
-            # Remove any conflicting kwargs - don't add extra parameters
+            # Remove any conflicting kwargs
             kwargs.pop("model", None)
             kwargs.pop("temperature", None)
-            kwargs.pop("max_tokens", None)  # Don't pass max_tokens for now
-            # Don't add kwargs to payload - keep it minimal
+            kwargs.pop("max_tokens", None)
 
             _logger.info(f"Agent stream request to {agent_url}")
-            _logger.info(f"Agent stream payload: assistantId={self.agent_id}, messages_count={len(clean_messages)}")
-            # Log clean messages being sent
-            for i, msg in enumerate(clean_messages):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                _logger.info(f"Agent CLEAN[{i}]: role={role}, content_len={len(content)}, preview='{content[:100]}...'")
-            _logger.info(f"Full payload: {json.dumps(payload, default=str)}")
+            _logger.info(f"Agent stream payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
+            _logger.debug(f"Full payload: {json.dumps(payload, default=str)}")
 
-            final_input_tokens = 0
-            final_output_tokens = 0
-
-            # First try: Use regular POST to see the actual response format
             response = httpx.post(
                 agent_url,
                 json=payload,
@@ -1034,9 +956,6 @@ class LangDockProvider(BaseLLMProvider):
                 timeout=120.0,
             )
 
-            _logger.info(f"Agent response status: {response.status_code}")
-            _logger.info(f"Agent response headers: {dict(response.headers)}")
-
             if response.status_code != 200:
                 _logger.error(f"Agent error {response.status_code}: {response.text}")
                 raise ProviderError(
@@ -1045,145 +964,33 @@ class LangDockProvider(BaseLLMProvider):
                     status_code=response.status_code,
                 )
 
-            # Log raw response to understand format
-            raw_text = response.text
-            _logger.info(f"Agent raw response length: {len(raw_text)}")
-            _logger.info(f"Agent raw response preview: {raw_text[:500]}")
+            data = response.json()
+            _logger.info(f"Agent stream response keys: {list(data.keys())}")
 
-            # Try to parse as JSON (non-streaming response)
-            try:
-                data = response.json()
-                _logger.info(f"Agent response is JSON with keys: {list(data.keys())}")
+            content = ""
+            finish_reason = "stop"
 
-                content = ""
-                finish_reason = "stop"
+            # Vercel AI SDK format: {"messages": [{"id": "...", "role": "assistant", "content": "..."}]}
+            resp_messages = data.get("messages", [])
+            if resp_messages:
+                _logger.info(f"Agent stream: Found {len(resp_messages)} response messages")
+                for item in reversed(resp_messages):
+                    if item.get("role") == "assistant":
+                        content = item.get("content", "")
+                        if content:
+                            _logger.info(f"Agent stream: Found content with {len(content)} chars")
+                            break
 
-                # LangDock Agent format: {"result": [{"role": "assistant", "content": "..."}]}
-                # Note: Agent may return multiple items including tool calls
-                # We need to find the final assistant message with actual text content
-                result = data.get("result", [])
-                if result:
-                    _logger.info(f"Agent: Found 'result' format with {len(result)} items")
-                    # Iterate in reverse to find the last assistant message with text content
-                    for item in reversed(result):
-                        if item.get("role") == "assistant":
-                            item_content = item.get("content", "")
-                            # Content can be a string or a list of tool calls
-                            if isinstance(item_content, str) and item_content:
-                                content = item_content
-                                _logger.info(f"Agent: Found text content with {len(content)} chars")
-                                break
-                            elif isinstance(item_content, list):
-                                # Check if it's a tool call list or actual text content
-                                _logger.info(f"Agent: Found list content with {len(item_content)} items")
-                                # Look for text in the list (some agents return mixed content)
-                                text_parts = []
-                                for part in item_content:
-                                    if isinstance(part, str):
-                                        text_parts.append(part)
-                                    elif isinstance(part, dict):
-                                        if part.get("type") == "text":
-                                            text_parts.append(part.get("text", ""))
-                                        elif part.get("type") == "tool-call":
-                                            _logger.debug(f"Agent: Skipping tool-call: {part.get('toolName')}")
-                                if text_parts:
-                                    content = " ".join(text_parts)
-                                    _logger.info(f"Agent: Extracted text from list: {len(content)} chars")
-                                    break
-
-                # Fallback: OpenAI-compatible format: {"choices": [{"message": {"content": "..."}}]}
-                if not content:
-                    choices = data.get("choices", [])
-                    if choices:
-                        _logger.info(f"Agent: Found 'choices' format with {len(choices)} items")
-                        choice = choices[0]
-                        message = choice.get("message", {})
-                        content = message.get("content", "")
-                        finish_reason = choice.get("finish_reason", "stop")
-
-                # Yield the content if found
-                if content:
-                    _logger.info(f"Agent: Yielding content with {len(content)} chars")
-                    yield StreamChunk(
-                        content=content,
-                        is_final=True,
-                        finish_reason=finish_reason,
-                        input_tokens=data.get("usage", {}).get("prompt_tokens", 0),
-                        output_tokens=data.get("usage", {}).get("completion_tokens", 0),
-                    )
-                    return
-                else:
-                    _logger.warning(f"Agent: No content found in response. Keys: {list(data.keys())}")
-
-            except json.JSONDecodeError:
-                _logger.warning("Agent response is not JSON, trying SSE parsing")
-
-            # Fallback: Try SSE parsing on raw text
-            line_count = 0
-            for line in raw_text.split("\n"):
-                line_count += 1
-                _logger.debug(f"Agent SSE line {line_count}: {line[:200] if line else '(empty)'}")
-
-                if not line:
-                    continue
-
-                # SSE format: data: {...}
-                if line.startswith("data: "):
-                    data_str = line[6:]  # Remove "data: " prefix
-                    _logger.debug(f"Agent SSE data: {data_str[:200]}")
-
-                    if data_str == "[DONE]":
-                        _logger.info("Agent stream completed with [DONE]")
-                        yield StreamChunk(
-                            content="",
-                            is_final=True,
-                            finish_reason="stop",
-                            input_tokens=final_input_tokens,
-                            output_tokens=final_output_tokens,
-                        )
-                        break
-
-                    try:
-                        data = json.loads(data_str)
-                        _logger.debug(f"Agent parsed data keys: {list(data.keys())}")
-
-                        # Track usage if present
-                        if "usage" in data:
-                            usage = data["usage"]
-                            final_input_tokens = usage.get("prompt_tokens", 0)
-                            final_output_tokens = usage.get("completion_tokens", 0)
-
-                        # Extract content from choices
-                        choices = data.get("choices", [])
-                        _logger.debug(f"Agent choices count: {len(choices)}")
-                        if choices:
-                            choice = choices[0]
-                            delta = choice.get("delta", {})
-                            content = delta.get("content", "")
-                            finish_reason = choice.get("finish_reason")
-                            _logger.debug(
-                                f"Agent delta: content='{content[:50] if content else ''}', finish={finish_reason}"
-                            )
-
-                            if content or finish_reason:
-                                _logger.info(
-                                    f"Agent yielding chunk: '{content[:30] if content else ''}...' final={finish_reason is not None}"
-                                )
-                                yield StreamChunk(
-                                    content=content,
-                                    is_final=finish_reason is not None,
-                                    finish_reason=finish_reason,
-                                    input_tokens=final_input_tokens if finish_reason else 0,
-                                    output_tokens=final_output_tokens if finish_reason else 0,
-                                )
-                    except json.JSONDecodeError:
-                        _logger.warning(f"Failed to parse SSE data: {data_str[:100]}")
-                        continue
-                else:
-                    # Log non-SSE lines
-                    _logger.debug(f"Agent non-SSE line: {line[:100]}")
-
-            _logger.info(f"Agent stream ended after {line_count} lines")
+            if content:
+                yield StreamChunk(
+                    content=content,
+                    is_final=True,
+                    finish_reason=finish_reason,
+                    input_tokens=0,
+                    output_tokens=0,
+                )
+            else:
+                _logger.warning(f"Agent stream: No content found. Keys: {list(data.keys())}")
 
         except httpx.HTTPError as e:
             _logger.error(f"Agent stream HTTP error: {e}")
@@ -1817,7 +1624,7 @@ class LangDockAgentManager:
     Future feature - foundation for Phase 4 (MCP Integration).
     """
 
-    BASE_URL = "https://api.langdock.com/assistant/v1"
+    BASE_URL = "https://api.langdock.com/agent/v1"
 
     def __init__(self, api_key: str, timeout: float = 60.0):
         """
@@ -1876,7 +1683,7 @@ class LangDockAgentManager:
         Raises:
             ProviderError: If upload fails
         """
-        # IMPORTANT: Attachment endpoint is NOT under /assistant/v1
+        # IMPORTANT: Attachment endpoint is NOT under /agent/v1
         # It's directly at https://api.langdock.com/attachment/v1/upload
         upload_url = "https://api.langdock.com/attachment/v1/upload"
 
@@ -1929,7 +1736,7 @@ class LangDockAgentManager:
     def create_agent(
         self,
         name: str,
-        instructions: str,
+        instruction: str,
         model: str = "gpt-4o",
         knowledge_folder_ids: list[str] | None = None,
         **kwargs,
@@ -1939,22 +1746,22 @@ class LangDockAgentManager:
 
         Args:
             name: Agent name
-            instructions: System instructions for the agent
+            instruction: System instruction for the agent
             model: LLM model to use
             knowledge_folder_ids: List of knowledge folder IDs to attach
-            **kwargs: Additional agent configuration
+            **kwargs: Additional agent configuration (e.g. creativity, webSearch)
 
         Returns:
             Created agent data
         """
         payload = {
             "name": name,
-            "instructions": instructions,
+            "instruction": instruction,
             "model": model,
         }
 
         if knowledge_folder_ids:
-            payload["knowledge_folder_ids"] = knowledge_folder_ids
+            payload["knowledgeFolderIds"] = knowledge_folder_ids
 
         payload.update(kwargs)
 
@@ -1972,7 +1779,7 @@ class LangDockAgentManager:
         Returns:
             Agent data
         """
-        response = self.client.get("/get", params={"agent_id": agent_id})
+        response = self.client.get("/get", params={"agentId": agent_id})
         response.raise_for_status()
         return response.json()
 
@@ -1987,7 +1794,7 @@ class LangDockAgentManager:
         Returns:
             Updated agent data
         """
-        payload = {"agent_id": agent_id, **kwargs}
+        payload = {"agentId": agent_id, **kwargs}
         response = self.client.patch("/update", json=payload)
         response.raise_for_status()
         return response.json()
@@ -2116,27 +1923,26 @@ class LangDockKnowledgeManager:
 
     def search(
         self,
-        folder_id: str,
         query: str,
-        top_k: int = 10,
     ) -> list[dict[str, Any]]:
         """
-        Search knowledge folder for relevant content.
+        Search knowledge folders for relevant content.
+
+        Searches across all knowledge folders assigned to the API key.
+        Folder access is controlled via explicit API key assignment in LangDock.
 
         Args:
-            folder_id: Knowledge folder ID
             query: Search query
-            top_k: Number of results to return
 
         Returns:
             List of matching documents/chunks
         """
         response = self.client.post(
-            f"/knowledge/{folder_id}/search",
-            json={"query": query, "top_k": top_k},
+            "/knowledge/search",
+            json={"query": query},
         )
         response.raise_for_status()
-        return response.json().get("results", [])
+        return response.json().get("result", [])
 
     def __del__(self):
         """Cleanup HTTP client."""

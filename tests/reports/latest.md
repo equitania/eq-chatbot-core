@@ -1,19 +1,19 @@
-# Test Report - 2026-03-17 20:39:11
+# Test Report - 2026-03-23 17:58:55
 
-**eq_chatbot_core v1.3.0** | 2.76s | Python 3.13.12 | macOS-26.3.1-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.4.0** | 2.47s | Python 3.13.12 | macOS-26.3.1-arm64-arm-64bit-Mach-O
 
 > **Result: FAILED - 1 failure(s), 0 error(s)**
 
-Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb=short`
+Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/ --tb=short -q --ignore=tests/unit/test_azure.py -k not test_client_uses_package_version`
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Passed | 1057 |
+| Passed | 1056 |
 | Failed | 1 |
 | XFailed (expected) | 5 |
-| **Total** | **1063** |
+| **Total** | **1062** |
 
 ## Test Configuration
 
@@ -44,14 +44,14 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | **Provider: Mammouth AI** | `gpt-4.1-nano` | 37 | 0 | 0 | 0 | 37 | <0.01s |
 | **Provider: Google Vertex AI** | `gemini-2.5-flash` | 44 | 0 | 0 | 0 | 44 | 0.01s |
 | **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | 0.02s |
-| **Security** | - | 410 | 0 | 0 | 5 | 415 | 0.05s |
-| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.40s |
+| **Security** | - | 410 | 0 | 0 | 5 | 415 | 0.04s |
+| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.30s |
 | **Services & Core** **!!** | - | 166 | 1 | 0 | 0 | 167 | 0.01s |
-| **MCP Client** | - | 80 | 0 | 0 | 0 | 80 | 1.54s |
+| **MCP Client** | - | 79 | 0 | 0 | 0 | 79 | 1.53s |
 
 ## Detailed Results
 
-### Unit Tests (1057 passed, 1 failed, 5 xfailed)
+### Unit Tests (1056 passed, 1 failed, 5 xfailed)
 
 #### Provider: OpenAI (41 passed) - <0.01s | Model: `gpt-4o-mini`
 
@@ -373,7 +373,7 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (410 passed, 5 xfailed) - 0.05s
+#### Security (410 passed, 5 xfailed) - 0.04s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -793,7 +793,7 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.40s
+#### RAG Pipeline (116 passed) - 0.30s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -870,7 +870,7 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.39s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.29s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -1086,7 +1086,7 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |  |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |  |
 
-#### MCP Client (80 passed) - 1.54s
+#### MCP Client (79 passed) - 1.53s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1106,16 +1106,16 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.00s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
@@ -1147,9 +1147,8 @@ Command: `.venv/bin/pytest tests/unit/ --ignore=tests/unit/test_azure.py -v --tb
 | `unit/test_mcp.py::TestMCPToolResult::test_tool_result_success` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPToolResult::test_tool_result_failure` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | 0.03s |
+| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |

@@ -246,8 +246,8 @@ class TestLangDockBackendURLs:
 
             provider = LangDockProvider(api_key="test-key", backend="agent", agent_id="agent-123")
             backend_url = provider._get_backend_url()
-            # Agent backend uses /assistant/v1 endpoint
-            assert "assistant" in backend_url.lower()
+            # Agent backend uses /agent/v1 endpoint
+            assert "/agent/v1" in backend_url.lower()
 
 
 # =============================================================================

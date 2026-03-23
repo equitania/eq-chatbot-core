@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 1.4.0 (23.03.2026)
+
+### Changed
+- LangDock Agent API migration: `/assistant/v1/` → `/agent/v1/` endpoints
+- LangDock payload field: `assistantId` → `agentId`
+- LangDock chat/completions: Vercel AI SDK UIMessage format (parts[], metadata.attachments)
+- LangDock response parsing: `result[]` → `messages[]` format
+- LangDock Knowledge search: `/knowledge/{folder_id}/search` → `/knowledge/search` (API-key scoped)
+- LangDock AgentManager CRUD: camelCase field names (`agentId`, `knowledgeFolderIds`, `instruction`)
+- New `_convert_to_agent_messages()` method extracts duplicated message conversion logic
+- Simplified streaming code (removed legacy SSE fallback)
+
 ## Version 1.3.0 (17.03.2026)
 
 ### Added
