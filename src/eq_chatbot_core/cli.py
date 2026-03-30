@@ -253,6 +253,171 @@ def list_models(provider: str, api_key: str | None, base_url: str | None, as_jso
         sys.exit(1)
 
 
+# Maximum stdin payload size (1 MB)
+MAX_INPUT_SIZE = 1_048_576
+
+VALID_ROLES = {"user", "assistant", "system", "tool"}
+
+
+def _validate_messages(messages: list) -> list[dict]:
+    """Validate message structure for chat command."""
+    validated = []
+    for i, msg in enumerate(messages):
+        if not isinstance(msg, dict):
+            raise ValueError(f"Message {i} must be a JSON object, got {type(msg).__name__}")
+        if "role" not in msg:
+            raise ValueError(f"Message {i} missing required 'role' field")
+        if msg["role"] not in VALID_ROLES:
+            raise ValueError(
+                f"Message {i} has invalid role '{msg['role']}'. Must be one of: {', '.join(sorted(VALID_ROLES))}"
+            )
+        if "content" not in msg:
+            raise ValueError(f"Message {i} missing required 'content' field")
+        validated.append(msg)
+    return validated
+
+
+@main.command("chat")
+@click.option(
+    "--provider",
+    "-p",
+    type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
+    required=True,
+    help="LLM provider to use",
+)
+@click.option(
+    "--api-key",
+    "-k",
+    envvar="LLM_API_KEY",
+    help="API key (or set LLM_API_KEY environment variable)",
+)
+@click.option(
+    "--model",
+    "-m",
+    default=None,
+    help="Model to use (uses provider default if not specified)",
+)
+@click.option(
+    "--temperature",
+    "-t",
+    default=0.7,
+    type=float,
+    help="Temperature for response generation (default: 0.7)",
+)
+@click.option(
+    "--max-tokens",
+    default=4096,
+    type=int,
+    help="Maximum tokens in response (default: 4096)",
+)
+@click.option(
+    "--base-url",
+    "-u",
+    default=None,
+    help="Custom base URL for the provider",
+)
+def chat(
+    provider: str,
+    api_key: str | None,
+    model: str | None,
+    temperature: float,
+    max_tokens: int,
+    base_url: str | None,
+) -> None:
+    """Single-turn chat with JSON I/O for programmatic use.
+
+    Reads JSON from stdin with a 'messages' array and writes a JSON response
+    to stdout. Designed for integration with other tools (e.g., sysReporter).
+
+    Input format (stdin):
+
+        {"messages": [{"role": "user", "content": "Hello"}]}
+
+    Output format (stdout):
+
+        {"content": "...", "model": "...", "input_tokens": N, "output_tokens": N}
+
+    Examples:
+
+        echo '{"messages":[{"role":"user","content":"Hello"}]}' | eq-chatbot chat -p openai -k sk-...
+
+        cat request.json | eq-chatbot chat -p anthropic -m claude-3-5-sonnet-20241022
+
+        LLM_API_KEY=sk-... eq-chatbot chat -p openai -m gpt-4o-mini
+    """
+    # Check API key requirement
+    is_local = provider.lower() in LOCAL_PROVIDERS
+    is_vertex = provider.lower() == "vertex"
+    if not api_key and not is_local and not is_vertex:
+        error_response = {"error": "API key required. Use --api-key or set LLM_API_KEY environment variable."}
+        click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+
+    from eq_chatbot_core.providers import ProviderError, get_provider
+
+    try:
+        # Read JSON payload from stdin (size-limited)
+        raw_input = sys.stdin.read(MAX_INPUT_SIZE + 1)
+        if len(raw_input) > MAX_INPUT_SIZE:
+            error_response = {"error": f"Input exceeds maximum size of {MAX_INPUT_SIZE} bytes."}
+            click.echo(json.dumps(error_response), err=True)
+            sys.exit(1)
+        if not raw_input.strip():
+            error_response = {"error": "No input received on stdin. Expected JSON with 'messages' array."}
+            click.echo(json.dumps(error_response), err=True)
+            sys.exit(1)
+
+        payload = json.loads(raw_input)
+        messages = payload.get("messages", [])
+
+        if not messages:
+            error_response = {"error": "No messages found in input. Expected 'messages' array."}
+            click.echo(json.dumps(error_response), err=True)
+            sys.exit(1)
+
+        # Validate message structure
+        messages = _validate_messages(messages)
+
+        # Create provider and send request
+        provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
+
+        kwargs: dict = {
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+        }
+        if model:
+            kwargs["model"] = model
+
+        response = provider_instance.chat_completion(**kwargs)
+
+        # Output JSON response to stdout
+        output = {
+            "content": response.content,
+            "model": response.model,
+            "input_tokens": response.input_tokens,
+            "output_tokens": response.output_tokens,
+        }
+        click.echo(json.dumps(output))
+
+    except json.JSONDecodeError as e:
+        error_response = {"error": f"Invalid JSON input: {e}"}
+        click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+    except ValueError as e:
+        error_response = {"error": f"Invalid message format: {e}"}
+        click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+    except ProviderError as e:
+        error_response = {"error": f"Provider error: {e}"}
+        click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+    except Exception as e:
+        error_response = {"error": f"Unexpected error: {e}"}
+        click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+
+
 @main.command("info")
 def info() -> None:
     """Show package information.

@@ -1,19 +1,19 @@
-# Test Report - 2026-03-23 17:58:55
+# Test Report - 2026-03-30 10:45:46
 
-**eq_chatbot_core v1.4.0** | 2.47s | Python 3.13.12 | macOS-26.3.1-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.5.0** | 2.95s | Python 3.13.12 | macOS-26.4-arm64-arm-64bit-Mach-O
 
-> **Result: FAILED - 1 failure(s), 0 error(s)**
+> **Result: FAILED - 39 failure(s), 0 error(s)**
 
-Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/ --tb=short -q --ignore=tests/unit/test_azure.py -k not test_client_uses_package_version`
+Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Passed | 1056 |
-| Failed | 1 |
+| Passed | 1073 |
+| Failed | 39 |
 | XFailed (expected) | 5 |
-| **Total** | **1062** |
+| **Total** | **1117** |
 
 ## Test Configuration
 
@@ -31,7 +31,45 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 
 | Test | Error |
 |------|-------|
+| `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureContextManager::test_close_client` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureContextManager::test_context_manager` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | E     ?   ^ |
 
 ## Results by Module
 
@@ -42,16 +80,18 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | **Provider: LangDock** | `gpt-5.2` | 56 | 0 | 0 | 0 | 56 | 0.01s |
 | **Provider: OpenRouter** | - | 31 | 0 | 0 | 0 | 31 | <0.01s |
 | **Provider: Mammouth AI** | `gpt-4.1-nano` | 37 | 0 | 0 | 0 | 37 | <0.01s |
+| **Provider: Azure AI** **!!** | `Phi-4` | 1 | 37 | 0 | 0 | 38 | <0.01s |
 | **Provider: Google Vertex AI** | `gemini-2.5-flash` | 44 | 0 | 0 | 0 | 44 | 0.01s |
-| **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | 0.02s |
+| **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | 0.01s |
 | **Security** | - | 410 | 0 | 0 | 5 | 415 | 0.04s |
-| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.30s |
+| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.42s |
 | **Services & Core** **!!** | - | 166 | 1 | 0 | 0 | 167 | 0.01s |
-| **MCP Client** | - | 79 | 0 | 0 | 0 | 79 | 1.53s |
+| **MCP Client** **!!** | - | 79 | 1 | 0 | 0 | 80 | 1.52s |
+| **Other** | - | 16 | 0 | 0 | 0 | 16 | <0.01s |
 
 ## Detailed Results
 
-### Unit Tests (1056 passed, 1 failed, 5 xfailed)
+### Unit Tests (1073 passed, 39 failed, 5 xfailed)
 
 #### Provider: OpenAI (41 passed) - <0.01s | Model: `gpt-4o-mini`
 
@@ -287,6 +327,49 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_mammouth.py::TestMammouthContextManager::test_context_manager` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthFactoryIntegration::test_get_provider_returns_mammouth` | PASSED | <0.01s |
 
+#### Provider: Azure AI (1 passed, 37 failed) - <0.01s | Model: `Phi-4`
+
+| Test | Status | Duration | Detail |
+|------|--------|----------|--------|
+| `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderInit::test_missing_sdk_raises` | PASSED | <0.01s |  |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
+| `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureContextManager::test_close_client` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureContextManager::test_context_manager` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
+
 #### Provider: Google Vertex AI (44 passed) - 0.01s | Model: `gemini-2.5-flash`
 
 | Test | Status | Duration |
@@ -336,7 +419,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex_no_api_key_needed` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.02s | Model: `nvidia/nemotron-3-nano`
+#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.01s | Model: `nvidia/nemotron-3-nano`
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -366,7 +449,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_local.py::TestLocalLLMProviderListModels::test_list_models_connection_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderListModels::test_list_models_empty_response` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderAvailability::test_is_server_available_true` | PASSED | <0.01s |
-| `unit/test_local.py::TestLocalLLMProviderAvailability::test_is_server_available_false_connection_error` | PASSED | 0.01s |
+| `unit/test_local.py::TestLocalLLMProviderAvailability::test_is_server_available_false_connection_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderAvailability::test_is_server_available_false_timeout` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderAvailability::test_is_server_available_false_http_error` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_lazy_initialization` | PASSED | <0.01s |
@@ -793,7 +876,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.30s
+#### RAG Pipeline (116 passed) - 0.42s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -870,7 +953,7 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.29s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.40s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -1086,86 +1169,108 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest t
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |  |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |  |
 
-#### MCP Client (79 passed) - 1.53s
+#### MCP Client (79 passed, 1 failed) - 1.52s
+
+| Test | Status | Duration | Detail |
+|------|--------|----------|--------|
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_without_api_key` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_with_api_key` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientConnection::test_connect_not_connected_initially` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientConnection::test_disconnect_clears_state` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientConnection::test_close_calls_disconnect` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_absolute_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_relative_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_unknown_request_id` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |  |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |  |
+| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_args` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_env` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_creates_subprocess` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_already_started` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_terminates_process` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_kills_on_timeout` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_not_started` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_not_started` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_success` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_timeout` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_error_response` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_process_closed` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_success` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_error` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async_error` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_async_context_manager` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_sync_context_manager` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_sse` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_stdio` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_invalid_transport` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_command` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_with_timeout` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_success` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_failure` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | FAILED | <0.01s | E     ?   ^ |
+| `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_localhost_127_allowed` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_private_ip_blocked` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_link_local_blocked` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestURLValidation::test_mcpclient_validates_url` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python3` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_node` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_uvx` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_bash` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_curl` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_rm` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_semicolon` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_pipe` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_backtick` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_clean_args_accepted` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_command` | PASSED | <0.01s |  |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_args` | PASSED | <0.01s |  |
+
+#### Other (16 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_without_api_key` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_with_api_key` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientConnection::test_connect_not_connected_initially` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientConnection::test_disconnect_clears_state` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientConnection::test_close_calls_disconnect` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_absolute_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_relative_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_unknown_request_id` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.00s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_args` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_env` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_creates_subprocess` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_already_started` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_terminates_process` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_kills_on_timeout` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_not_started` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_not_started` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_success` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_timeout` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_error_response` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_process_closed` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_success` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_async_context_manager` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_sync_context_manager` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_sse` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_stdio` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_invalid_transport` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_command` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_with_timeout` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_success` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_failure` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_localhost_127_allowed` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_private_ip_blocked` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_link_local_blocked` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_mcpclient_validates_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python3` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_node` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_uvx` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_bash` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_curl` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_rm` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_semicolon` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_pipe` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_backtick` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_clean_args_accepted` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_command` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_args` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_successful_chat` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_custom_model_and_temperature` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_missing_api_key` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_local_provider_no_key` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_empty_stdin` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_json` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_missing_messages` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_empty_messages` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_role` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_content` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_role` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_message_not_dict` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_provider_error` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_input_size_limit` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_multi_message_conversation` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_tool_role_accepted` | PASSED | <0.01s |

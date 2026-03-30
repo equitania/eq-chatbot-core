@@ -148,6 +148,16 @@ eq-chatbot list-models -p openai -k YOUR_KEY --json
 
 # Show package info
 eq-chatbot info
+
+# Programmatic JSON I/O (for integration with external tools like Rust CLIs)
+echo '{"messages":[{"role":"user","content":"Hello"}]}' | eq-chatbot chat -p openai -k YOUR_API_KEY
+# Output: {"content": "...", "model": "...", "input_tokens": N, "output_tokens": N}
+
+# With custom model and temperature
+echo '{"messages":[{"role":"user","content":"Summarize this"}]}' | eq-chatbot chat -p anthropic -m claude-3-5-sonnet-20241022 -t 0.3
+
+# Using environment variable
+LLM_API_KEY=sk-... eq-chatbot chat -p openai -m gpt-4o-mini
 ```
 
 ### Encryption Example
@@ -277,6 +287,13 @@ eq-chatbot list-models -p openai -k YOUR_KEY --json
 
 # Paket-Informationen anzeigen
 eq-chatbot info
+
+# Programmatische JSON-Ein-/Ausgabe (fuer Integration mit externen Tools wie Rust CLIs)
+echo '{"messages":[{"role":"user","content":"Hallo"}]}' | eq-chatbot chat -p openai -k YOUR_API_KEY
+# Ausgabe: {"content": "...", "model": "...", "input_tokens": N, "output_tokens": N}
+
+# Mit benutzerdefiniertem Modell und Temperatur
+echo '{"messages":[{"role":"user","content":"Fasse das zusammen"}]}' | eq-chatbot chat -p anthropic -m claude-3-5-sonnet-20241022 -t 0.3
 ```
 
 ### Python-Verwendung

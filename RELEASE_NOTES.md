@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.5.0 (30.03.2026)
+
+### Added
+- New `chat` CLI command for programmatic single-turn LLM interaction with JSON I/O
+  - Reads `{"messages": [...]}` from stdin, writes `{"content": "...", "model": "...", "input_tokens": N, "output_tokens": N}` to stdout
+  - Supports all providers via `--provider`, `--model`, `--temperature`, `--max-tokens` flags
+  - Designed for integration with external tools (e.g., sysReporter Rust CLI)
+  - Error responses as JSON on stderr with non-zero exit code
+  - Input validation: message schema (role, content), stdin size limit (1 MB)
+  - 16 unit tests covering all error paths and success scenarios
+
 ## Version 1.4.0 (23.03.2026)
 
 ### Changed
