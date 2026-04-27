@@ -327,6 +327,7 @@ class MammouthProvider(BaseLLMProvider):
                 self.MODELS_URL,
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 timeout=self.timeout,
+                follow_redirects=False,
             )
             response.raise_for_status()
             data = response.json()

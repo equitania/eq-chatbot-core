@@ -1,19 +1,19 @@
-# Test Report - 2026-03-30 10:45:46
+# Test Report - 2026-04-27 10:01:17
 
-**eq_chatbot_core v1.5.0** | 2.95s | Python 3.13.12 | macOS-26.4-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.5.1** | 2.66s | Python 3.13.12 | macOS-26.4.1-arm64-arm-64bit-Mach-O
 
-> **Result: FAILED - 39 failure(s), 0 error(s)**
+> **Result: ALL PASSED - 1078 tests OK, 5 expected failures**
 
-Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
+Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/`
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Passed | 1073 |
-| Failed | 39 |
+| Passed | 1078 |
+| Failed | 0 |
 | XFailed (expected) | 5 |
-| **Total** | **1117** |
+| **Total** | **1083** |
 
 ## Test Configuration
 
@@ -27,71 +27,26 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | Vertex | `gemini-2.5-flash` | `VERTEX_TEST_MODEL` |
 | Local | `nvidia/nemotron-3-nano` | `LOCAL_TEST_MODEL` |
 
-## Failed Tests
-
-| Test | Error |
-|------|-------|
-| `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureContextManager::test_close_client` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureContextManager::test_context_manager` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | E     ?   ^ |
-
 ## Results by Module
 
 | Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|------------|--------|--------|---------|---------|-------|----------|
 | **Provider: OpenAI** | `gpt-4o-mini` | 41 | 0 | 0 | 0 | 41 | <0.01s |
 | **Provider: Anthropic** | `claude-3-haiku-20240307` | 44 | 0 | 0 | 0 | 44 | <0.01s |
-| **Provider: LangDock** | `gpt-5.2` | 56 | 0 | 0 | 0 | 56 | 0.01s |
+| **Provider: LangDock** | `gpt-5.2` | 56 | 0 | 0 | 0 | 56 | 0.02s |
 | **Provider: OpenRouter** | - | 31 | 0 | 0 | 0 | 31 | <0.01s |
 | **Provider: Mammouth AI** | `gpt-4.1-nano` | 37 | 0 | 0 | 0 | 37 | <0.01s |
-| **Provider: Azure AI** **!!** | `Phi-4` | 1 | 37 | 0 | 0 | 38 | <0.01s |
 | **Provider: Google Vertex AI** | `gemini-2.5-flash` | 44 | 0 | 0 | 0 | 44 | 0.01s |
-| **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | 0.01s |
-| **Security** | - | 410 | 0 | 0 | 5 | 415 | 0.04s |
-| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.42s |
-| **Services & Core** **!!** | - | 166 | 1 | 0 | 0 | 167 | 0.01s |
-| **MCP Client** **!!** | - | 79 | 1 | 0 | 0 | 80 | 1.52s |
+| **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | <0.01s |
+| **Security** | - | 411 | 0 | 0 | 5 | 416 | 0.04s |
+| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.38s |
+| **Services & Core** | - | 167 | 0 | 0 | 0 | 167 | 0.01s |
+| **MCP Client** | - | 83 | 0 | 0 | 0 | 83 | 1.52s |
 | **Other** | - | 16 | 0 | 0 | 0 | 16 | <0.01s |
 
 ## Detailed Results
 
-### Unit Tests (1073 passed, 39 failed, 5 xfailed)
+### Unit Tests (1078 passed, 5 xfailed)
 
 #### Provider: OpenAI (41 passed) - <0.01s | Model: `gpt-4o-mini`
 
@@ -188,7 +143,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_claude_temperature_clamped_to_max` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_repr` | PASSED | <0.01s |
 
-#### Provider: LangDock (56 passed) - 0.01s | Model: `gpt-5.2`
+#### Provider: LangDock (56 passed) - 0.02s | Model: `gpt-5.2`
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -237,7 +192,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_langdock.py::TestLangDockErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockErrorHandling::test_authentication_error` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockErrorHandling::test_context_length_error` | PASSED | <0.01s |
-| `unit/test_langdock.py::TestLangDockErrorHandling::test_generic_error` | PASSED | <0.01s |
+| `unit/test_langdock.py::TestLangDockErrorHandling::test_generic_error` | PASSED | 0.01s |
 | `unit/test_langdock.py::TestLangDockProviderProperties::test_provider_name` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockProviderProperties::test_default_model_openai` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockProviderProperties::test_default_model_anthropic` | PASSED | <0.01s |
@@ -327,49 +282,6 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_mammouth.py::TestMammouthContextManager::test_context_manager` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthFactoryIntegration::test_get_provider_returns_mammouth` | PASSED | <0.01s |
 
-#### Provider: Azure AI (1 passed, 37 failed) - <0.01s | Model: `Phi-4`
-
-| Test | Status | Duration | Detail |
-|------|--------|----------|--------|
-| `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderInit::test_missing_sdk_raises` | PASSED | <0.01s |  |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | FAILED | <0.01s | E   ModuleNotFoundError: No module named 'azure' |
-| `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureContextManager::test_close_client` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureContextManager::test_context_manager` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-
 #### Provider: Google Vertex AI (44 passed) - 0.01s | Model: `gemini-2.5-flash`
 
 | Test | Status | Duration |
@@ -419,7 +331,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex_no_api_key_needed` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.01s | Model: `nvidia/nemotron-3-nano`
+#### Provider: Local (LM Studio / Ollama) (32 passed) - <0.01s | Model: `nvidia/nemotron-3-nano`
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -456,7 +368,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (410 passed, 5 xfailed) - 0.04s
+#### Security (411 passed, 5 xfailed) - 0.04s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -757,6 +669,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_injection.py::TestSanitizeInput::test_html_escaping_disabled` | PASSED | <0.01s |  |
 | `unit/test_injection.py::TestSanitizeInput::test_suspicious_text_wrapped` | PASSED | <0.01s |  |
 | `unit/test_injection.py::TestSanitizeInput::test_suspicious_text_html_escaped_then_wrapped` | PASSED | <0.01s |  |
+| `unit/test_injection.py::TestSanitizeInput::test_angle_bracket_injection_detected_before_escape` | PASSED | <0.01s |  |
 | `unit/test_injection.py::TestSanitizeInput::test_empty_string_returns_empty` | PASSED | <0.01s |  |
 | `unit/test_injection.py::TestSanitizeInput::test_none_like_empty_returns_empty` | PASSED | <0.01s |  |
 | `unit/test_injection.py::TestSanitizeInput::test_whitespace_only` | PASSED | <0.01s |  |
@@ -876,7 +789,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.42s
+#### RAG Pipeline (116 passed) - 0.38s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -953,7 +866,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.40s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.37s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -997,262 +910,265 @@ Command: `.venv/bin/pytest tests/unit/ --tb=short -q`
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (166 passed, 1 failed) - 0.01s
+#### Services & Core (167 passed) - 0.01s
 
-| Test | Status | Duration | Detail |
-|------|--------|----------|--------|
-| `unit/test_cost_service.py::TestCalculateCost::test_exact_match_gpt4o_mini` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_prefix_match_gpt4o_dated` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_o1_mini_over_o1` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_claude_sonnet_dated_v2` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_gpt4o_mini_custom_over_gpt4o` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_unknown_model_uses_default_pricing` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_zero_tokens_returns_zero` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_only_input_tokens_defaults_output_to_zero` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_result_rounded_to_six_decimal_places` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestCalculateCost::test_embedding_model_zero_output_cost` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestGetModelPricing::test_exact_match_returns_correct_pricing` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestGetModelPricing::test_longest_prefix_match_o1_mini_variant` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestGetModelPricing::test_unknown_model_returns_default` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_basic_monthly_calculation` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_zero_requests_returns_zero` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_result_rounded_to_two_decimal_places` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4-turbo]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4o]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4o-mini]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o1]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o1-mini]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o3-mini]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-5-sonnet-latest]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-5-sonnet-20241022]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-opus-latest]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[text-embedding-3-small]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[text-embedding-3-large]` | PASSED | <0.01s |  |
-| `unit/test_cost_service.py::TestPricingDict::test_all_entries_have_input_and_output_keys` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_timeout_error_classification` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_timeout_error_with_timed_out_keyword` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_rate_limit_error_classification` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_rate_limit_error_by_text` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_auth_error_classification` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_auth_error_by_text` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_token_limit_error_classification` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_token_limit_by_token_keyword` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorClassification::test_generic_error_classification` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_with_callback_success` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_exhausted_falls_back` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_count_increments` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_no_retry_when_count_exhausted` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_in_timeout_retry` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_maximum_value` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_minimum_value` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_openai_to_langdock` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_skips_failing_provider` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_all_fallbacks_fail` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_when_get_provider_fn_is_none` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_chain_for_unknown_provider` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_try_fallback_provider_directly_no_get_provider` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_try_fallback_provider_directly_all_fail` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_definitions` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_provider_returns_none` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestRateLimitHandling::test_rate_limit_extracts_retry_after` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestRateLimitHandling::test_rate_limit_default_retry_after` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestRateLimitHandling::test_extract_retry_after_various_formats` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestRateLimitHandling::test_extract_retry_after_returns_none` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestGermanErrorMessages::test_timeout_message_in_german` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestGermanErrorMessages::test_rate_limit_message_in_german` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestGermanErrorMessages::test_auth_error_message_in_german` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestGermanErrorMessages::test_token_limit_message_in_german` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestGermanErrorMessages::test_generic_error_message_in_german` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_called_on_rate_limit` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_called_on_auth_error` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_not_called_on_timeout` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_receives_rate_limit_retry_after` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorResult::test_error_result_defaults` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestErrorResult::test_error_result_with_all_fields` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestEnums::test_error_severity_values` | PASSED | <0.01s |  |
-| `unit/test_error_handler.py::TestEnums::test_error_category_values` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_basic_instantiation` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_with_status_code` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_with_all_parameters` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_is_exception` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_can_be_raised_and_caught` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestProviderError::test_empty_message` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRateLimitError::test_is_provider_error_subclass` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRateLimitError::test_typical_rate_limit` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRateLimitError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRateLimitError::test_can_be_caught_specifically` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestAuthenticationError::test_is_provider_error_subclass` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestAuthenticationError::test_typical_auth_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestAuthenticationError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestAuthenticationError::test_can_be_caught_specifically` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestContextLengthError::test_is_provider_error_subclass` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestContextLengthError::test_typical_context_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestContextLengthError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestContextLengthError::test_can_be_caught_specifically` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionHierarchy::test_exception_types_are_distinct` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionHierarchy::test_can_discriminate_exception_types` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionHierarchy::test_order_of_exception_catching` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestErrorAttributes::test_provider_attribute_types` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestErrorAttributes::test_status_code_common_values` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestErrorAttributes::test_retry_after_values` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestErrorAttributes::test_error_message_preserves_details` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_str_method` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_repr_method` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_exception_in_f_string` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_exception_args` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionChaining::test_exception_cause` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionChaining::test_exception_context` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestExceptionChaining::test_suppress_context` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRealWorldScenarios::test_openai_rate_limit_response` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRealWorldScenarios::test_anthropic_auth_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRealWorldScenarios::test_context_length_with_token_counts` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRealWorldScenarios::test_local_provider_connection_error` | PASSED | <0.01s |  |
-| `unit/test_exceptions.py::TestRealWorldScenarios::test_retry_logic_based_on_error_type` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_openai_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_anthropic_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_langdock_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_openrouter_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | FAILED | <0.01s | E   ImportError: Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] or: pip install azure-ai-inference azure-core |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_vertex_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_provider_name_case_insensitive` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_custom_base_url` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider_default_api_key` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_get_lm_studio_alias` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_get_lmstudio_alias` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_get_ollama_alias` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_custom_base_url_override` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_local_provider_with_api_key` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_case_insensitive` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryErrors::test_unknown_provider_raises_error` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryErrors::test_error_message_lists_available_providers` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryErrors::test_none_api_key_for_cloud_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryErrors::test_none_api_key_for_local_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryKwargs::test_timeout_passed_to_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryKwargs::test_max_retries_passed_to_provider` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryKwargs::test_multiple_kwargs` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryProviderProperties::test_openai_default_model` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryProviderProperties::test_anthropic_default_model` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryProviderProperties::test_local_default_model` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryProviderProperties::test_provider_names_correct` | PASSED | <0.01s |  |
-| `unit/test_factory.py::TestFactoryProviderProperties::test_openrouter_default_model` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_gpt41` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_reasoning_model` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_legacy_openai` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude_opus` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_gemini` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_mistral` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_longest_prefix_match` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_default_fallback_unknown_model` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_reasoner` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_chat` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_passthrough_gpt41` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_passthrough_gpt5` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_claude` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_mistral` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_reasoning_model_returns_none` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_in_range_passthrough` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_min_boundary` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_max_boundary` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_unknown_model_wide_range` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampTemperature::test_deepseek_reasoner_returns_none` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_openai_prefix` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_anthropic_prefix` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_google_prefix` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_no_prefix_unchanged` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_meta_prefix` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_only_first_slash` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_gpt41_passthrough` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_claude_clamped` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |  |
-| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |  |
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/test_cost_service.py::TestCalculateCost::test_exact_match_gpt4o_mini` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_prefix_match_gpt4o_dated` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_o1_mini_over_o1` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_claude_sonnet_dated_v2` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_gpt4o_mini_custom_over_gpt4o` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_unknown_model_uses_default_pricing` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_zero_tokens_returns_zero` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_only_input_tokens_defaults_output_to_zero` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_result_rounded_to_six_decimal_places` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestCalculateCost::test_embedding_model_zero_output_cost` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestGetModelPricing::test_exact_match_returns_correct_pricing` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestGetModelPricing::test_longest_prefix_match_o1_mini_variant` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestGetModelPricing::test_unknown_model_returns_default` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_basic_monthly_calculation` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_zero_requests_returns_zero` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestEstimateMonthlyCost::test_result_rounded_to_two_decimal_places` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4-turbo]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4o]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4o-mini]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[gpt-4]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o1]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o1-mini]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[o3-mini]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-5-sonnet-latest]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-5-sonnet-20241022]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[claude-3-opus-latest]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[text-embedding-3-small]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_key_models_exist_in_pricing[text-embedding-3-large]` | PASSED | <0.01s |
+| `unit/test_cost_service.py::TestPricingDict::test_all_entries_have_input_and_output_keys` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_timeout_error_classification` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_timeout_error_with_timed_out_keyword` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_rate_limit_error_classification` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_rate_limit_error_by_text` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_auth_error_classification` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_auth_error_by_text` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_token_limit_error_classification` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_token_limit_by_token_keyword` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorClassification::test_generic_error_classification` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_with_callback_success` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_exhausted_falls_back` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_retry_count_increments` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_timeout_no_retry_when_count_exhausted` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_in_timeout_retry` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_maximum_value` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_minimum_value` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_openai_to_langdock` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_skips_failing_provider` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_all_fallbacks_fail` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_when_get_provider_fn_is_none` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_chain_for_unknown_provider` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_try_fallback_provider_directly_no_get_provider` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_try_fallback_provider_directly_all_fail` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_definitions` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_provider_returns_none` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestRateLimitHandling::test_rate_limit_extracts_retry_after` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestRateLimitHandling::test_rate_limit_default_retry_after` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestRateLimitHandling::test_extract_retry_after_various_formats` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestRateLimitHandling::test_extract_retry_after_returns_none` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestGermanErrorMessages::test_timeout_message_in_german` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestGermanErrorMessages::test_rate_limit_message_in_german` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestGermanErrorMessages::test_auth_error_message_in_german` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestGermanErrorMessages::test_token_limit_message_in_german` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestGermanErrorMessages::test_generic_error_message_in_german` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_called_on_rate_limit` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_called_on_auth_error` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_not_called_on_timeout` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestLoggingCallback::test_log_fn_receives_rate_limit_retry_after` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorResult::test_error_result_defaults` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestErrorResult::test_error_result_with_all_fields` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestEnums::test_error_severity_values` | PASSED | <0.01s |
+| `unit/test_error_handler.py::TestEnums::test_error_category_values` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_basic_instantiation` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_with_status_code` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_with_all_parameters` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_is_exception` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_can_be_raised_and_caught` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestProviderError::test_empty_message` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRateLimitError::test_is_provider_error_subclass` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRateLimitError::test_typical_rate_limit` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRateLimitError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRateLimitError::test_can_be_caught_specifically` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestAuthenticationError::test_is_provider_error_subclass` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestAuthenticationError::test_typical_auth_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestAuthenticationError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestAuthenticationError::test_can_be_caught_specifically` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestContextLengthError::test_is_provider_error_subclass` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestContextLengthError::test_typical_context_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestContextLengthError::test_can_be_caught_as_provider_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestContextLengthError::test_can_be_caught_specifically` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionHierarchy::test_exception_types_are_distinct` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionHierarchy::test_can_discriminate_exception_types` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionHierarchy::test_order_of_exception_catching` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestErrorAttributes::test_provider_attribute_types` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestErrorAttributes::test_status_code_common_values` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestErrorAttributes::test_retry_after_values` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestErrorAttributes::test_error_message_preserves_details` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_str_method` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_repr_method` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_exception_in_f_string` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionStringRepresentation::test_exception_args` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionChaining::test_exception_cause` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionChaining::test_exception_context` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestExceptionChaining::test_suppress_context` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRealWorldScenarios::test_openai_rate_limit_response` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRealWorldScenarios::test_anthropic_auth_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRealWorldScenarios::test_context_length_with_token_counts` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRealWorldScenarios::test_local_provider_connection_error` | PASSED | <0.01s |
+| `unit/test_exceptions.py::TestRealWorldScenarios::test_retry_logic_based_on_error_type` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_openai_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_anthropic_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_langdock_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_openrouter_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_vertex_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_provider_name_case_insensitive` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_custom_base_url` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider_default_api_key` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_get_lm_studio_alias` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_get_lmstudio_alias` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_get_ollama_alias` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_custom_base_url_override` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_local_provider_with_api_key` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_case_insensitive` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryErrors::test_unknown_provider_raises_error` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryErrors::test_error_message_lists_available_providers` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryErrors::test_none_api_key_for_cloud_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryErrors::test_none_api_key_for_local_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryKwargs::test_timeout_passed_to_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryKwargs::test_max_retries_passed_to_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryKwargs::test_multiple_kwargs` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryProviderProperties::test_openai_default_model` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryProviderProperties::test_anthropic_default_model` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryProviderProperties::test_local_default_model` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryProviderProperties::test_provider_names_correct` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryProviderProperties::test_openrouter_default_model` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_gpt41` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_reasoning_model` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_exact_match_legacy_openai` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_claude_opus` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_gemini` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_prefix_match_mistral` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_longest_prefix_match` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_default_fallback_unknown_model` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_reasoner` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestGetTemperatureConstraints::test_deepseek_chat` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_passthrough_gpt41` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_passthrough_gpt5` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_claude` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_clamp_above_max_mistral` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_reasoning_model_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_in_range_passthrough` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_min_boundary` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_exact_max_boundary` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_unknown_model_wide_range` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampTemperature::test_deepseek_reasoner_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_openai_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_anthropic_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_google_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_no_prefix_unchanged` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_meta_prefix` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestStripProviderPrefix::test_strip_only_first_slash` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_gpt41_passthrough` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_claude_clamped` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
+| `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |
 
-#### MCP Client (79 passed, 1 failed) - 1.52s
+#### MCP Client (83 passed) - 1.52s
 
-| Test | Status | Duration | Detail |
-|------|--------|----------|--------|
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_without_api_key` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_with_api_key` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientConnection::test_connect_not_connected_initially` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientConnection::test_disconnect_clears_state` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientConnection::test_close_calls_disconnect` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_absolute_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_relative_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_unknown_request_id` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |  |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |  |
-| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_args` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_env` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_creates_subprocess` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_already_started` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_terminates_process` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_kills_on_timeout` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_not_started` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_not_started` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_success` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_timeout` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_error_response` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_process_closed` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_success` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_error` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async_error` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_async_context_manager` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_sync_context_manager` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_sse` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_stdio` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_invalid_transport` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_command` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_with_timeout` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_success` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_failure` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | FAILED | <0.01s | E     ?   ^ |
-| `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_localhost_127_allowed` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_private_ip_blocked` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_link_local_blocked` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestURLValidation::test_mcpclient_validates_url` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python3` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_node` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_uvx` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_bash` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_curl` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_rm` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_semicolon` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_pipe` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_backtick` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_clean_args_accepted` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_command` | PASSED | <0.01s |  |
-| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_args` | PASSED | <0.01s |  |
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_without_api_key` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_get_headers_with_api_key` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientConnection::test_connect_not_connected_initially` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientConnection::test_disconnect_clears_state` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientConnection::test_close_calls_disconnect` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_absolute_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_relative_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_unknown_request_id` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_message_event_invalid_json` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_rejects_private_ip` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_rejects_non_http_scheme` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_args` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_env` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_creates_subprocess` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_already_started` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_start_does_not_leak_secrets_to_subprocess` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_terminates_process` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_kills_on_timeout` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientProcessManagement::test_stop_not_started` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_not_started` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_success` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_timeout` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_error_response` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientRequests::test_send_request_process_closed` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_success` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_call_tool_async_error` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientToolOperations::test_list_tools_async_error` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_async_context_manager` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioMCPClientContextManager::test_sync_context_manager` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_sse` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_stdio` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_invalid_transport` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_missing_command` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestGetMCPClient::test_get_mcp_client_with_timeout` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_success` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_failure` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_localhost_127_allowed` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_private_ip_blocked` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_link_local_blocked` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestURLValidation::test_mcpclient_validates_url` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_python3` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_node` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_allowed_command_uvx` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_bash` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_curl` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_blocked_command_rm` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_semicolon` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_pipe` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_shell_metachar_in_args_backtick` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_clean_args_accepted` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_command` | PASSED | <0.01s |
+| `unit/test_mcp.py::TestStdioCommandValidation::test_stdio_client_validates_args` | PASSED | <0.01s |
 
 #### Other (16 passed) - <0.01s
 

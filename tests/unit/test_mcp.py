@@ -7,6 +7,7 @@ Run with: pytest tests/unit/test_mcp.py -v
 
 import asyncio
 import json
+import os
 import queue
 import threading
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -198,6 +199,21 @@ class TestMCPClientSSEEventHandling:
         """Test handling message event with invalid JSON."""
         # Should not raise, just log error
         client._handle_sse_event("message", "not valid json")
+
+    def test_handle_endpoint_event_rejects_private_ip(self, client):
+        """SSRF protection: reject endpoint URLs that target private networks."""
+        # A hostile MCP server tries to redirect POST traffic to an internal address.
+        client._handle_sse_event("endpoint", "http://10.0.0.5/internal")
+
+        assert client._message_endpoint is None
+        assert not client._connected.is_set()
+
+    def test_handle_endpoint_event_rejects_non_http_scheme(self, client):
+        """SSRF protection: reject endpoint URLs with non-HTTP(S) schemes."""
+        client._handle_sse_event("endpoint", "file:///etc/passwd")
+
+        assert client._message_endpoint is None
+        assert not client._connected.is_set()
 
 
 @pytest.mark.unit
@@ -622,6 +638,32 @@ class TestStdioMCPClientProcessManagement:
             mock_exec.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_start_does_not_leak_secrets_to_subprocess(self, client):
+        """Subprocess env must not inherit caller's API keys / secrets.
+        Only an explicit whitelist plus self.env is forwarded."""
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.write = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
+
+        # Explicitly set a "secret" in os.environ that the subprocess should NOT see.
+        secret_key = "EQCB_TEST_SECRET_DO_NOT_LEAK"
+        with patch.dict(os.environ, {secret_key: "sk-secret-leak", "PATH": "/usr/bin"}, clear=False):
+            with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+                mock_exec.return_value = mock_process
+                client.env = {"MCP_TOKEN": "explicit-value"}
+
+                await client.start()
+
+                _, kwargs = mock_exec.call_args
+                forwarded_env = kwargs["env"]
+                assert secret_key not in forwarded_env, "subprocess must not inherit caller secrets"
+                assert forwarded_env.get("MCP_TOKEN") == "explicit-value"
+                assert "PATH" in forwarded_env  # whitelisted
+
+    @pytest.mark.asyncio
     async def test_stop_terminates_process(self, client):
         """Test stop() terminates subprocess."""
         mock_process = MagicMock()
@@ -1001,11 +1043,15 @@ class TestMCPClientVersion:
             yield mock_module
 
     def test_client_uses_package_version(self, mock_httpx):
-        """Test that client sends correct version in initialize request."""
+        """Test that __version__ is a non-empty PEP 440 string."""
+        import re
+
         from eq_chatbot_core.version import __version__
 
-        # Version should match current package version
-        assert __version__ == "1.3.0"
+        # Don't pin a specific version here — that drifts on every release.
+        # Just verify the string exists and looks like a version.
+        assert __version__
+        assert re.match(r"^\d+\.\d+\.\d+", __version__), f"Unexpected version format: {__version__}"
 
 
 # =============================================================================

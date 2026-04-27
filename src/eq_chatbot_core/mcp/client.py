@@ -303,14 +303,33 @@ class MCPClient:
         logger.debug(f"SSE event: {event_type}, data: {data[:100]}...")
 
         if event_type == "endpoint":
-            # Server sends the POST endpoint URL
-            self._message_endpoint = data
-            if not self._message_endpoint.startswith("http"):
-                # Relative URL - extract origin (scheme + host + port) from base_url
-                # Don't use full base_url which may contain path like /sse
+            # Server sends the POST endpoint URL. It is either an absolute
+            # http(s)://… URL, or a path-only string starting with "/".
+            # Anything else (e.g. "file:///etc/passwd" or "ftp://…") is
+            # rejected outright — _validate_url will catch non-http schemes,
+            # but only if we don't accidentally prepend an origin to them.
+            if data.startswith("/"):
+                # Relative path — combine with base_url origin (not full
+                # base_url, which may contain a path like /sse).
                 parsed = urlparse(self.base_url)
                 origin = f"{parsed.scheme}://{parsed.netloc}"
-                self._message_endpoint = f"{origin}{data}"
+                candidate = f"{origin}{data}"
+            elif data.startswith(("http://", "https://")):
+                candidate = data
+            else:
+                logger.error(f"Rejecting malformed MCP endpoint: {data[:100]!r}")
+                return
+
+            # SSRF protection: validate the server-supplied endpoint URL.
+            # A hostile MCP server could otherwise redirect POST traffic to
+            # an internal address (which the initial base_url check would block).
+            try:
+                _validate_url(candidate)
+            except ValueError as e:
+                logger.error(f"Rejecting MCP endpoint URL: {e}")
+                return
+
+            self._message_endpoint = candidate
             logger.info(f"MCP message endpoint: {self._message_endpoint}")
             self._connected.set()
 
@@ -596,8 +615,26 @@ class StdioMCPClient:
         if self._process is not None:
             return
 
-        # Merge environment variables
-        full_env = {**os.environ, **self.env}
+        # Build a minimal environment so the subprocess does not inherit the
+        # caller's secrets (LLM API keys, DB passwords, etc.). Only forward a
+        # whitelist of variables required for normal runtime resolution, then
+        # overlay the caller-supplied self.env which is the explicit contract.
+        _ENV_WHITELIST = (
+            "PATH",
+            "HOME",
+            "LANG",
+            "LC_ALL",
+            "TZ",
+            "TMPDIR",
+            "USER",
+            "LOGNAME",
+            "SHELL",
+            "PYTHONPATH",
+            "SystemRoot",  # Windows
+            "SYSTEMROOT",  # Windows (case-variant)
+        )
+        full_env = {k: v for k, v in os.environ.items() if k in _ENV_WHITELIST}
+        full_env.update(self.env)
 
         logger.info(f"Starting MCP subprocess: {self.command} {' '.join(self.args)}")
 

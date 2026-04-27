@@ -155,12 +155,14 @@ def sanitize_input(text: str, escape_html: bool = True) -> str:
     if not text:
         return ""
 
+    # Detect injection on the original text. html.escape() turns "<system>" into
+    # "&lt;system&gt;", which would silently bypass the angle-bracket and
+    # paren-based patterns if escaping ran first.
+    is_suspicious, _ = detect_injection(text)
+
     # Escape HTML/XML entities (covers <, >, &, ", ')
     if escape_html:
         text = html.escape(text, quote=True)
-
-    # Check for injection
-    is_suspicious, _ = detect_injection(text)
 
     if is_suspicious:
         # Wrap suspicious content in code block to prevent interpretation

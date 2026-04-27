@@ -3,13 +3,21 @@ Unit tests for Azure AI provider.
 
 All tests use mocked responses - no real API calls.
 Tests cover Azure AI Foundry access with temperature constraints.
+
+Requires the optional [azure] extra. If azure-ai-inference is not installed
+the entire module is skipped — install with:
+    uv pip install -e ".[dev,azure]"
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from eq_chatbot_core.providers.base import (
+# Skip the whole module when the optional Azure SDK is not installed.
+# Matches how test_azure.py interacts with the lazy import in azure_provider.py.
+pytest.importorskip("azure.ai.inference")
+
+from eq_chatbot_core.providers.base import (  # noqa: E402
     AuthenticationError,
     ContextLengthError,
     OverloadedError,
@@ -303,9 +311,7 @@ class TestAzureMessageConversion:
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
-        result = provider._convert_messages(
-            [{"role": "tool", "content": '{"temp": 20}', "tool_call_id": "call_123"}]
-        )
+        result = provider._convert_messages([{"role": "tool", "content": '{"temp": 20}', "tool_call_id": "call_123"}])
         assert len(result) == 1
         assert isinstance(result[0], ToolMessage)
 

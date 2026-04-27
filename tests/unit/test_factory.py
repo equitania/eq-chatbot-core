@@ -56,10 +56,12 @@ class TestFactoryCloudProviders:
         assert provider.api_key == "sk-or-test-key"
         assert provider.provider_name == "openrouter"
 
+    @patch("eq_chatbot_core.providers.azure_provider._azure_available", True)
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
     def test_get_azure_provider(self, mock_credential, mock_client_class):
-        """Test creating Azure provider."""
+        """Test creating Azure provider — runs even without azure-ai-inference
+        installed by patching the SDK availability flag."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         provider = get_provider(

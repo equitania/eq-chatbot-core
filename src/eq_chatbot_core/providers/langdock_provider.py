@@ -460,6 +460,7 @@ class LangDockProvider(BaseLLMProvider):
                     "Content-Type": "application/json",
                 },
                 timeout=120.0,
+                follow_redirects=False,
             )
 
             if response.status_code != 200:
@@ -954,6 +955,7 @@ class LangDockProvider(BaseLLMProvider):
                     "Content-Type": "application/json",
                 },
                 timeout=120.0,
+                follow_redirects=False,
             )
 
             if response.status_code != 200:
@@ -1701,6 +1703,7 @@ class LangDockAgentManager:
                     # Don't set Content-Type - httpx sets it automatically for multipart
                 },
                 timeout=120.0,  # Longer timeout for file uploads
+                follow_redirects=False,
             )
 
             if response.status_code != 200:
