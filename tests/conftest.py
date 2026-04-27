@@ -792,8 +792,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 model_suffix = f" | Model: `{group_model}`"
 
             lines.append(
-                f"#### {group_info['label']} ({', '.join(sub_parts)}) - "
-                f"{_format_duration(g_dur)}{model_suffix}"
+                f"#### {group_info['label']} ({', '.join(sub_parts)}) - {_format_duration(g_dur)}{model_suffix}"
             )
             lines.append("")
 
