@@ -31,13 +31,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "openai>=1.58.0,<3.0.0",
-    "anthropic>=0.42.0,<1.0.0",
+    "openai>=2.0.0,<3.0.0",
+    "anthropic>=0.90.0,<2.0.0",
     "qdrant-client>=1.12.0,<2.0.0",
     "tiktoken>=0.9.0,<1.0.0",
-    "cryptography>=44.0.0",
+    "cryptography>=44.0.0,<49.0.0",
     "httpx>=0.27.0,<1.0.0",
-    "pydantic>=2.10.0,<3.0.0",
+    "pydantic>=2.11.0,<3.0.0",
     "click>=8.1.0,<9.0.0",
 ]
 
@@ -53,16 +53,16 @@ dev = [
     "pre-commit>=4.0.0",
 ]
 local = [
-    "sentence-transformers>=2.2.0",  # For local embeddings
+    "sentence-transformers>=3.0.0,<6.0.0",  # For local embeddings
 ]
 security = [
-    "puremagic>=1.0",  # Pure Python MIME type verification (no libmagic dependency)
+    "puremagic>=2.0,<3.0",  # Pure Python MIME type verification (no libmagic dependency)
 ]
 pdf = [
-    "pymupdf>=1.25.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
+    "pymupdf>=1.26.0,<2.0.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
 ]
 azure = [
-    "azure-ai-inference>=1.0.0b7",
+    "azure-ai-inference>=1.0.0b9",
     "azure-core>=1.30.0",
 ]
 vertex = [

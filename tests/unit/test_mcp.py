@@ -1227,3 +1227,179 @@ class TestStdioCommandValidation:
 
         with pytest.raises(ValueError, match="metacharacters"):
             StdioMCPClient(command="python", args=["-c", "import os; os.system('id')"])
+
+
+# =============================================================================
+# Security Hardening Tests (PYTHONPATH removal + DNS rebinding protection)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestStdioEnvWhitelistHardening:
+    """PYTHONPATH must not leak into the MCP subprocess environment.
+
+    PYTHONPATH allows arbitrary module injection that overrides stdlib imports.
+    The whitelist must exclude it; callers needing custom paths use self.env.
+    """
+
+    @pytest.mark.asyncio
+    async def test_pythonpath_not_forwarded_to_subprocess(self):
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        client = StdioMCPClient(command="python", timeout=1.0)
+
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.write = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
+
+        rogue_pythonpath = "/tmp/attacker-modules"
+        with patch.dict(os.environ, {"PYTHONPATH": rogue_pythonpath, "PATH": "/usr/bin"}, clear=False):
+            with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+                mock_exec.return_value = mock_process
+                await client.start()
+
+                _, kwargs = mock_exec.call_args
+                forwarded_env = kwargs["env"]
+                assert "PYTHONPATH" not in forwarded_env, (
+                    "PYTHONPATH must not inherit from caller — enables module-injection bypass"
+                )
+
+    @pytest.mark.asyncio
+    async def test_pythonpath_via_explicit_env_still_works(self):
+        """Callers can still pass PYTHONPATH explicitly via self.env."""
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        client = StdioMCPClient(command="python", env={"PYTHONPATH": "/opt/mcp-deps"}, timeout=1.0)
+
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.write = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
+
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+            mock_exec.return_value = mock_process
+            await client.start()
+
+            _, kwargs = mock_exec.call_args
+            assert kwargs["env"]["PYTHONPATH"] == "/opt/mcp-deps"
+
+
+@pytest.mark.unit
+class TestDNSRebindingProtection:
+    """The transport must reject hosts whose live DNS resolution diverges from
+    the IP set captured at validation time."""
+
+    def test_validate_url_returns_resolved_ips(self):
+        from eq_chatbot_core.mcp.client import _validate_url
+
+        ips = _validate_url("http://localhost:8000")
+        assert isinstance(ips, frozenset)
+        # localhost typically resolves to at least one of these
+        assert ips & {"127.0.0.1", "::1"}, f"localhost should resolve to a loopback IP, got {ips}"
+
+    def test_validate_url_returns_empty_set_for_unresolvable(self):
+        import socket
+
+        from eq_chatbot_core.mcp.client import _validate_url
+
+        with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("unresolvable")):
+            ips = _validate_url("http://does-not-resolve.invalid.example")
+            assert ips == frozenset()
+
+    def test_pinned_transport_rejects_rebinding(self):
+        """Build the pinned transport, then patch DNS to return a different IP
+        and confirm the transport raises ConnectError."""
+        import socket
+        import threading
+
+        import httpx
+
+        from eq_chatbot_core.mcp.client import _build_pinned_transport
+
+        pinned_ips: dict[str, frozenset[str]] = {"target.example": frozenset({"203.0.113.5"})}
+        lock = threading.Lock()
+        transport = _build_pinned_transport(pinned_ips, lock)
+
+        # Force getaddrinfo to return a rogue private IP — simulating rebinding
+        rogue_addrinfo = [(2, 1, 6, "", ("169.254.169.254", 0))]
+        request = httpx.Request("GET", "http://target.example/")
+
+        with patch.object(socket, "getaddrinfo", return_value=rogue_addrinfo):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding detected"):
+                transport.handle_request(request)
+
+    def test_pinned_transport_passes_when_resolution_matches(self):
+        """If DNS resolution stays within the pinned set, the transport must
+        delegate to the parent class (which would actually open the socket).
+        We patch handle_request on the parent class to verify delegation."""
+        import socket
+        import threading
+
+        import httpx
+
+        from eq_chatbot_core.mcp.client import _build_pinned_transport
+
+        pinned_ips: dict[str, frozenset[str]] = {"target.example": frozenset({"203.0.113.5"})}
+        lock = threading.Lock()
+        transport = _build_pinned_transport(pinned_ips, lock)
+
+        good_addrinfo = [(2, 1, 6, "", ("203.0.113.5", 0))]
+        request = httpx.Request("GET", "http://target.example/")
+        sentinel_response = MagicMock(spec=httpx.Response)
+
+        with patch.object(socket, "getaddrinfo", return_value=good_addrinfo):
+            with patch.object(httpx.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
+                result = transport.handle_request(request)
+                super_call.assert_called_once()
+                assert result is sentinel_response
+
+    def test_pinned_transport_skips_check_for_unpinned_hosts(self):
+        """Hosts that were never pinned (e.g. unresolvable at validation time)
+        must not be blocked by the transport."""
+        import threading
+
+        import httpx
+
+        from eq_chatbot_core.mcp.client import _build_pinned_transport
+
+        pinned_ips: dict[str, frozenset[str]] = {}  # no entries
+        lock = threading.Lock()
+        transport = _build_pinned_transport(pinned_ips, lock)
+
+        request = httpx.Request("GET", "http://other.example/")
+        sentinel_response = MagicMock(spec=httpx.Response)
+
+        with patch.object(httpx.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
+            result = transport.handle_request(request)
+            super_call.assert_called_once()
+            assert result is sentinel_response
+
+    def test_mcpclient_pins_base_url_on_init(self):
+        """MCPClient.__init__ must populate _pinned_ips from the base_url."""
+        mock_module = MagicMock()
+        mock_module.Timeout = MagicMock(return_value=MagicMock())
+        with patch.dict("sys.modules", {"httpx": mock_module}):
+            from eq_chatbot_core.mcp.client import MCPClient
+
+            client = MCPClient(base_url="http://localhost:8000/sse")
+            assert "localhost" in client._pinned_ips
+            assert client._pinned_ips["localhost"] & {"127.0.0.1", "::1"}
+
+    def test_mcpclient_pins_endpoint_from_sse_event(self):
+        """When the server emits a redirect endpoint, its hostname must be
+        added to _pinned_ips."""
+        mock_module = MagicMock()
+        mock_module.Timeout = MagicMock(return_value=MagicMock())
+        with patch.dict("sys.modules", {"httpx": mock_module}):
+            from eq_chatbot_core.mcp.client import MCPClient
+
+            client = MCPClient(base_url="http://localhost:8000/sse")
+            client._handle_sse_event("endpoint", "http://127.0.0.1:8000/message")
+
+            assert client._message_endpoint == "http://127.0.0.1:8000/message"
+            assert "127.0.0.1" in client._pinned_ips

@@ -54,14 +54,22 @@ ALLOWED_STDIO_COMMANDS = frozenset(
 _SHELL_META_RE = re.compile(r"[;|&`$(){}!\n\r]")
 
 
-def _validate_url(url: str) -> None:
-    """Validate a URL for SSRF protection.
+def _validate_url(url: str) -> frozenset[str]:
+    """Validate a URL for SSRF protection and return its currently-resolved IPs.
 
     Blocks private/reserved IP ranges and non-HTTP(S) schemes.
     Localhost (127.0.0.1, ::1, localhost) is explicitly allowed for local development.
 
+    The returned IP set is intended to be pinned by the caller and re-checked
+    on each subsequent request to mitigate DNS rebinding attacks. An empty
+    frozenset is returned when the hostname cannot be resolved at validation
+    time (callers may treat this as "no pinning available").
+
     Args:
         url: URL to validate
+
+    Returns:
+        Frozenset of resolved IP address strings (may be empty if unresolvable).
 
     Raises:
         ValueError: If the URL is invalid or targets a private network
@@ -81,18 +89,66 @@ def _validate_url(url: str) -> None:
         addr_infos = socket.getaddrinfo(hostname, None)
     except socket.gaierror:
         # Cannot resolve - allow it (may be a valid host not resolvable from here)
-        return
+        return frozenset()
 
+    resolved_ips: set[str] = set()
     for addr_info in addr_infos:
-        ip = ipaddress.ip_address(addr_info[4][0])
+        ip_str = str(addr_info[4][0])
+        ip = ipaddress.ip_address(ip_str)
         if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
             # Allow localhost explicitly for local development
             if hostname in ("localhost", "127.0.0.1", "::1"):
+                resolved_ips.add(ip_str)
                 continue
             raise ValueError(
                 f"URL resolves to private/reserved IP {ip}. "
                 "Internal network access is not allowed for security reasons."
             )
+        resolved_ips.add(ip_str)
+    return frozenset(resolved_ips)
+
+
+def _build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
+    """Build an httpx HTTPTransport that re-checks DNS resolution against pinned IPs.
+
+    Mitigates DNS rebinding attacks: at validation time the URL's hostname is
+    resolved to a set of public IPs; at request time the transport re-resolves
+    and rejects the connection if the resolution diverges from that set.
+
+    Note: A small TOCTOU window remains between this check and httpx's actual
+    socket connect call. For complete protection, deploy network-level egress
+    filtering against private/reserved IP ranges.
+
+    Args:
+        pinned_ips: Shared mapping of hostname -> frozenset of allowed IPs.
+                    Updated by the caller as new endpoints are validated.
+        lock: Lock guarding concurrent updates to pinned_ips.
+
+    Returns:
+        Subclass of httpx.HTTPTransport.
+    """
+    import httpx
+
+    class _PinnedHostTransport(httpx.HTTPTransport):
+        def handle_request(self, request: httpx.Request) -> httpx.Response:
+            host = request.url.host
+            with lock:
+                pinned = pinned_ips.get(host)
+            if pinned:
+                try:
+                    infos = socket.getaddrinfo(host, None)
+                except socket.gaierror as e:
+                    raise httpx.ConnectError(f"DNS resolution failed for {host}: {e}") from e
+                current = frozenset(str(info[4][0]) for info in infos)
+                rogue = current - pinned
+                if rogue:
+                    raise httpx.ConnectError(
+                        f"DNS rebinding detected: {host} now resolves to {sorted(rogue)}, "
+                        f"expected subset of pinned set {sorted(pinned)}."
+                    )
+            return super().handle_request(request)
+
+    return _PinnedHostTransport()
 
 
 def _validate_stdio_command(command: str, args: list[str] | None = None) -> None:
@@ -179,7 +235,16 @@ class MCPClient:
         Raises:
             ValueError: If the URL scheme is not http/https or resolves to a private network
         """
-        _validate_url(base_url)
+        # Pin the base_url's resolved IPs for DNS rebinding protection.
+        # Both the SSE client and the request client use a transport that
+        # re-checks DNS against this map on every connection.
+        self._pinned_ips: dict[str, frozenset[str]] = {}
+        self._pinned_lock = threading.Lock()
+        ips = _validate_url(base_url)
+        base_host = urlparse(base_url).hostname
+        if base_host and ips:
+            self._pinned_ips[base_host] = ips
+
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
@@ -204,16 +269,18 @@ class MCPClient:
 
     @property
     def client(self):
-        """Lazy initialization of httpx client."""
+        """Lazy initialization of httpx client with DNS-rebinding-aware transport."""
         if self._client is None:
             try:
                 import httpx
             except ImportError as e:
                 raise ImportError("httpx package not installed. Install with: pip install httpx") from e
 
+            transport = _build_pinned_transport(self._pinned_ips, self._pinned_lock)
             self._client = httpx.Client(
                 headers=self._get_headers(),
                 timeout=self.timeout,
+                transport=transport,
             )
 
         return self._client
@@ -254,12 +321,16 @@ class MCPClient:
             # httpx.Timeout(default, connect=, read=, write=, pool=)
             sse_timeout = httpx.Timeout(None, connect=10.0)
 
-            with httpx.stream(
-                "GET",
-                sse_url,
+            # Use a dedicated client with the pinned-host transport so the SSE
+            # connection enforces DNS rebinding protection like the request client.
+            sse_transport = _build_pinned_transport(self._pinned_ips, self._pinned_lock)
+            sse_client = httpx.Client(
                 headers=self._get_headers(),
                 timeout=sse_timeout,
-            ) as response:
+                transport=sse_transport,
+            )
+
+            with sse_client, sse_client.stream("GET", sse_url) as response:
                 if response.status_code != 200:
                     logger.error(f"SSE connection failed: HTTP {response.status_code}")
                     logger.error(f"Response: {response.text}")
@@ -324,10 +395,18 @@ class MCPClient:
             # A hostile MCP server could otherwise redirect POST traffic to
             # an internal address (which the initial base_url check would block).
             try:
-                _validate_url(candidate)
+                endpoint_ips = _validate_url(candidate)
             except ValueError as e:
                 logger.error(f"Rejecting MCP endpoint URL: {e}")
                 return
+
+            # Pin the endpoint's resolved IPs so that the request transport
+            # rejects later DNS-rebinding attempts on this hostname.
+            endpoint_host = urlparse(candidate).hostname
+            if endpoint_host and endpoint_ips:
+                with self._pinned_lock:
+                    existing = self._pinned_ips.get(endpoint_host)
+                    self._pinned_ips[endpoint_host] = existing | endpoint_ips if existing else endpoint_ips
 
             self._message_endpoint = candidate
             logger.info(f"MCP message endpoint: {self._message_endpoint}")
@@ -619,6 +698,9 @@ class StdioMCPClient:
         # caller's secrets (LLM API keys, DB passwords, etc.). Only forward a
         # whitelist of variables required for normal runtime resolution, then
         # overlay the caller-supplied self.env which is the explicit contract.
+        # PYTHONPATH is intentionally excluded — it allows arbitrary module
+        # injection that can override stdlib imports inside the subprocess.
+        # Callers needing custom Python paths must pass them via self.env.
         _ENV_WHITELIST = (
             "PATH",
             "HOME",
@@ -629,7 +711,6 @@ class StdioMCPClient:
             "USER",
             "LOGNAME",
             "SHELL",
-            "PYTHONPATH",
             "SystemRoot",  # Windows
             "SYSTEMROOT",  # Windows (case-variant)
         )

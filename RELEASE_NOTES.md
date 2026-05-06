@@ -1,5 +1,43 @@
 # Release Notes
 
+## Version 1.6.0 (06.05.2026)
+
+### Added
+- **CI/CD pipeline** (`.github/workflows/ci.yml`) — GitHub Actions workflow with three stages: lint
+  (ruff check, ruff format check, mypy), test matrix across Python 3.10–3.13 with coverage, and
+  build verification (`python -m build` + `twine check`). Uses `astral-sh/setup-uv@v3` for fast,
+  cache-aware UV-based dependency installation. Triggered on push and PR to `main`.
+- **7 new unit tests** in `tests/unit/test_mcp.py` covering the security hardening below:
+  `test_pythonpath_not_forwarded_to_subprocess`, `test_pythonpath_via_explicit_env_still_works`,
+  `test_validate_url_returns_resolved_ips`, `test_validate_url_returns_empty_set_for_unresolvable`,
+  `test_pinned_transport_rejects_rebinding`, `test_pinned_transport_passes_when_resolution_matches`,
+  `test_pinned_transport_skips_check_for_unpinned_hosts`,
+  `test_mcpclient_pins_base_url_on_init`, `test_mcpclient_pins_endpoint_from_sse_event`.
+
+### Changed
+- **Dependency floors raised** (`pyproject.toml`): `openai>=2.0` (v2 GA with Responses API),
+  `anthropic>=0.90,<2.0` (1.0 GA imminent — defuses the `<1.0.0` time bomb that would have
+  broken installs), `pydantic>=2.11`, `cryptography>=44.0,<49.0` (added upper bound),
+  `azure-ai-inference>=1.0.0b9`, `pymupdf>=1.26.0,<2.0.0`, `puremagic>=2.0,<3.0`,
+  `sentence-transformers>=3.0.0,<6.0.0` (was `>=2.2.0`, three majors behind).
+
+### Fixed
+- **Security: DNS rebinding protection in MCP SSE client** (`mcp/client.py`) — `_validate_url()`
+  now returns the resolved IP set and the new `_build_pinned_transport()` produces an
+  `httpx.HTTPTransport` subclass that re-resolves the hostname on every request and raises
+  `httpx.ConnectError("DNS rebinding detected")` if the resolution diverges from the pinned set.
+  Both the SSE listener client and the request client share the same `_pinned_ips` map; endpoint
+  redirects sent by the server are also pinned. Mitigates the TOCTOU between `__init__`'s
+  validation and httpx's actual connect (a small TOCTOU window remains — for complete protection
+  deploy network-level egress filtering).
+- **Security: PYTHONPATH removed from `_ENV_WHITELIST`** (`mcp/client.py`) — `StdioMCPClient.start()`
+  no longer forwards `PYTHONPATH` from `os.environ` to MCP server subprocesses. `PYTHONPATH`
+  inheritance allowed arbitrary module injection that could override stdlib imports inside the
+  subprocess, defeating the existing command whitelist. Callers needing a custom Python path
+  must now pass it via the explicit `env=` argument.
+- **Type hints**: `_validate_url()` and `_build_pinned_transport()` use precise `frozenset[str]`
+  types; explicit `str()` cast on `socket.getaddrinfo` sockaddr tuples to satisfy strict mypy.
+
 ## Version 1.5.1 (27.04.2026)
 
 ### Fixed

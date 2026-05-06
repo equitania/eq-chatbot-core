@@ -340,7 +340,7 @@ for chunk in provider.stream_completion(
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.5.1 |
+| **Version** | 1.6.0 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |
