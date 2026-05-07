@@ -668,7 +668,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
         model = test_models.get(group_key, default)
         env_value = os.getenv(env_var)
-        source = f"`{env_var}`" if env_value else f"default"
+        source = f"`{env_var}`" if env_value else "default"
         lines.append(f"| {group_key} | `{model}` | {source} |")
     lines.append("")
 

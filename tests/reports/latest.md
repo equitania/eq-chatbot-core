@@ -1,6 +1,6 @@
-# Test Report - 2026-05-07 17:13:08
+# Test Report - 2026-05-07 17:25:50
 
-**eq_chatbot_core v1.7.0** | 3.23s | Python 3.13.12 | macOS-26.4.1-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.7.0** | 2.88s | Python 3.13.12 | macOS-26.4.1-arm64-arm-64bit-Mach-O
 
 > **Result: ALL PASSED - 1125 tests OK, 5 expected failures**
 
@@ -32,17 +32,17 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|------------|--------|--------|---------|---------|-------|----------|
 | **Provider: OpenAI** | `gpt-4o-mini` | 41 | 0 | 0 | 0 | 41 | <0.01s |
-| **Provider: Anthropic** | `claude-3-haiku-20240307` | 44 | 0 | 0 | 0 | 44 | <0.01s |
+| **Provider: Anthropic** | `claude-3-haiku-20240307` | 44 | 0 | 0 | 0 | 44 | 0.02s |
 | **Provider: LangDock** | `gpt-5.2` | 56 | 0 | 0 | 0 | 56 | 0.01s |
 | **Provider: OpenRouter** | - | 31 | 0 | 0 | 0 | 31 | <0.01s |
 | **Provider: Mammouth AI** | `gpt-4.1-nano` | 37 | 0 | 0 | 0 | 37 | <0.01s |
-| **Provider: Google Vertex AI** | `gemini-2.5-flash` | 44 | 0 | 0 | 0 | 44 | 0.01s |
+| **Provider: Google Vertex AI** | `gemini-2.5-flash` | 44 | 0 | 0 | 0 | 44 | 0.02s |
 | **Provider: Local (LM Studio / Ollama)** | `nvidia/nemotron-3-nano` | 32 | 0 | 0 | 0 | 32 | 0.01s |
-| **Security** | - | 411 | 0 | 0 | 5 | 416 | 0.05s |
-| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.32s |
-| **Services & Core** | - | 167 | 0 | 0 | 0 | 167 | 0.04s |
-| **MCP Client** | - | 92 | 0 | 0 | 0 | 92 | 1.66s |
-| **Other** | - | 54 | 0 | 0 | 0 | 54 | 0.05s |
+| **Security** | - | 411 | 0 | 0 | 5 | 416 | 0.04s |
+| **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.37s |
+| **Services & Core** | - | 167 | 0 | 0 | 0 | 167 | 0.01s |
+| **MCP Client** | - | 92 | 0 | 0 | 0 | 92 | 1.58s |
+| **Other** | - | 54 | 0 | 0 | 0 | 54 | 0.04s |
 
 ## Detailed Results
 
@@ -94,7 +94,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_model_no_temperature` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
 
-#### Provider: Anthropic (44 passed) - <0.01s | Model: `claude-3-haiku-20240307`
+#### Provider: Anthropic (44 passed) - 0.02s | Model: `claude-3-haiku-20240307`
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -102,7 +102,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_init_with_custom_params` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_lazy_client_initialization` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_client_property_creates_client` | PASSED | <0.01s |
-| `unit/test_anthropic.py::TestAnthropicProviderInit::test_client_reuses_instance` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicProviderInit::test_client_reuses_instance` | PASSED | 0.02s |
 | `unit/test_anthropic.py::TestSystemPromptExtraction::test_extract_single_system_prompt` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestSystemPromptExtraction::test_extract_multiple_system_prompts` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestSystemPromptExtraction::test_no_system_prompt` | PASSED | <0.01s |
@@ -282,7 +282,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_mammouth.py::TestMammouthContextManager::test_context_manager` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthFactoryIntegration::test_get_provider_returns_mammouth` | PASSED | <0.01s |
 
-#### Provider: Google Vertex AI (44 passed) - 0.01s | Model: `gemini-2.5-flash`
+#### Provider: Google Vertex AI (44 passed) - 0.02s | Model: `gemini-2.5-flash`
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -368,7 +368,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (411 passed, 5 xfailed) - 0.05s
+#### Security (411 passed, 5 xfailed) - 0.04s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -789,7 +789,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_full_workflow_denied_by_tokens` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestCheckRateLimitIntegration::test_consecutive_checks_accumulate` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (116 passed) - 0.32s
+#### RAG Pipeline (116 passed) - 0.37s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -866,7 +866,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.31s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.36s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -910,7 +910,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (167 passed) - 0.04s
+#### Services & Core (167 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -960,7 +960,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_maximum_value` | PASSED | <0.01s |
 | `unit/test_error_handler.py::TestTimeoutRetry::test_jitter_minimum_value` | PASSED | <0.01s |
 | `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_openai_to_langdock` | PASSED | <0.01s |
-| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_skips_failing_provider` | PASSED | 0.02s |
+| `unit/test_error_handler.py::TestFallbackProviderChain::test_fallback_chain_skips_failing_provider` | PASSED | <0.01s |
 | `unit/test_error_handler.py::TestFallbackProviderChain::test_all_fallbacks_fail` | PASSED | <0.01s |
 | `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_when_get_provider_fn_is_none` | PASSED | <0.01s |
 | `unit/test_error_handler.py::TestFallbackProviderChain::test_no_fallback_chain_for_unknown_provider` | PASSED | <0.01s |
@@ -1082,11 +1082,11 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |
 
-#### MCP Client (92 passed) - 1.66s
+#### MCP Client (92 passed) - 1.58s
 
 | Test | Status | Duration |
 |------|--------|----------|
-| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | 0.01s |
+| `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_custom_timeout` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_with_api_key` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientInitialization::test_init_strips_trailing_slash` | PASSED | <0.01s |
@@ -1106,14 +1106,14 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
@@ -1148,7 +1148,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_mcp.py::TestMCPToolResult::test_tool_result_defaults` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientVersion::test_client_uses_package_version` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_valid_http_url` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestURLValidation::test_valid_https_url` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_ftp` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_invalid_scheme_file` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestURLValidation::test_empty_hostname_rejected` | PASSED | <0.01s |
@@ -1179,7 +1179,7 @@ Command: `.venv/bin/pytest tests/unit/ --tb=no -q`
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_base_url_on_init` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_endpoint_from_sse_event` | PASSED | <0.01s |
 
-#### Other (54 passed) - 0.05s
+#### Other (54 passed) - 0.04s
 
 | Test | Status | Duration |
 |------|--------|----------|

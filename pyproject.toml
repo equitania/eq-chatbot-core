@@ -56,7 +56,10 @@ local = [
     "sentence-transformers>=3.0.0,<6.0.0",  # For local embeddings
 ]
 security = [
-    "puremagic>=2.0,<3.0",  # Pure Python MIME type verification (no libmagic dependency)
+    # Pure Python MIME type verification (no libmagic dependency).
+    # puremagic 2.x requires Python >=3.12; allow 1.10+ for users on 3.10/3.11.
+    # Both 1.x and 2.x expose the from_string(..., mime=True) and PureError API used by file_validator.
+    "puremagic>=1.10,<3.0",
 ]
 pdf = [
     "pymupdf>=1.26.0,<2.0.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
@@ -109,6 +112,12 @@ ignore = [
     "E501",  # line too long (handled by ruff format)
     "B008",  # do not perform function calls in argument defaults
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use legitimate patterns that ruff doesn't understand:
+#   E402 — imports after sys.modules[...] mocking (intentional)
+#   B017 — pytest.raises(Exception) for broad exception assertions
+"tests/**/*.py" = ["E402", "B017"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["eq_chatbot_core"]

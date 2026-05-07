@@ -535,7 +535,7 @@ class TestMCPClientContextManager:
 
         client = MCPClient(base_url="http://localhost:8000/sse")
 
-        with patch.object(client, "connect") as mock_connect, patch.object(client, "close") as mock_close:
+        with patch.object(client, "connect"), patch.object(client, "close") as mock_close:
             with pytest.raises(ValueError):
                 with client:
                     raise ValueError("Test error")

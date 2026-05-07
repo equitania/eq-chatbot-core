@@ -406,8 +406,8 @@ class TestExceptionChaining:
         try:
             try:
                 raise ValueError("Inner error")
-            except ValueError:
-                raise ProviderError("Outer error", provider="test")
+            except ValueError as err:
+                raise ProviderError("Outer error", provider="test") from err
         except ProviderError as e:
             assert e.__context__ is not None
             assert isinstance(e.__context__, ValueError)
