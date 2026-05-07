@@ -52,6 +52,9 @@ def test_config() -> dict[str, Any]:
         "anthropic_api_key": os.getenv("ANTHROPIC_API_KEY"),
         "langdock_api_key": os.getenv("LANGDOCK_API_KEY"),
         "mammouth_api_key": os.getenv("MAMMOUTH_API_KEY"),
+        "openrouter_api_key": os.getenv("OPENROUTER_API_KEY"),
+        "openrouter_site_url": os.getenv("OPENROUTER_SITE_URL"),
+        "openrouter_site_name": os.getenv("OPENROUTER_SITE_NAME"),
         "azure_api_key": os.getenv("AZURE_API_KEY"),
         "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
         "azure_model": os.getenv("AZURE_TEST_MODEL", "gpt-4o"),
@@ -67,6 +70,7 @@ def test_config() -> dict[str, Any]:
         "anthropic_model": os.getenv("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
         "langdock_model": os.getenv("LANGDOCK_TEST_MODEL", "gpt-5.2"),
         "mammouth_model": os.getenv("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
+        "openrouter_model": os.getenv("OPENROUTER_TEST_MODEL", "openai/gpt-4o-mini"),
         "local_model": os.getenv("LOCAL_TEST_MODEL", "phi-4-mini"),
         # Test Settings
         "skip_live_tests": os.getenv("SKIP_LIVE_TESTS", "false").lower() == "true",
@@ -98,6 +102,12 @@ def langdock_api_key(test_config) -> str | None:
 def mammouth_api_key(test_config) -> str | None:
     """Mammouth AI API key from environment."""
     return test_config["mammouth_api_key"]
+
+
+@pytest.fixture
+def openrouter_api_key(test_config) -> str | None:
+    """OpenRouter API key from environment."""
+    return test_config["openrouter_api_key"]
 
 
 @pytest.fixture
@@ -152,6 +162,14 @@ def skip_if_no_mammouth_key():
     return pytest.mark.skipif(
         not os.getenv("MAMMOUTH_API_KEY"),
         reason="MAMMOUTH_API_KEY not set",
+    )
+
+
+def skip_if_no_openrouter_key():
+    """Skip test if OPENROUTER_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("OPENROUTER_API_KEY"),
+        reason="OPENROUTER_API_KEY not set",
     )
 
 
@@ -472,6 +490,7 @@ _GROUP_TEST_MODELS = {
     "OpenAI": ("OPENAI_TEST_MODEL", "gpt-4o-mini"),
     "Anthropic": ("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
     "LangDock": ("LANGDOCK_TEST_MODEL", "gpt-5.2"),
+    "OpenRouter": ("OPENROUTER_TEST_MODEL", "openai/gpt-4o-mini"),
     "Mammouth": ("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
     "Azure": ("AZURE_TEST_MODEL", "gpt-4o"),
     "Vertex": ("VERTEX_TEST_MODEL", "gemini-2.5-flash"),

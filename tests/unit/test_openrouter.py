@@ -11,6 +11,7 @@ import pytest
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
+    ContextLengthError,
     ProviderError,
     RateLimitError,
 )
@@ -386,6 +387,145 @@ class TestOpenRouterChatCompletion:
 
 
 # =============================================================================
+# Stream Completion Tests
+# =============================================================================
+
+
+def _build_stream_response(lines: list[str]) -> MagicMock:
+    """
+    Build a mock response object that mimics httpx.Client.stream(...) context manager.
+
+    The provider uses `with self.client.stream("POST", ...) as response:` and then
+    iterates `response.iter_lines()`. We mock both __enter__/__exit__ and iter_lines.
+    """
+    mock_response = MagicMock()
+    mock_response.raise_for_status = MagicMock()
+    mock_response.iter_lines.return_value = iter(lines)
+
+    # client.stream(...) returns a context manager; mock it.
+    stream_cm = MagicMock()
+    stream_cm.__enter__ = MagicMock(return_value=mock_response)
+    stream_cm.__exit__ = MagicMock(return_value=False)
+    return stream_cm
+
+
+@pytest.mark.unit
+class TestOpenRouterStreamCompletion:
+    """Test SSE streaming chat completion."""
+
+    def test_simple_stream(self):
+        """Test that streaming yields content chunks and a terminal chunk."""
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+            sse_lines = [
+                'data: {"choices":[{"delta":{"content":"Hel"}}]}',
+                'data: {"choices":[{"delta":{"content":"lo"}}]}',
+                'data: {"choices":[{"delta":{},"finish_reason":"stop"}],'
+                '"usage":{"prompt_tokens":3,"completion_tokens":2}}',
+                "data: [DONE]",
+            ]
+            stream_cm = _build_stream_response(sse_lines)
+
+            mock_client = MagicMock()
+            mock_client.stream.return_value = stream_cm
+            mock_httpx.Client.return_value = mock_client
+
+            provider = OpenRouterProvider(api_key="sk-or-test-key")
+            provider._client = mock_client
+
+            chunks = list(
+                provider.stream_completion(
+                    messages=[{"role": "user", "content": "Hi"}],
+                    model="openai/gpt-4o",
+                )
+            )
+
+            assert len(chunks) == 3
+            # Concatenated content
+            full = "".join(c.content for c in chunks if c.content)
+            assert full == "Hello"
+
+    def test_stream_finish_reason_propagates(self):
+        """Final chunk must carry finish_reason and is_final=True."""
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+            sse_lines = [
+                'data: {"choices":[{"delta":{"content":"x"}}]}',
+                'data: {"choices":[{"delta":{},"finish_reason":"length"}],'
+                '"usage":{"prompt_tokens":1,"completion_tokens":1}}',
+                "data: [DONE]",
+            ]
+            stream_cm = _build_stream_response(sse_lines)
+
+            mock_client = MagicMock()
+            mock_client.stream.return_value = stream_cm
+            mock_httpx.Client.return_value = mock_client
+
+            provider = OpenRouterProvider(api_key="sk-or-test-key")
+            provider._client = mock_client
+
+            chunks = list(
+                provider.stream_completion(
+                    messages=[{"role": "user", "content": "Hi"}],
+                    model="openai/gpt-4o",
+                    max_tokens=1,
+                )
+            )
+
+            final = chunks[-1]
+            assert final.is_final is True
+            assert final.finish_reason == "length"
+            assert final.input_tokens == 1
+            assert final.output_tokens == 1
+
+    def test_stream_accumulates_tool_calls(self):
+        """Tool-call deltas across chunks must be accumulated into the final chunk."""
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+            sse_lines = [
+                # First tool-call delta: id + name
+                'data: {"choices":[{"delta":{"tool_calls":['
+                '{"index":0,"id":"call_abc","function":{"name":"get_weather","arguments":""}}]}}]}',
+                # Second delta: arguments fragment 1
+                'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"{\\"loc\\":"}}]}}]}',
+                # Third delta: arguments fragment 2
+                'data: {"choices":[{"delta":{"tool_calls":[{"index":0,"function":{"arguments":"\\"Paris\\"}"}}]}}]}',
+                # Final chunk
+                'data: {"choices":[{"delta":{},"finish_reason":"tool_calls"}],'
+                '"usage":{"prompt_tokens":5,"completion_tokens":7}}',
+                "data: [DONE]",
+            ]
+            stream_cm = _build_stream_response(sse_lines)
+
+            mock_client = MagicMock()
+            mock_client.stream.return_value = stream_cm
+            mock_httpx.Client.return_value = mock_client
+
+            provider = OpenRouterProvider(api_key="sk-or-test-key")
+            provider._client = mock_client
+
+            chunks = list(
+                provider.stream_completion(
+                    messages=[{"role": "user", "content": "Weather?"}],
+                    model="openai/gpt-4o",
+                    tools=[{"type": "function", "function": {"name": "get_weather"}}],
+                )
+            )
+
+            final = chunks[-1]
+            assert final.is_final is True
+            assert final.tool_calls is not None
+            assert len(final.tool_calls) == 1
+            tc = final.tool_calls[0]
+            assert tc["id"] == "call_abc"
+            assert tc["function"]["name"] == "get_weather"
+            assert tc["function"]["arguments"] == '{"loc":"Paris"}'
+
+
+# =============================================================================
 # List Models Tests
 # =============================================================================
 
@@ -649,6 +789,40 @@ class TestOpenRouterErrorHandling:
             with pytest.raises(AuthenticationError):
                 provider.chat_completion(
                     messages=[{"role": "user", "content": "Hello"}],
+                    model="openai/gpt-4o",
+                )
+
+    def test_context_length_error(self):
+        """HTTP 400 with 'context' in message must map to ContextLengthError."""
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+            mock_response = MagicMock()
+            mock_response.status_code = 400
+            mock_response.json.return_value = {
+                "error": {"message": "This model's maximum context length is 8192 tokens."}
+            }
+
+            import httpx
+
+            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+
+            mock_error = httpx.HTTPStatusError(
+                "Bad Request",
+                request=MagicMock(),
+                response=mock_response,
+            )
+
+            mock_client = MagicMock()
+            mock_client.post.side_effect = mock_error
+            mock_httpx.Client.return_value = mock_client
+
+            provider = OpenRouterProvider(api_key="sk-or-test-key")
+            provider._client = mock_client
+
+            with pytest.raises(ContextLengthError):
+                provider.chat_completion(
+                    messages=[{"role": "user", "content": "x" * 100000}],
                     model="openai/gpt-4o",
                 )
 
