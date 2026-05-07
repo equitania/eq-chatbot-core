@@ -1,10 +1,11 @@
-# eq-chatbot-core Quick Reference
+# eq-chatbot-core v1.7.0 Quick Reference
 # PyPI: https://pypi.org/project/eq-chatbot-core/
 # GitHub: https://github.com/equitania/eq-chatbot-core
 
 ## Setup
 uv venv && source .venv/bin/activate
 uv pip install -e ".[dev,pdf,security]"
+uv pip install -e ".[server]"                # FastAPI/SSE server mode (v1.7.0)
 
 ## Test
 pytest tests/unit/ -v                     # Unit tests (fast, mocked)
@@ -29,6 +30,11 @@ uv publish
 eq-chatbot info
 eq-chatbot test-provider -p openai -k $OPENAI_API_KEY
 eq-chatbot list-models -p openai -k $OPENAI_API_KEY --json
+eq-chatbot chat -p openai -k $OPENAI_API_KEY                    # JSON I/O (v1.5.0)
+
+## Server (v1.7.0)
+echo "$TOKEN" | eq-chatbot serve --port 0 --auth-token-fd 0 --parent-pid $fish_pid
+curl -H "Authorization: Bearer $TOKEN" http://127.0.0.1:$PORT/health
 
 ## Git Push (both remotes)
 git push origin main --tags

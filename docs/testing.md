@@ -1,5 +1,8 @@
 # Testing Guide - eq_chatbot_core
 
+> **Note**: This guide is currently English-only. A German translation is planned for a future release.
+> **Hinweis**: Diese Anleitung ist aktuell nur in Englisch verfügbar. Eine deutsche Übersetzung ist für ein zukünftiges Release geplant.
+
 Comprehensive testing documentation for the eq_chatbot_core Python library.
 
 ## Table of Contents
@@ -467,3 +470,7 @@ jobs:
 | Stop on failure | `pytest tests/ -v -x` |
 | Show prints | `pytest tests/ -v -s` |
 | Specific test | `pytest tests/unit/test_openai.py::TestClassName::test_method -v` |
+
+---
+
+[← Back to README](../README.md) · [docs index →](README.md) · [Zurück zum README](../README.md#deutsch)
