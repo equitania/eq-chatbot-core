@@ -68,6 +68,13 @@ azure = [
 vertex = [
     "google-genai>=1.0.0",
 ]
+server = [
+    # Localhost HTTP gateway for cross-language integrations (e.g. fr-designer
+    # Avalonia desktop app spawning eq-chatbot as a sidecar).
+    "fastapi>=0.115.0,<1.0.0",
+    "uvicorn>=0.32.0,<1.0.0",
+    "sse-starlette>=2.1.0,<3.0.0",
+]
 
 [project.scripts]
 eq-chatbot = "eq_chatbot_core.cli:main"

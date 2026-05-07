@@ -4,10 +4,12 @@ eq-chatbot CLI - Command line interface for eq_chatbot_core.
 Usage:
     eq-chatbot test-provider -p openai -k YOUR_API_KEY
     eq-chatbot list-models -p anthropic -k YOUR_API_KEY
+    eq-chatbot serve --port 0 --auth-token-fd 0 --parent-pid 1234
     eq-chatbot info
 """
 
 import json
+import os
 import sys
 
 import click
@@ -416,6 +418,145 @@ def chat(
         error_response = {"error": f"Unexpected error: {e}"}
         click.echo(json.dumps(error_response), err=True)
         sys.exit(1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `serve` — localhost HTTP gateway for cross-language integrations
+# ─────────────────────────────────────────────────────────────────────────────
+# Read at most this many bytes from --auth-token-fd. Tokens are typically
+# 32–64 bytes (secrets.token_urlsafe(32) → 43 chars).
+_AUTH_TOKEN_MAX_BYTES = 256
+_AUTH_TOKEN_MIN_LEN = 16
+
+
+def _read_auth_token(
+    auth_token: str | None,
+    auth_token_fd: int | None,
+) -> str:
+    """Resolve auth token from --auth-token-fd / --auth-token / env var.
+
+    Precedence (most secure first):
+      1. --auth-token-fd N → read up to 256 bytes from FD N, then close it.
+         Recommended: parent process pipes the token in via stdin (fd 0) so
+         it never appears in argv (visible via `ps`) or env (visible via
+         /proc/<pid>/environ).
+      2. --auth-token <token> → token in argv. INSECURE; visible via `ps`.
+         Only for local debugging.
+      3. EQ_CHATBOT_AUTH_TOKEN env var → fallback for ad-hoc use.
+
+    Returns the stripped token string. Raises click.ClickException on
+    missing/short/unreadable token.
+    """
+    if auth_token_fd is not None:
+        try:
+            token_bytes = os.read(auth_token_fd, _AUTH_TOKEN_MAX_BYTES)
+        except OSError as exc:
+            raise click.ClickException(f"Failed to read auth token from fd {auth_token_fd}: {exc}") from exc
+        finally:
+            try:
+                os.close(auth_token_fd)
+            except OSError:
+                pass  # FD may already be closed
+        token = token_bytes.decode("utf-8", errors="strict").strip()
+    elif auth_token:
+        token = auth_token.strip()
+    else:
+        token = os.environ.get("EQ_CHATBOT_AUTH_TOKEN", "").strip()
+
+    if not token:
+        raise click.ClickException(
+            "Missing auth token. Provide via --auth-token-fd <fd> (recommended), "
+            "--auth-token <token>, or EQ_CHATBOT_AUTH_TOKEN env var."
+        )
+    if len(token) < _AUTH_TOKEN_MIN_LEN:
+        raise click.ClickException(
+            f"Auth token too short (min {_AUTH_TOKEN_MIN_LEN} chars). Generate via secrets.token_urlsafe(32)."
+        )
+    return token
+
+
+@main.command("serve")
+@click.option(
+    "--host",
+    default="127.0.0.1",
+    show_default=True,
+    help="Bind host. Default 127.0.0.1 keeps the server localhost-only.",
+)
+@click.option(
+    "--port",
+    default=0,
+    show_default=True,
+    type=int,
+    help="Bind port. 0 picks an ephemeral port (recommended); the bound port "
+    "is printed to stdout as 'LISTENING ON host=H port=P' for the parent process.",
+)
+@click.option(
+    "--auth-token",
+    default=None,
+    help="Bearer token (INSECURE — visible in argv). Prefer --auth-token-fd.",
+)
+@click.option(
+    "--auth-token-fd",
+    default=None,
+    type=int,
+    help="Read bearer token from this file descriptor (recommended). "
+    "Parent pipes the token in via stdin: `eq-chatbot serve --auth-token-fd 0`.",
+)
+@click.option(
+    "--parent-pid",
+    default=None,
+    type=int,
+    help="Parent process PID. Sidecar polls this every 5s and exits when "
+    "the parent disappears (prevents zombie sidecars on parent crash).",
+)
+@click.option(
+    "--log-level",
+    default="warning",
+    show_default=True,
+    type=click.Choice(["debug", "info", "warning", "error"], case_sensitive=False),
+)
+def serve(
+    host: str,
+    port: int,
+    auth_token: str | None,
+    auth_token_fd: int | None,
+    parent_pid: int | None,
+    log_level: str,
+) -> None:
+    """Run a localhost HTTP/SSE server exposing the LLM provider gateway.
+
+    Designed to be spawned by external apps as a sidecar (e.g. fr-designer
+    Avalonia desktop app spawning a frozen sidecar binary). All endpoints
+    except /health require Authorization: Bearer <token>.
+
+    Example:
+
+        # Generate token in parent, pipe it via stdin, scrape stdout for port:
+        token = secrets.token_urlsafe(32)
+        proc = Popen(['eq-chatbot', 'serve', '--auth-token-fd', '0',
+                      '--parent-pid', str(os.getpid())],
+                     stdin=PIPE, stdout=PIPE, text=True)
+        proc.stdin.write(token); proc.stdin.close()
+        line = proc.stdout.readline()  # "LISTENING ON host=127.0.0.1 port=54123"
+    """
+    try:
+        from eq_chatbot_core.server import create_app, run_server
+    except ImportError as exc:
+        raise click.ClickException(
+            "Server mode requires the [server] optional extras. "
+            "Install with: pip install 'eq-chatbot-core[server]'\n  "
+            f"(import error: {exc})"
+        ) from exc
+
+    token = _read_auth_token(auth_token, auth_token_fd)
+    app = create_app(auth_token=token)
+    run_server(
+        app,
+        host=host,
+        port=port,
+        parent_pid=parent_pid,
+        log_level=log_level.lower(),
+    )
 
 
 @main.command("info")

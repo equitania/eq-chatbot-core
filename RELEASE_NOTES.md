@@ -1,5 +1,29 @@
 # Release Notes
 
+## Version 1.7.0 (07.05.2026)
+
+HTTP/SSE-Server-Mode für cross-language-Integrationen — eq_chatbot_core kann jetzt als lokaler Sidecar gestartet werden, den z.B. Desktop-Apps (Avalonia, Electron) per HTTP ansprechen.
+
+### Added
+
+- **`eq-chatbot serve`-Subcommand** (`src/eq_chatbot_core/cli.py`): startet einen lokalen FastAPI/Uvicorn-Server, der die Provider-Abstraktion über HTTP exponiert. Bind-Default `127.0.0.1:0` (ephemeral Port → in stdout als `LISTENING ON host=H port=P` für Parent-Process). Bearer-Token-Auth via `--auth-token-fd <fd>` (Token aus Datei-Deskriptor lesen, nicht in `argv`/`ps`-Output) oder `--auth-token <token>` (insecure-Fallback) oder `EQ_CHATBOT_AUTH_TOKEN`-Env. Optionaler `--parent-pid <pid>` aktiviert einen Watchdog der den Sidecar killt sobald der Parent-Prozess verschwindet (verhindert Zombie-Sidecars bei Parent-Crash).
+- **Server-Modul `eq_chatbot_core/server/`** mit Submodulen:
+  - `app.py` — FastAPI-App-Factory mit Endpoints `GET /health` (auth-frei), `GET /providers` (Provider-Catalog), `POST /models` (per-Provider Model-Listing), `POST /chat` (Single-Shot LLMResponse als JSON), `POST /chat/stream` (SSE-Stream). Provider-Errors werden auf passende HTTP-Codes gemappt (`AuthenticationError` → 401, `RateLimitError` → 429 mit `retry_after`, `ContextLengthError` → 413, `OverloadedError` → 503).
+  - `auth.py` — `BearerTokenMiddleware` mit `hmac.compare_digest`-Vergleich (constant-time, gegen Timing-Attacks). `/health`, `/docs`, `/openapi.json`, `/redoc` sind auth-frei.
+  - `streaming.py` — `StreamChunk` → SSE-Events: `event: chunk` per Token, `tool_call_delta` für Streaming-Tool-Calls, `usage` mit Token-Counts, `tool_calls` mit akkumulierten Tool-Calls, `done` als finaler Marker, `error` bei Provider-Fehlern mid-stream.
+  - `lifecycle.py` — Pre-bound Socket für ephemeral-Port-Discovery (uvicorn bekommt den fertigen Socket via `Server.serve(sockets=[...])`), Parent-PID-Watchdog (poll alle 5s `os.kill(parent_pid, 0)`, sendet SIGTERM an sich selbst bei Parent-Exit).
+  - `models.py` — Pydantic-Schemas für alle Endpoints (`ChatRequest`, `ChatResponse`, `ListModelsRequest`, `ProviderInfo`, `HealthResponse`).
+- **38 neue Unit-Tests** in `tests/unit/server/`: `test_streaming.py` (8 Tests für SSE-Translation), `test_auth.py` (7 Tests für Bearer-Middleware), `test_app.py` (15 Tests für Endpoints, mocked provider), `test_cli_serve.py` (8 Tests für CLI-Auth-Resolution + Subcommand-Wiring). Sse-Starlette-Eventloop-Bind-Workaround (`AppStatus.should_exit_event` zwischen Tests reset) als autouse-Fixture.
+- **Optional-Extra `[server]`** (`pyproject.toml`): `fastapi>=0.115`, `uvicorn>=0.32`, `sse-starlette>=2.1` — werden nur installiert wenn explizit angefordert (`pip install eq-chatbot-core[server]`). Pure CLI/RAG/MCP-Imports laufen weiterhin ohne diese Pakete.
+
+### Changed
+
+- **Version**: `1.6.0` → `1.7.0`
+
+### Use case
+
+Designed für Apps die Python nicht direkt einbetten können (Avalonia/.NET, Electron, native iOS/Android). Parent generiert ein Random-Token, pipet es über stdin in den Sidecar, scrappt den gebundenen Port aus stdout, und kommuniziert ab da via HTTP+SSE auf 127.0.0.1. Nächster Schritt (separate Phase): PyInstaller-Frozen-Binary für Plattform-Distribution.
+
 ## Version 1.6.0 (06.05.2026)
 
 ### Added
