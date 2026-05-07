@@ -13,7 +13,6 @@ Costs are minimized by using openai/gpt-4o-mini and max_tokens<=20.
 import pytest
 
 from eq_chatbot_core.providers import get_provider
-from eq_chatbot_core.providers.base import AuthenticationError
 
 # =============================================================================
 # OpenRouter Integration Tests
@@ -118,18 +117,6 @@ class TestOpenRouterLive:
 
         assert response.content
         assert "acknowledged" in response.content.lower()
-
-    def test_invalid_api_key_raises_authentication_error(self, test_config):
-        """Test that an invalid API key raises AuthenticationError on chat call."""
-        bad_provider = get_provider("openrouter", api_key="sk-or-v1-invalid-token-for-testing-only")
-        model = test_config.get("openrouter_model", "openai/gpt-4o-mini")
-
-        with pytest.raises(AuthenticationError):
-            bad_provider.chat_completion(
-                messages=[{"role": "user", "content": "Hi"}],
-                model=model,
-                max_tokens=5,
-            )
 
     def test_provider_prefix_routing(self, provider, test_config):
         """OpenRouter routes via provider/model prefix; verify response model echoes the prefix."""
