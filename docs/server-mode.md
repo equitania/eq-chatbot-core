@@ -22,6 +22,60 @@ uv pip install eq-chatbot-core[server]
 
 Pure CLI/RAG/MCP imports keep working without these packages — they are only loaded when `eq-chatbot serve` is invoked.
 
+### Quick start (60 seconds)
+
+The simplest way to run the server for manual testing or local development:
+
+```bash
+# 1. Install the [server] extra (one-time)
+uv pip install eq-chatbot-core[server]
+
+# 2. Generate a token (must be at least 16 characters)
+export EQ_CHATBOT_AUTH_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+
+# 3. Start the server
+eq-chatbot serve --port 8765 &
+# stdout: LISTENING ON host=127.0.0.1 port=8765
+
+# 4. Health check (no auth needed)
+curl -s http://127.0.0.1:8765/health | jq
+
+# 5. Real chat completion (using OpenAI as the backend)
+curl -s -X POST http://127.0.0.1:8765/chat \
+  -H "Authorization: Bearer $EQ_CHATBOT_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages":[{"role":"user","content":"Say hi in German"}],
+    "provider":"openai",
+    "api_key":"'"$OPENAI_API_KEY"'",
+    "model":"gpt-4o-mini",
+    "max_tokens":20
+  }' | jq
+
+# 6. SSE stream (same body, different endpoint)
+curl -N -X POST http://127.0.0.1:8765/chat/stream \
+  -H "Authorization: Bearer $EQ_CHATBOT_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages":[{"role":"user","content":"Count from 1 to 5"}],
+    "provider":"openai",
+    "api_key":"'"$OPENAI_API_KEY"'",
+    "model":"gpt-4o-mini",
+    "max_tokens":30
+  }'
+```
+
+That's it. The environment variable `EQ_CHATBOT_AUTH_TOKEN` is the recommended way for 95% of use cases.
+
+#### Other token sources
+
+The quick-start uses the `EQ_CHATBOT_AUTH_TOKEN` environment variable — recommended for everything except production sidecars.
+
+Two other sources exist if you need them:
+
+- **`--auth-token <token>`** — token directly as a CLI argument. **Not recommended**, because the token is visible via `ps aux`. Only for quick debugging.
+- **`--auth-token-fd <integer>`** — for sidecar deployments where a parent process spawns the server and pipes the token over a file descriptor. The value is an **integer** (e.g. `0` for stdin), not a provider name. If you don't already know what a file descriptor is, you don't need this option — use the env var instead.
+
 ### Starting the sidecar
 
 ```bash
@@ -44,9 +98,9 @@ The parent process scrapes the announced port from stdout and uses it for subseq
 | `--auth-token-fd <fd>` | — | Read up to 256 bytes from the given file descriptor (recommended). |
 | `--auth-token <token>` | — | Argv-based token (insecure: visible in `ps`/`/proc/<pid>/cmdline`). |
 | `--parent-pid <pid>` | — | Watchdog: poll `os.kill(pid, 0)` every 5s, self-terminate via SIGTERM when parent exits. |
-| `--log-level` | `info` | uvicorn log level. |
+| `--log-level` | `warning` | uvicorn log level. One of `debug`, `info`, `warning`, `error`. |
 
-The environment variable `EQ_CHATBOT_AUTH_TOKEN` is honored as a fallback when no `--auth-token*` flag is given.
+The environment variable `EQ_CHATBOT_AUTH_TOKEN` is honored as a fallback when no `--auth-token*` flag is given. The token must be **at least 16 characters**; the recommended generator is `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` (43 characters).
 
 ### Endpoints
 
@@ -127,6 +181,16 @@ curl -N -H "Authorization: Bearer $TOKEN" \
      http://127.0.0.1:$PORT/chat/stream
 ```
 
+### Common errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Missing auth token. Provide via --auth-token-fd <fd>, --auth-token <token>, or EQ_CHATBOT_AUTH_TOKEN env var.` | No token source set. | Set `EQ_CHATBOT_AUTH_TOKEN` (see Quick start step 2) before starting `eq-chatbot serve`. |
+| `Invalid value for '--auth-token-fd': 'X' is not a valid integer.` | A non-integer was passed (provider names, `--help`, etc.). | The value must be an **integer** like `0` or `3`. If you don't run a sidecar, drop the flag and use the env var instead. |
+| `Auth token too short (got N chars, need 16+)` | Token shorter than the minimum. | Use a longer token; `secrets.token_urlsafe(32)` produces 43 characters. |
+| `401 Unauthorized` on a curl call | Missing or wrong `Authorization: Bearer …` header. | Make sure the client uses the same token that the server was started with. |
+| `connect: connection refused` | Server not running, or port mismatch. | Check the `LISTENING ON host=H port=P` line on stdout — that's the actual port. |
+
 ### Security model
 
 - **Constant-time token comparison** (`hmac.compare_digest`) defeats timing attacks against the bearer middleware.
@@ -179,6 +243,60 @@ uv pip install eq-chatbot-core[server]
 
 Reine CLI-/RAG-/MCP-Imports laufen weiterhin ohne diese Pakete — sie werden nur beim Aufruf von `eq-chatbot serve` geladen.
 
+### Schnellstart (60 Sekunden)
+
+Der einfachste Weg, den Server für manuelles Testen oder lokale Entwicklung zu starten:
+
+```bash
+# 1. [server]-Extra installieren (einmalig)
+uv pip install eq-chatbot-core[server]
+
+# 2. Token erzeugen (mindestens 16 Zeichen)
+export EQ_CHATBOT_AUTH_TOKEN=$(python3 -c "import secrets; print(secrets.token_urlsafe(32))")
+
+# 3. Server starten
+eq-chatbot serve --port 8765 &
+# stdout: LISTENING ON host=127.0.0.1 port=8765
+
+# 4. Health-Check (keine Auth nötig)
+curl -s http://127.0.0.1:8765/health | jq
+
+# 5. Echte Chat-Completion (OpenAI als Backend)
+curl -s -X POST http://127.0.0.1:8765/chat \
+  -H "Authorization: Bearer $EQ_CHATBOT_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages":[{"role":"user","content":"Sag Hallo auf Deutsch"}],
+    "provider":"openai",
+    "api_key":"'"$OPENAI_API_KEY"'",
+    "model":"gpt-4o-mini",
+    "max_tokens":20
+  }' | jq
+
+# 6. SSE-Stream (gleicher Body, anderer Endpunkt)
+curl -N -X POST http://127.0.0.1:8765/chat/stream \
+  -H "Authorization: Bearer $EQ_CHATBOT_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "messages":[{"role":"user","content":"Zähle von 1 bis 5"}],
+    "provider":"openai",
+    "api_key":"'"$OPENAI_API_KEY"'",
+    "model":"gpt-4o-mini",
+    "max_tokens":30
+  }'
+```
+
+Mehr braucht es nicht. Die Umgebungsvariable `EQ_CHATBOT_AUTH_TOKEN` ist der empfohlene Weg für 95 % der Anwendungsfälle.
+
+#### Andere Token-Quellen
+
+Der Schnellstart nutzt die Umgebungsvariable `EQ_CHATBOT_AUTH_TOKEN` — empfohlen für alles außer Production-Sidecars.
+
+Zwei weitere Quellen gibt es, falls du sie brauchst:
+
+- **`--auth-token <token>`** — Token direkt als CLI-Argument. **Nicht empfohlen**, weil das Token via `ps aux` sichtbar ist. Nur für schnelles Debugging.
+- **`--auth-token-fd <integer>`** — für Sidecar-Deployments, bei denen ein Parent-Prozess den Server startet und das Token über einen File-Descriptor pipt. Der Wert ist eine **Ganzzahl** (z. B. `0` für stdin), kein Provider-Name. Wenn du nicht weißt, was ein File-Descriptor ist, brauchst du diese Option nicht — nutz die Umgebungsvariable.
+
 ### Sidecar starten
 
 ```bash
@@ -201,9 +319,9 @@ Der Parent-Prozess liest den angekündigten Port aus stdout und nutzt ihn für n
 | `--auth-token-fd <fd>` | — | Liest bis 256 Bytes vom angegebenen File-Descriptor (empfohlen). |
 | `--auth-token <token>` | — | Argv-basiertes Token (unsicher: in `ps`/`/proc/<pid>/cmdline` sichtbar). |
 | `--parent-pid <pid>` | — | Watchdog: pollt `os.kill(pid, 0)` alle 5 s, sendet SIGTERM an sich selbst bei Parent-Exit. |
-| `--log-level` | `info` | uvicorn-Log-Level. |
+| `--log-level` | `warning` | uvicorn-Log-Level. Eines von `debug`, `info`, `warning`, `error`. |
 
-Die Umgebungsvariable `EQ_CHATBOT_AUTH_TOKEN` wird als Fallback akzeptiert wenn kein `--auth-token*`-Flag gesetzt ist.
+Die Umgebungsvariable `EQ_CHATBOT_AUTH_TOKEN` wird als Fallback akzeptiert wenn kein `--auth-token*`-Flag gesetzt ist. Das Token muss **mindestens 16 Zeichen** lang sein; empfohlener Generator: `python3 -c "import secrets; print(secrets.token_urlsafe(32))"` (43 Zeichen).
 
 ### Endpunkte
 
@@ -283,6 +401,16 @@ curl -N -H "Authorization: Bearer $TOKEN" \
      }' \
      http://127.0.0.1:$PORT/chat/stream
 ```
+
+### Häufige Fehler
+
+| Fehler | Ursache | Lösung |
+|--------|---------|--------|
+| `Missing auth token. Provide via --auth-token-fd <fd>, --auth-token <token>, or EQ_CHATBOT_AUTH_TOKEN env var.` | Keine Token-Quelle gesetzt. | `EQ_CHATBOT_AUTH_TOKEN` setzen (siehe Schnellstart Schritt 2) bevor `eq-chatbot serve` gestartet wird. |
+| `Invalid value for '--auth-token-fd': 'X' is not a valid integer.` | Es wurde keine Ganzzahl übergeben (Provider-Name, `--help`, etc.). | Der Wert muss eine **Ganzzahl** sein wie `0` oder `3`. Wer keinen Sidecar betreibt, lässt die Flag weg und nutzt die Umgebungsvariable. |
+| `Auth token too short (got N chars, need 16+)` | Token kürzer als das Minimum. | Längeres Token verwenden; `secrets.token_urlsafe(32)` liefert 43 Zeichen. |
+| `401 Unauthorized` beim curl | Header `Authorization: Bearer …` fehlt oder ist falsch. | Sicherstellen, dass der Client dasselbe Token nutzt, mit dem der Server gestartet wurde. |
+| `connect: connection refused` | Server läuft nicht oder Port stimmt nicht. | `LISTENING ON host=H port=P`-Zeile auf stdout prüfen — das ist der tatsächliche Port. |
 
 ### Sicherheitsmodell
 
