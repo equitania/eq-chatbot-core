@@ -497,6 +497,20 @@ _GROUP_TEST_MODELS = {
     "Local": ("LOCAL_TEST_MODEL", "phi-4-mini"),
 }
 
+# Mapping from module group to required environment variables (auth credentials).
+# Used by the configuration-status section of the Markdown report so missing
+# credentials are surfaced as actionable items instead of silent skips.
+_GROUP_REQUIRED_ENV = {
+    "OpenAI": ["OPENAI_API_KEY"],
+    "Anthropic": ["ANTHROPIC_API_KEY"],
+    "LangDock": ["LANGDOCK_API_KEY"],
+    "OpenRouter": ["OPENROUTER_API_KEY"],
+    "Mammouth": ["MAMMOUTH_API_KEY"],
+    "Azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
+    "Vertex": ["VERTEX_PROJECT"],  # auth via gcloud ADC, project still required
+    "Local": [],  # no key — uses local servers
+}
+
 
 def _get_test_models() -> dict[str, str]:
     """Read configured test models from environment variables."""
@@ -538,6 +552,25 @@ def _short_nodeid(nodeid: str) -> str:
     if nodeid.startswith("tests/"):
         return nodeid[6:]
     return nodeid
+
+
+def _format_skip_reason(reason: str) -> str:
+    """
+    Turn ambiguous skip messages into actionable instructions.
+
+    Specifically: any reason mentioning "<VAR>_API_KEY not set" or
+    "<VAR>_KEY not set" (with or without a "Skipped: " prefix from pytest)
+    becomes "ACTION — set <VAR> in tests/.env.test". Other reasons
+    (SKIP_LIVE_TESTS, SKIP_LOCAL_TESTS, server unreachable) pass through
+    unchanged so existing behavior isn't masked.
+    """
+    import re
+
+    match = re.search(r"\b([A-Z][A-Z0-9_]*_KEY)\s+not\s+set\b", reason)
+    if match:
+        var_name = match.group(1)
+        return f"**ACTION** — set `{var_name}` in `tests/.env.test` to enable this test"
+    return reason
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -678,17 +711,69 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     lines.append(f"| **Total** | **{total}** |")
     lines.append("")
 
-    # Test Configuration section - show configured models
+    # Configuration Status section - flag missing credentials per provider
+    # so silent skips become actionable: shows which env vars to set in
+    # tests/.env.test and how many tests are blocked by each gap.
+    skipped_by_group: dict[str, int] = {}
+    for r in results:
+        if r["outcome"] == "skipped":
+            skipped_by_group[r["group"]] = skipped_by_group.get(r["group"], 0) + 1
+
+    config_gaps: list[tuple[str, list[str], int]] = []
+    config_ok: list[str] = []
+    for group_key, required_vars in _GROUP_REQUIRED_ENV.items():
+        if not required_vars:
+            continue
+        missing = [v for v in required_vars if not os.getenv(v)]
+        if missing:
+            blocked = skipped_by_group.get(group_key, 0)
+            config_gaps.append((group_key, missing, blocked))
+        else:
+            config_ok.append(group_key)
+
+    lines.append("## Configuration Status")
+    lines.append("")
+    if config_gaps:
+        lines.append(
+            "**Action required** — missing API credentials cause tests to be skipped. "
+            "Set the variables below in `tests/.env.test` to enable the affected tests:"
+        )
+        lines.append("")
+        lines.append("| Provider | Missing variable(s) | Tests skipped | Action |")
+        lines.append("|----------|---------------------|---------------|--------|")
+        for group_key, missing, blocked in config_gaps:
+            missing_cell = ", ".join(f"`{v}`" for v in missing)
+            action = f"Add `{missing[0]}=...` to `tests/.env.test`"
+            lines.append(f"| **{group_key}** | {missing_cell} | {blocked} | {action} |")
+        lines.append("")
+    if config_ok:
+        ok_cells = ", ".join(f"`{p}`" for p in config_ok)
+        lines.append(f"Credentials configured: {ok_cells}")
+        lines.append("")
+    if not config_gaps and not config_ok:
+        lines.append("_(no provider credentials required for this run)_")
+        lines.append("")
+
+    # Test Configuration section - show configured models + key status
     test_models = _get_test_models()
     lines.append("## Test Configuration")
     lines.append("")
-    lines.append("| Provider | Test Model | Source |")
-    lines.append("|----------|------------|--------|")
+    lines.append("| Provider | Test Model | Model Source | API Key |")
+    lines.append("|----------|------------|--------------|---------|")
     for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
         model = test_models.get(group_key, default)
         env_value = os.getenv(env_var)
         source = f"`{env_var}`" if env_value else "default"
-        lines.append(f"| {group_key} | `{model}` | {source} |")
+        required = _GROUP_REQUIRED_ENV.get(group_key, [])
+        if not required:
+            key_cell = "n/a"
+        else:
+            missing = [v for v in required if not os.getenv(v)]
+            if missing:
+                key_cell = f"**MISSING** — set `{missing[0]}`"
+            else:
+                key_cell = "set"
+        lines.append(f"| {group_key} | `{model}` | {source} | {key_cell} |")
     lines.append("")
 
     # Failed tests section
@@ -709,11 +794,14 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     if skipped:
         lines.append("## Skipped Tests")
         lines.append("")
-        lines.append("| Test | Reason |")
-        lines.append("|------|--------|")
+        lines.append("| Test | Reason / Action |")
+        lines.append("|------|-----------------|")
         for r in skipped:
             nodeid = _escape_md(_short_nodeid(r["nodeid"]))
-            reason = _escape_md(r["skip_reason"]) or "No reason given"
+            raw_reason = r["skip_reason"] or "No reason given"
+            # Translate "<X>_API_KEY not set" into an actionable instruction
+            # so the report tells the user exactly what to fix in .env.test.
+            reason = _escape_md(_format_skip_reason(raw_reason))
             lines.append(f"| `{nodeid}` | {reason} |")
         lines.append("")
 
