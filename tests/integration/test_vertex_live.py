@@ -19,35 +19,33 @@ class TestVertexLive:
 
     @pytest.fixture
     def provider(self, test_config):
-        """Create a live Vertex provider."""
+        """Create a live Vertex provider (skips if [vertex] extra missing)."""
         project = test_config.get("vertex_project")
         if not project:
             pytest.skip("VERTEX_PROJECT not set")
         location = test_config.get("vertex_location", "europe-west1")
-        return get_provider("vertex", project=project, location=location)
+        try:
+            return get_provider("vertex", project=project, location=location)
+        except ImportError as exc:
+            pytest.skip(f"Vertex SDK not installed (use [vertex] extra): {exc}")
 
-    @pytest.fixture
-    def test_model(self, test_config):
-        """Get test model name."""
-        return test_config.get("vertex_model", "gemini-2.5-flash")
-
-    def test_simple_completion(self, provider, test_model):
+    def test_simple_completion(self, provider, vertex_resolved_model):
         """Test simple chat completion with real API."""
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'hello' and nothing else."}],
-            model=test_model,
+            model=vertex_resolved_model,
             max_tokens=20,
         )
         assert response.content
         assert response.input_tokens > 0
         assert response.output_tokens > 0
 
-    def test_streaming_completion(self, provider, test_model):
+    def test_streaming_completion(self, provider, vertex_resolved_model):
         """Test streaming completion with real API."""
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Say 'hi' and nothing else."}],
-                model=test_model,
+                model=vertex_resolved_model,
                 max_tokens=20,
             )
         )
@@ -58,14 +56,14 @@ class TestVertexLive:
         final = [c for c in chunks if c.is_final][0]
         assert final.input_tokens > 0
 
-    def test_system_message(self, provider, test_model):
+    def test_system_message(self, provider, vertex_resolved_model):
         """Test system message handling."""
         response = provider.chat_completion(
             messages=[
                 {"role": "system", "content": "You only respond with the word 'PONG'."},
                 {"role": "user", "content": "PING"},
             ],
-            model=test_model,
+            model=vertex_resolved_model,
             max_tokens=10,
         )
         assert response.content
@@ -84,6 +82,11 @@ class TestVertexLive:
         if not project:
             pytest.skip("VERTEX_PROJECT not set")
 
-        with get_provider("vertex", project=project) as provider:
+        try:
+            vertex_provider = get_provider("vertex", project=project)
+        except ImportError as exc:
+            pytest.skip(f"Vertex SDK not installed (use [vertex] extra): {exc}")
+
+        with vertex_provider as provider:
             models = provider.list_models()
             assert len(models) >= 4

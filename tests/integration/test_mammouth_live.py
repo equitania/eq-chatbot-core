@@ -29,9 +29,9 @@ class TestMammouthLive:
             pytest.skip("MAMMOUTH_API_KEY not set")
         return get_provider("mammouth", api_key=mammouth_api_key)
 
-    def test_simple_completion(self, provider, test_config):
-        """Test simple chat completion with gpt-4.1-nano via Mammouth."""
-        model = test_config.get("mammouth_model", "gpt-4.1-nano")
+    def test_simple_completion(self, provider, test_config, mammouth_resolved_model):
+        """Test simple chat completion with the resolved cheapest model via Mammouth."""
+        model = mammouth_resolved_model
 
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
@@ -80,9 +80,9 @@ class TestMammouthLive:
                 f"supports_temp={model['supports_temperature']}"
             )
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, mammouth_resolved_model):
         """Test streaming chat completion via Mammouth."""
-        model = test_config.get("mammouth_model", "gpt-4.1-nano")
+        model = mammouth_resolved_model
 
         chunks = list(
             provider.stream_completion(
@@ -98,9 +98,9 @@ class TestMammouthLive:
         assert len(full_content) > 0
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, mammouth_resolved_model):
         """Test completion with system message via Mammouth."""
-        model = test_config.get("mammouth_model", "gpt-4.1-nano")
+        model = mammouth_resolved_model
 
         response = provider.chat_completion(
             messages=[
@@ -115,17 +115,15 @@ class TestMammouthLive:
         assert response.content
         assert "acknowledged" in response.content.lower()
 
-    def test_context_manager(self, mammouth_api_key, test_config):
+    def test_context_manager(self, mammouth_api_key, mammouth_resolved_model):
         """Test provider works as context manager."""
         if not mammouth_api_key:
             pytest.skip("MAMMOUTH_API_KEY not set")
 
-        model = test_config.get("mammouth_model", "gpt-4.1-nano")
-
         with get_provider("mammouth", api_key=mammouth_api_key) as provider:
             response = provider.chat_completion(
                 messages=[{"role": "user", "content": "Hi"}],
-                model=model,
+                model=mammouth_resolved_model,
                 max_tokens=5,
             )
             assert response.content

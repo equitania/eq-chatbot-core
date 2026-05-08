@@ -31,13 +31,11 @@ class TestOpenAILive:
             pytest.skip("OPENAI_API_KEY not set")
         return get_provider("openai", api_key=openai_api_key)
 
-    def test_simple_completion(self, provider, test_config):
-        """Test simple chat completion with gpt-4o-mini."""
-        model = test_config.get("openai_model", "gpt-4o-mini")
-
+    def test_simple_completion(self, provider, test_config, openai_resolved_model):
+        """Test simple chat completion with the resolved cheapest model."""
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            model=model,
+            model=openai_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )
@@ -71,14 +69,12 @@ class TestOpenAILive:
         print(f"\n  Found {len(models)} models")
         print(f"  Sample: {model_ids[:5]}")
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, openai_resolved_model):
         """Test streaming chat completion."""
-        model = test_config.get("openai_model", "gpt-4o-mini")
-
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Count: 1, 2, 3"}],
-                model=model,
+                model=openai_resolved_model,
                 max_tokens=test_config.get("max_tokens", 20),
             )
         )
@@ -89,16 +85,14 @@ class TestOpenAILive:
         assert len(full_content) > 0
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, openai_resolved_model):
         """Test completion with system message."""
-        model = test_config.get("openai_model", "gpt-4o-mini")
-
         response = provider.chat_completion(
             messages=[
                 {"role": "system", "content": "You only respond with the word 'ACKNOWLEDGED'."},
                 {"role": "user", "content": "Hello!"},
             ],
-            model=model,
+            model=openai_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )
@@ -106,16 +100,14 @@ class TestOpenAILive:
         assert response.content
         assert "acknowledged" in response.content.lower()
 
-    def test_json_mode(self, provider, test_config):
+    def test_json_mode(self, provider, test_config, openai_resolved_model):
         """Test JSON response format."""
-        model = test_config.get("openai_model", "gpt-4o-mini")
-
         response = provider.chat_completion(
             messages=[
                 {"role": "system", "content": "Respond only with valid JSON."},
                 {"role": "user", "content": "Give me a JSON object with key 'status' and value 'ok'."},
             ],
-            model=model,
+            model=openai_resolved_model,
             max_tokens=test_config.get("max_tokens", 30),
             temperature=0.0,
             response_format={"type": "json_object"},
@@ -148,13 +140,11 @@ class TestAnthropicLive:
             pytest.skip("ANTHROPIC_API_KEY not set")
         return get_provider("anthropic", api_key=anthropic_api_key)
 
-    def test_simple_completion(self, provider, test_config):
-        """Test simple chat completion with claude-3-haiku."""
-        model = test_config.get("anthropic_model", "claude-3-haiku-20240307")
-
+    def test_simple_completion(self, provider, test_config, anthropic_resolved_model):
+        """Test simple chat completion with the resolved cheapest model."""
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            model=model,
+            model=anthropic_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )
@@ -187,14 +177,12 @@ class TestAnthropicLive:
         print(f"\n  Found {len(models)} models")
         print(f"  Sample: {model_ids[:5]}")
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, anthropic_resolved_model):
         """Test streaming chat completion."""
-        model = test_config.get("anthropic_model", "claude-3-haiku-20240307")
-
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Count: 1, 2, 3"}],
-                model=model,
+                model=anthropic_resolved_model,
                 max_tokens=test_config.get("max_tokens", 20),
             )
         )
@@ -205,15 +193,13 @@ class TestAnthropicLive:
         assert len(full_content) > 0
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, anthropic_resolved_model):
         """Test completion with system message."""
-        model = test_config.get("anthropic_model", "claude-3-haiku-20240307")
-
         response = provider.chat_completion(
             messages=[
                 {"role": "user", "content": "What is 2+2?"},
             ],
-            model=model,
+            model=anthropic_resolved_model,
             max_tokens=test_config.get("max_tokens", 20),
             temperature=0.0,
             system="You only respond with numbers, nothing else.",
@@ -239,13 +225,11 @@ class TestLangDockLive:
             pytest.skip("LANGDOCK_API_KEY not set")
         return get_provider("langdock", api_key=langdock_api_key, backend="openai", region="eu")
 
-    def test_simple_completion(self, provider, test_config):
+    def test_simple_completion(self, provider, test_config, langdock_resolved_model):
         """Test simple chat completion via LangDock."""
-        model = test_config.get("langdock_model", "gpt-4o-mini")
-
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            model=model,
+            model=langdock_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )
@@ -274,14 +258,12 @@ class TestLangDockLive:
         print(f"\n  Found {len(models)} models")
         print(f"  Sample: {model_ids[:5]}")
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, langdock_resolved_model):
         """Test streaming chat completion via LangDock."""
-        model = test_config.get("langdock_model", "gpt-4o-mini")
-
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Count: 1, 2, 3"}],
-                model=model,
+                model=langdock_resolved_model,
                 max_tokens=test_config.get("max_tokens", 20),
             )
         )
@@ -292,16 +274,14 @@ class TestLangDockLive:
         assert len(full_content) > 0
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, langdock_resolved_model):
         """Test completion with system message via LangDock."""
-        model = test_config.get("langdock_model", "gpt-4o-mini")
-
         response = provider.chat_completion(
             messages=[
                 {"role": "system", "content": "You only respond with the word 'ACKNOWLEDGED'."},
                 {"role": "user", "content": "Hello!"},
             ],
-            model=model,
+            model=langdock_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )
@@ -309,7 +289,7 @@ class TestLangDockLive:
         assert response.content
         assert "acknowledged" in response.content.lower()
 
-    def test_eu_region(self, langdock_api_key, test_config):
+    def test_eu_region(self, langdock_api_key, langdock_resolved_model):
         """Test that EU region is used for GDPR compliance."""
         if not langdock_api_key:
             pytest.skip("LANGDOCK_API_KEY not set")
@@ -327,7 +307,7 @@ class TestLangDockLive:
         # Make a simple API call to verify it works
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Hi"}],
-            model=test_config.get("langdock_model", "gpt-4o-mini"),
+            model=langdock_resolved_model,
             max_tokens=5,
         )
 
@@ -350,12 +330,16 @@ class TestLangDockAnthropicBackend:
             region="eu",
         )
 
-    def test_anthropic_completion(self, provider, test_config):
-        """Test completion via LangDock Anthropic backend."""
-        # Use claude-sonnet-4-5 which is available via LangDock
+    def test_anthropic_completion(self, provider, test_config, langdock_anthropic_resolved_model):
+        """Test completion via LangDock Anthropic backend.
+
+        Model id is resolved at session start against the live LangDock model
+        list (see ``tests/model_registry.py`` -> ``langdock.anthropic``) to
+        absorb LangDock's frequent ``claude-*-default`` rotations.
+        """
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            model="claude-sonnet-4-5-20250929",
+            model=langdock_anthropic_resolved_model,
             max_tokens=test_config.get("max_tokens", 10),
             temperature=0.0,
         )

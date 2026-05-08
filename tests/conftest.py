@@ -14,12 +14,19 @@ import platform
 import shutil
 import sys
 import time
+import warnings
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+
+from tests.model_registry import MODELS, ModelChain
+from tests.model_registry import TEST_MAX_TOKENS as _TEST_MAX_TOKENS
+from tests.model_registry import TEST_TIMEOUT as _TEST_TIMEOUT
 
 # Load test environment from .env.test if it exists
 _env_file = Path(__file__).parent / ".env.test"
@@ -36,6 +43,134 @@ if _env_file.exists():
                 if line and not line.startswith("#") and "=" in line:
                     key, value = line.split("=", 1)
                     os.environ.setdefault(key.strip(), value.strip())
+
+
+# =============================================================================
+# Model Resolution
+# =============================================================================
+#
+# Live providers rotate models constantly (deprecation, renaming). Hardcoded
+# model names in tests fail with cryptic 400/404 errors. The resolver reads
+# tests/model_registry.py for primary + fallback chains, validates against
+# the live ``provider.list_models()`` response, and picks the first available
+# candidate. When a fallback is used, a DeprecationWarning is emitted and the
+# Markdown report surfaces an ACTION row. An env-var override (e.g.
+# ``LANGDOCK_TEST_MODEL=...``) bypasses the registry primary.
+
+
+@dataclass(frozen=True)
+class ResolvedModel:
+    """Outcome of resolving a model chain against a live provider.
+
+    ``actual`` is the model the test should use. The state combines:
+
+    - ``error`` set: ``list_models()`` raised — hard failure, treat as ERR.
+    - ``unvalidated`` true: ``list_models()`` returned but no chain candidate
+      matched. Some providers (Anthropic) ship versioned aliases that work
+      for chat but are absent from the public model list. Treat as INFO —
+      the chat call itself will surface a real failure if the model is gone.
+    - ``fallback_level > 0``: registry primary missing, a fallback rescued
+      the run — treat as WARN.
+    - Otherwise: registry primary found in live list — OK.
+    """
+
+    requested_primary: str
+    actual: str
+    fallback_level: int  # 0 = primary, 1+ = fallback chain index
+    available_count: int
+    error: str | None = None
+    unvalidated: bool = False
+
+    @property
+    def is_fallback(self) -> bool:
+        return self.fallback_level > 0
+
+    @property
+    def has_error(self) -> bool:
+        return self.error is not None
+
+
+def _extract_model_id(entry: Any) -> str | None:
+    """Pull a model id from list_models() output (dict or ModelInfo-like)."""
+    if isinstance(entry, dict):
+        return entry.get("id") or entry.get("model_id")
+    return getattr(entry, "model_id", None) or getattr(entry, "id", None)
+
+
+def _resolve_test_model(
+    chain: ModelChain,
+    list_models_fn: Callable[[], list[Any]],
+    provider_key: str,
+) -> ResolvedModel:
+    """Find the first chain candidate present in the live model list.
+
+    Behaviour:
+    - If list_models_fn() raises (network, auth) → return primary with error
+      annotation; downstream test surfaces the real failure with proper
+      pytest skip/fail wiring instead of a cryptic 400.
+    - If primary missing but fallback found → emit DeprecationWarning and
+      record the fallback level for the report.
+    - If nothing found → return primary with error so the next API call
+      produces an actionable message pointing at the registry.
+    """
+    try:
+        raw = list_models_fn()
+        available: set[str] = {mid for mid in (_extract_model_id(m) for m in raw) if mid}
+    except Exception as exc:  # pragma: no cover - exercised via integration
+        return ResolvedModel(
+            requested_primary=chain.primary,
+            actual=chain.primary,
+            fallback_level=0,
+            available_count=0,
+            error=f"list_models failed: {exc}",
+        )
+
+    for level, model in enumerate(chain.candidates):
+        if model in available:
+            if level > 0:
+                warnings.warn(
+                    f"[{provider_key}] primary model {chain.primary!r} unavailable. "
+                    f"Using fallback {model!r} (level {level}). "
+                    f"Update tests/model_registry.py.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            return ResolvedModel(
+                requested_primary=chain.primary,
+                actual=model,
+                fallback_level=level,
+                available_count=len(available),
+            )
+
+    # list_models() returned but no candidate matched. This is an info
+    # state, not an error: some providers (Anthropic) ship versioned aliases
+    # that are valid for chat but absent from list_models(). Use the primary
+    # as-is; the chat call will surface a real failure if the model is gone.
+    return ResolvedModel(
+        requested_primary=chain.primary,
+        actual=chain.primary,
+        fallback_level=0,
+        available_count=len(available),
+        unvalidated=True,
+    )
+
+
+def _select_chain(provider_key: str, env_var: str) -> ModelChain:
+    """Resolve a registry chain, allowing an env-var override of the primary.
+
+    When ``env_var`` is set, it replaces the registry primary while keeping
+    the registry fallbacks. This keeps ad-hoc debugging cheap without
+    forcing a registry edit.
+    """
+    base = MODELS[provider_key]
+    override = os.getenv(env_var)
+    if override:
+        return ModelChain(
+            primary=override,
+            fallbacks=base.candidates,  # registry primary + its fallbacks
+            notes=f"override via {env_var}; underlying chain = {provider_key}",
+        )
+    return base
 
 
 # =============================================================================
@@ -57,26 +192,19 @@ def test_config() -> dict[str, Any]:
         "openrouter_site_name": os.getenv("OPENROUTER_SITE_NAME"),
         "azure_api_key": os.getenv("AZURE_API_KEY"),
         "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
-        "azure_model": os.getenv("AZURE_TEST_MODEL", "gpt-4o"),
         # Vertex AI
         "vertex_project": os.getenv("VERTEX_PROJECT"),
         "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
-        "vertex_model": os.getenv("VERTEX_TEST_MODEL", "gemini-2.5-flash"),
         # Local Server URLs
         "lm_studio_url": os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1"),
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434/v1"),
-        # Test Models
-        "openai_model": os.getenv("OPENAI_TEST_MODEL", "gpt-4o-mini"),
-        "anthropic_model": os.getenv("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
-        "langdock_model": os.getenv("LANGDOCK_TEST_MODEL", "gpt-5.2"),
-        "mammouth_model": os.getenv("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
-        "openrouter_model": os.getenv("OPENROUTER_TEST_MODEL", "openai/gpt-4o-mini"),
-        "local_model": os.getenv("LOCAL_TEST_MODEL", "phi-4-mini"),
-        # Test Settings
+        # Test Settings — test models live in tests/model_registry.py.
+        # *_TEST_MODEL env vars override the registry primary at the
+        # resolver fixtures (langdock_resolved_model, openai_resolved_model, ...).
         "skip_live_tests": os.getenv("SKIP_LIVE_TESTS", "false").lower() == "true",
         "skip_local_tests": os.getenv("SKIP_LOCAL_TESTS", "true").lower() == "true",
-        "max_tokens": int(os.getenv("TEST_MAX_TOKENS", "20")),
-        "timeout": int(os.getenv("TEST_TIMEOUT", "30")),
+        "max_tokens": int(os.getenv("TEST_MAX_TOKENS", str(_TEST_MAX_TOKENS))),
+        "timeout": int(os.getenv("TEST_TIMEOUT", str(_TEST_TIMEOUT))),
     }
 
 
@@ -195,6 +323,253 @@ def skip_if_local_tests_disabled():
         os.getenv("SKIP_LOCAL_TESTS", "true").lower() == "true",
         reason="SKIP_LOCAL_TESTS is true",
     )
+
+
+# =============================================================================
+# Resolved Model Fixtures (live registry validation)
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def resolved_models(request) -> dict[str, ResolvedModel]:
+    """Session-scoped cache of resolved test models.
+
+    Populated lazily by per-provider fixtures below. Stored on the session
+    object so the Markdown report writer can render the Model Resolution
+    section even after fixture teardown.
+    """
+    cache: dict[str, ResolvedModel] = {}
+    # Stash on config so pytest_terminal_summary can render the Model
+    # Resolution section without coupling to the live fixture object.
+    request.config._resolved_models = cache
+    return cache
+
+
+@pytest.fixture(scope="session")
+def langdock_resolved_model(test_config, resolved_models) -> str:
+    """Resolve the LangDock OpenAI-backend test model.
+
+    Reads ``tests/model_registry.py`` -> ``MODELS['langdock.openai']`` and
+    validates against ``langdock.list_models()``. ``LANGDOCK_TEST_MODEL`` env
+    var overrides the primary while keeping the registry fallbacks.
+    """
+    api_key = test_config.get("langdock_api_key")
+    if not api_key:
+        pytest.skip("LANGDOCK_API_KEY not set")
+
+    cache_key = "langdock.openai"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("langdock", api_key=api_key, backend="openai", region="eu")
+        chain = _select_chain(cache_key, "LANGDOCK_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def langdock_anthropic_resolved_model(test_config, resolved_models) -> str:
+    """Resolve the LangDock Anthropic-backend test model.
+
+    LangDock's Anthropic backend uses a different model namespace
+    (``claude-*-default`` aliases) than direct Anthropic. Registry key
+    is ``langdock.anthropic``; override via ``LANGDOCK_ANTHROPIC_TEST_MODEL``.
+    """
+    api_key = test_config.get("langdock_api_key")
+    if not api_key:
+        pytest.skip("LANGDOCK_API_KEY not set")
+
+    cache_key = "langdock.anthropic"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("langdock", api_key=api_key, backend="anthropic", region="eu")
+        chain = _select_chain(cache_key, "LANGDOCK_ANTHROPIC_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def openai_resolved_model(test_config, resolved_models) -> str:
+    """Resolve OpenAI test model from registry against live API."""
+    api_key = test_config.get("openai_api_key")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not set")
+
+    cache_key = "openai"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("openai", api_key=api_key)
+        chain = _select_chain(cache_key, "OPENAI_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def anthropic_resolved_model(test_config, resolved_models) -> str:
+    """Resolve Anthropic test model from registry against live API."""
+    api_key = test_config.get("anthropic_api_key")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not set")
+
+    cache_key = "anthropic"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("anthropic", api_key=api_key)
+        chain = _select_chain(cache_key, "ANTHROPIC_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def openrouter_resolved_model(test_config, resolved_models) -> str:
+    """Resolve OpenRouter test model from registry against live API.
+
+    Passes optional attribution headers (site_url, site_name) so OpenRouter
+    analytics attribute the test traffic correctly.
+    """
+    api_key = test_config.get("openrouter_api_key")
+    if not api_key:
+        pytest.skip("OPENROUTER_API_KEY not set")
+
+    cache_key = "openrouter"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        kwargs: dict[str, Any] = {"api_key": api_key}
+        if test_config.get("openrouter_site_url"):
+            kwargs["site_url"] = test_config["openrouter_site_url"]
+        if test_config.get("openrouter_site_name"):
+            kwargs["site_name"] = test_config["openrouter_site_name"]
+        provider = get_provider("openrouter", **kwargs)
+        chain = _select_chain(cache_key, "OPENROUTER_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def mammouth_resolved_model(test_config, resolved_models) -> str:
+    """Resolve Mammouth AI test model from registry against live API."""
+    api_key = test_config.get("mammouth_api_key")
+    if not api_key:
+        pytest.skip("MAMMOUTH_API_KEY not set")
+
+    cache_key = "mammouth"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("mammouth", api_key=api_key)
+        chain = _select_chain(cache_key, "MAMMOUTH_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def azure_resolved_model(test_config, resolved_models) -> str:
+    """Resolve Azure AI test model from registry against live API.
+
+    Skips gracefully when the optional ``[azure]`` extra is not installed
+    (azure-ai-inference SDK missing) instead of failing with ImportError.
+    """
+    api_key = test_config.get("azure_api_key")
+    endpoint = test_config.get("azure_endpoint")
+    if not api_key:
+        pytest.skip("AZURE_API_KEY not set")
+    if not endpoint:
+        pytest.skip("AZURE_ENDPOINT not set")
+
+    cache_key = "azure"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        try:
+            provider = get_provider("azure", api_key=api_key, base_url=endpoint)
+            chain = _select_chain(cache_key, "AZURE_TEST_MODEL")
+            resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+        except ImportError as exc:
+            pytest.skip(f"Azure SDK not installed (use [azure] extra): {exc}")
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def vertex_resolved_model(test_config, resolved_models) -> str:
+    """Resolve Vertex AI test model from registry against live API.
+
+    Skips gracefully when the optional ``[vertex]`` extra is not installed
+    (google-genai SDK missing) instead of failing with ImportError.
+    """
+    project = test_config.get("vertex_project")
+    if not project:
+        pytest.skip("VERTEX_PROJECT not set")
+
+    cache_key = "vertex"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        location = test_config.get("vertex_location") or "europe-west1"
+        try:
+            provider = get_provider("vertex", project=project, location=location)
+            chain = _select_chain(cache_key, "VERTEX_TEST_MODEL")
+            resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+        except ImportError as exc:
+            pytest.skip(f"Vertex SDK not installed (use [vertex] extra): {exc}")
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def local_resolved_model(test_config, resolved_models) -> str:
+    """Resolve local server (LM Studio / Ollama) test model from registry.
+
+    Skips when the local server is unreachable so the resolver does not hang
+    on a network timeout.
+
+    Local-specific behaviour: LM Studio model selection is user-specific
+    (whichever model the user has downloaded and loaded). When the registry
+    chain does not match, fall back to the first non-embedding model the
+    server reports — this keeps the suite green across diverse local setups
+    while the registry still documents preferred models.
+    """
+    if test_config.get("skip_local_tests"):
+        pytest.skip("SKIP_LOCAL_TESTS is true")
+
+    cache_key = "local"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("lm_studio")
+        if not provider.is_server_available():
+            pytest.skip(f"LM Studio server unreachable at {test_config.get('lm_studio_url')}")
+        chain = _select_chain(cache_key, "LOCAL_TEST_MODEL")
+        resolved = _resolve_test_model(chain, provider.list_models, cache_key)
+
+        # Local-only: when registry chain didn't match, pick the first loaded
+        # chat model. Embeddings are filtered (they can't handle chat).
+        if resolved.unvalidated:
+            raw = provider.list_models()
+            ids = [mid for mid in (_extract_model_id(m) for m in raw) if mid]
+            chat_ids = [mid for mid in ids if "embed" not in mid.lower()]
+            if chat_ids:
+                resolved = ResolvedModel(
+                    requested_primary=resolved.requested_primary,
+                    actual=chat_ids[0],
+                    fallback_level=0,
+                    available_count=len(chat_ids),
+                    unvalidated=True,
+                )
+
+        resolved_models[cache_key] = resolved
+
+    return resolved_models[cache_key].actual
 
 
 # =============================================================================
@@ -485,17 +860,50 @@ _MODULE_GROUPS = {
     },
 }
 
-# Mapping from module group to test model environment variable and default
-_GROUP_TEST_MODELS = {
-    "OpenAI": ("OPENAI_TEST_MODEL", "gpt-4o-mini"),
-    "Anthropic": ("ANTHROPIC_TEST_MODEL", "claude-3-haiku-20240307"),
-    "LangDock": ("LANGDOCK_TEST_MODEL", "gpt-5.2"),
-    "OpenRouter": ("OPENROUTER_TEST_MODEL", "openai/gpt-4o-mini"),
-    "Mammouth": ("MAMMOUTH_TEST_MODEL", "gpt-4.1-nano"),
-    "Azure": ("AZURE_TEST_MODEL", "gpt-4o"),
-    "Vertex": ("VERTEX_TEST_MODEL", "gemini-2.5-flash"),
-    "Local": ("LOCAL_TEST_MODEL", "phi-4-mini"),
+# Display labels and override env-vars for each resolver cache key.
+# Drives the Markdown report's Models In Use section. Order = report row order.
+_RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
+    "openai": ("OpenAI", "OPENAI_TEST_MODEL"),
+    "anthropic": ("Anthropic", "ANTHROPIC_TEST_MODEL"),
+    "langdock.openai": ("LangDock (OpenAI backend)", "LANGDOCK_TEST_MODEL"),
+    "langdock.anthropic": ("LangDock (Anthropic backend)", "LANGDOCK_ANTHROPIC_TEST_MODEL"),
+    "openrouter": ("OpenRouter", "OPENROUTER_TEST_MODEL"),
+    "mammouth": ("Mammouth AI", "MAMMOUTH_TEST_MODEL"),
+    "azure": ("Azure AI", "AZURE_TEST_MODEL"),
+    "vertex": ("Google Vertex AI", "VERTEX_TEST_MODEL"),
+    "local": ("Local (LM Studio / Ollama)", "LOCAL_TEST_MODEL"),
 }
+
+# What env vars must be set for each resolver to even attempt list_models().
+# Used by the Models In Use section to render SKIPPED rows with actionable
+# reasons when a provider was not exercised this run.
+_RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
+    "openai": ["OPENAI_API_KEY"],
+    "anthropic": ["ANTHROPIC_API_KEY"],
+    "langdock.openai": ["LANGDOCK_API_KEY"],
+    "langdock.anthropic": ["LANGDOCK_API_KEY"],
+    "openrouter": ["OPENROUTER_API_KEY"],
+    "mammouth": ["MAMMOUTH_API_KEY"],
+    "azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
+    "vertex": ["VERTEX_PROJECT"],
+    "local": [],  # gated by SKIP_LOCAL_TESTS / server-availability
+}
+
+# Module group key (used in _MODULE_GROUPS) → primary resolver key.
+# Used to surface "Model: <id>" in per-provider detail sections.
+# LangDock has two backends; the OpenAI one is shown in the per-group rollup
+# while both appear in the main Models In Use table.
+_GROUP_TO_PRIMARY_RESOLVER: dict[str, str] = {
+    "OpenAI": "openai",
+    "Anthropic": "anthropic",
+    "LangDock": "langdock.openai",
+    "OpenRouter": "openrouter",
+    "Mammouth": "mammouth",
+    "Azure": "azure",
+    "Vertex": "vertex",
+    "Local": "local",
+}
+
 
 # Mapping from module group to required environment variables (auth credentials).
 # Used by the configuration-status section of the Markdown report so missing
@@ -512,12 +920,65 @@ _GROUP_REQUIRED_ENV = {
 }
 
 
-def _get_test_models() -> dict[str, str]:
-    """Read configured test models from environment variables."""
-    models = {}
-    for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
-        models[group_key] = os.getenv(env_var, default)
-    return models
+def _resolution_row(
+    cache_key: str,
+    resolved_models_cache: dict[str, ResolvedModel],
+) -> tuple[str, str, str, str, str]:
+    """Build one row of the Models In Use table.
+
+    Returns ``(provider_label, model_cell, cost_cell, source_cell, status_cell)``
+    based on the resolver cache state for ``cache_key``. When the resolver was
+    not invoked (provider not exercised this run), shows SKIPPED with the
+    missing env var as actionable hint.
+    """
+    label, env_var = _RESOLUTION_LABELS[cache_key]
+    chain = MODELS[cache_key]
+    cost_cell = chain.cost_hint or "—"
+    resolved = resolved_models_cache.get(cache_key)
+
+    if resolved is None:
+        # Resolver never ran. Compute likely reason for the report.
+        required = _RESOLVER_REQUIREMENTS.get(cache_key, [])
+        missing = [v for v in required if not os.getenv(v)]
+        if missing:
+            status = f"SKIPPED — set `{missing[0]}` in `tests/.env.test`"
+        elif cache_key == "local":
+            if os.getenv("SKIP_LOCAL_TESTS", "true").lower() == "true":
+                status = "SKIPPED — `SKIP_LOCAL_TESTS=true`"
+            else:
+                status = "SKIPPED — provider not exercised this run"
+        else:
+            status = "SKIPPED — provider not exercised this run"
+        return (label, "—", cost_cell, "—", status)
+
+    model_cell = f"`{resolved.actual}`"
+    env_value = os.getenv(env_var) if env_var else None
+    is_override = bool(env_value) and env_value == resolved.requested_primary
+
+    if resolved.has_error:
+        source_cell = "Env override" if is_override else "Registry primary"
+        err_text = _escape_md(resolved.error or "unknown")[:120]
+        status_cell = f"**ERR** — {err_text}"
+    elif resolved.unvalidated:
+        source_cell = "Env override" if is_override else "Registry primary"
+        status_cell = (
+            f"INFO — `list_models()` does not list `{resolved.actual}` "
+            f"({resolved.available_count} listed); chat call will validate"
+        )
+    elif resolved.is_fallback:
+        if is_override:
+            source_cell = f"Env override (fallback L{resolved.fallback_level})"
+            status_cell = f"**WARN** — override `{resolved.requested_primary}` unavailable, using registry fallback"
+        else:
+            source_cell = f"Registry fallback L{resolved.fallback_level}"
+            status_cell = (
+                f"**WARN: primary deprecated** — update `tests/model_registry.py` (was `{resolved.requested_primary}`)"
+            )
+    else:
+        source_cell = "Env override" if is_override else "Registry primary"
+        status_cell = "OK"
+
+    return (label, model_cell, cost_cell, source_cell, status_cell)
 
 
 def _get_module_group(nodeid: str) -> str:
@@ -640,6 +1101,25 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     if not results:
         return
 
+    # Surface Model Resolution issues prominently before the rest of the
+    # summary. WARN rows reuse the run via fallback; ERR rows mean the next
+    # CI run will likely fail unless tests/model_registry.py is updated.
+    resolution_cache: dict[str, ResolvedModel] = getattr(config, "_resolved_models", {})
+    resolution_issues = [(key, r) for key, r in resolution_cache.items() if r.is_fallback or r.has_error]
+    if resolution_issues:
+        terminalreporter.write_sep("=", "Model Resolution Warnings", red=True)
+        for cache_key, resolved in resolution_issues:
+            label, env_var = _RESOLUTION_LABELS.get(cache_key, (cache_key, ""))
+            if resolved.has_error:
+                terminalreporter.write_line(f"ERR  {label}: {resolved.error}")
+            else:
+                terminalreporter.write_line(
+                    f"WARN {label}: primary {resolved.requested_primary!r} "
+                    f"missing, using fallback {resolved.actual!r} "
+                    f"(level {resolved.fallback_level})."
+                )
+        terminalreporter.write_line("ACTION: update tests/model_registry.py with current model ids.")
+
     global _session_start_time
     total_duration = time.time() - _session_start_time if _session_start_time else 0.0
 
@@ -754,26 +1234,28 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
         lines.append("_(no provider credentials required for this run)_")
         lines.append("")
 
-    # Test Configuration section - show configured models + key status
-    test_models = _get_test_models()
-    lines.append("## Test Configuration")
+    # Models In Use section — single source of truth per run. For every
+    # provider in the registry: which model was actually used, what does it
+    # cost, where did the choice come from (registry primary / fallback /
+    # env override), and was it OK / WARN / ERR / SKIPPED. Replaces the
+    # old "Test Configuration" + "Model Resolution" pair.
+    resolution_cache: dict[str, ResolvedModel] = getattr(config, "_resolved_models", {})
+    lines.append("## Models In Use")
     lines.append("")
-    lines.append("| Provider | Test Model | Model Source | API Key |")
-    lines.append("|----------|------------|--------------|---------|")
-    for group_key, (env_var, default) in _GROUP_TEST_MODELS.items():
-        model = test_models.get(group_key, default)
-        env_value = os.getenv(env_var)
-        source = f"`{env_var}`" if env_value else "default"
-        required = _GROUP_REQUIRED_ENV.get(group_key, [])
-        if not required:
-            key_cell = "n/a"
-        else:
-            missing = [v for v in required if not os.getenv(v)]
-            if missing:
-                key_cell = f"**MISSING** — set `{missing[0]}`"
-            else:
-                key_cell = "set"
-        lines.append(f"| {group_key} | `{model}` | {source} | {key_cell} |")
+    lines.append(
+        "Resolved live from `tests/model_registry.py` against each provider's "
+        "`list_models()`. By convention the `primary` in each chain is the "
+        "cheapest available model; fallbacks rescue the run when the primary "
+        "is deprecated."
+    )
+    lines.append("")
+    lines.append("| Provider | Model Used | Cost (per 1M tok) | Source | Status |")
+    lines.append("|----------|-----------|-------------------|--------|--------|")
+    for cache_key in _RESOLUTION_LABELS:
+        if cache_key not in MODELS:
+            continue
+        label, model_cell, cost_cell, source_cell, status_cell = _resolution_row(cache_key, resolution_cache)
+        lines.append(f"| {label} | {model_cell} | {cost_cell} | {source_cell} | {status_cell} |")
     lines.append("")
 
     # Failed tests section
@@ -823,8 +1305,10 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
             continue
 
         label = _MODULE_GROUPS[group_key]["label"] if group_key in _MODULE_GROUPS else "Other"
-        model = test_models.get(group_key, "-")
-        model_cell = f"`{model}`" if model != "-" else "-"
+        # Look up actually-used model from resolver cache via primary resolver key.
+        resolver_key = _GROUP_TO_PRIMARY_RESOLVER.get(group_key)
+        resolved = resolution_cache.get(resolver_key) if resolver_key else None
+        model_cell = f"`{resolved.actual}`" if resolved else "-"
         g_passed = sum(1 for r in group_results if r["outcome"] == "passed")
         g_failed = sum(1 for r in group_results if r["outcome"] == "failed")
         g_skipped = sum(1 for r in group_results if r["outcome"] == "skipped")
@@ -894,9 +1378,10 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
                 sub_parts.append(f"{gx} xfailed")
 
             model_suffix = ""
-            group_model = test_models.get(group_key)
-            if group_model:
-                model_suffix = f" | Model: `{group_model}`"
+            resolver_key = _GROUP_TO_PRIMARY_RESOLVER.get(group_key)
+            resolved = resolution_cache.get(resolver_key) if resolver_key else None
+            if resolved:
+                model_suffix = f" | Model: `{resolved.actual}`"
 
             lines.append(
                 f"#### {group_info['label']} ({', '.join(sub_parts)}) - {_format_duration(g_dur)}{model_suffix}"

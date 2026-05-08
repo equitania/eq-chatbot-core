@@ -35,9 +35,9 @@ class TestOpenRouterLive:
             site_name=test_config.get("openrouter_site_name"),
         )
 
-    def test_simple_completion(self, provider, test_config):
+    def test_simple_completion(self, provider, test_config, openrouter_resolved_model):
         """Test simple chat completion via OpenRouter."""
-        model = test_config.get("openrouter_model", "openai/gpt-4o-mini")
+        model = openrouter_resolved_model
 
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
@@ -80,9 +80,9 @@ class TestOpenRouterLive:
         print(f"\n  Found {len(models)} models")
         print(f"  Sample: {model_ids[:5]}")
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, openrouter_resolved_model):
         """Test SSE streaming completion via OpenRouter."""
-        model = test_config.get("openrouter_model", "openai/gpt-4o-mini")
+        model = openrouter_resolved_model
 
         chunks = list(
             provider.stream_completion(
@@ -101,9 +101,9 @@ class TestOpenRouterLive:
 
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, openrouter_resolved_model):
         """Test completion with system message."""
-        model = test_config.get("openrouter_model", "openai/gpt-4o-mini")
+        model = openrouter_resolved_model
 
         response = provider.chat_completion(
             messages=[
@@ -118,9 +118,9 @@ class TestOpenRouterLive:
         assert response.content
         assert "acknowledged" in response.content.lower()
 
-    def test_provider_prefix_routing(self, provider, test_config):
+    def test_provider_prefix_routing(self, provider, test_config, openrouter_resolved_model):
         """OpenRouter routes via provider/model prefix; verify response model echoes the prefix."""
-        model = test_config.get("openrouter_model", "openai/gpt-4o-mini")
+        model = openrouter_resolved_model
 
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Reply: ok"}],

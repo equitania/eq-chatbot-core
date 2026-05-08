@@ -25,17 +25,20 @@ class TestAzureLive:
 
     @pytest.fixture
     def provider(self, azure_api_key, test_config):
-        """Create Azure provider (skips if no API key or endpoint)."""
+        """Create Azure provider (skips if no API key, endpoint, or [azure] extra)."""
         if not azure_api_key:
             pytest.skip("AZURE_API_KEY not set")
         endpoint = test_config.get("azure_endpoint")
         if not endpoint:
             pytest.skip("AZURE_ENDPOINT not set")
-        return get_provider("azure", api_key=azure_api_key, base_url=endpoint)
+        try:
+            return get_provider("azure", api_key=azure_api_key, base_url=endpoint)
+        except ImportError as exc:
+            pytest.skip(f"Azure SDK not installed (use [azure] extra): {exc}")
 
-    def test_simple_completion(self, provider, test_config):
+    def test_simple_completion(self, provider, test_config, azure_resolved_model):
         """Test simple chat completion via Azure AI."""
-        model = test_config.get("azure_model", "gpt-4o")
+        model = azure_resolved_model
 
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
@@ -54,9 +57,9 @@ class TestAzureLive:
         print(f"  Response: {response.content}")
         print(f"  Tokens: {response.input_tokens} in / {response.output_tokens} out")
 
-    def test_streaming_completion(self, provider, test_config):
+    def test_streaming_completion(self, provider, test_config, azure_resolved_model):
         """Test streaming chat completion via Azure AI."""
-        model = test_config.get("azure_model", "gpt-4o")
+        model = azure_resolved_model
 
         chunks = list(
             provider.stream_completion(
@@ -72,9 +75,9 @@ class TestAzureLive:
         assert len(full_content) > 0
         print(f"\n  Streamed: {full_content[:100]}")
 
-    def test_system_message(self, provider, test_config):
+    def test_system_message(self, provider, test_config, azure_resolved_model):
         """Test completion with system message via Azure AI."""
-        model = test_config.get("azure_model", "gpt-4o")
+        model = azure_resolved_model
 
         response = provider.chat_completion(
             messages=[
@@ -102,20 +105,22 @@ class TestAzureLive:
         print(f"\n  Found {len(models)} known models")
         print(f"  Models: {model_ids}")
 
-    def test_context_manager(self, azure_api_key, test_config):
-        """Test provider works as context manager."""
+    def test_context_manager(self, azure_api_key, test_config, azure_resolved_model):
+        """Test provider works as context manager.
+
+        ``azure_resolved_model`` already skips when the [azure] extra is
+        missing, so the get_provider call here cannot raise ImportError.
+        """
         if not azure_api_key:
             pytest.skip("AZURE_API_KEY not set")
         endpoint = test_config.get("azure_endpoint")
         if not endpoint:
             pytest.skip("AZURE_ENDPOINT not set")
 
-        model = test_config.get("azure_model", "gpt-4o")
-
         with get_provider("azure", api_key=azure_api_key, base_url=endpoint) as provider:
             response = provider.chat_completion(
                 messages=[{"role": "user", "content": "Hi"}],
-                model=model,
+                model=azure_resolved_model,
                 max_tokens=5,
             )
             assert response.content
