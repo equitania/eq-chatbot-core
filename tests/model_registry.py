@@ -65,10 +65,14 @@ MODELS: dict[str, ModelChain] = {
         "feature support (e.g. response_format json_object).",
     ),
     "anthropic": ModelChain(
-        primary="claude-haiku-4-5",
-        fallbacks=("claude-3-5-haiku-20241022",),
+        primary="claude-haiku-4-5-20251001",
+        fallbacks=("claude-haiku-4-5",),
         cost_hint="$1.00 / $5.00 per 1M tok",
-        notes="claude-3-haiku-20240307 fully retired 2026-04. Haiku 4.5 is the cheapest current Claude model.",
+        notes="Anthropic's /v1/models returns dated aliases. The dated "
+        "claude-haiku-4-5-20251001 is the cataloged primary; the unversioned "
+        "claude-haiku-4-5 floats to the latest minor and stays a fallback "
+        "(it works for chat but isn't in list_models, so it triggers INFO). "
+        "claude-3-haiku-20240307 retired 2026-04.",
     ),
     "langdock.openai": ModelChain(
         primary="gpt-5.2",
