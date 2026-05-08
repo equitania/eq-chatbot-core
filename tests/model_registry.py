@@ -98,9 +98,17 @@ MODELS: dict[str, ModelChain] = {
         "burn most of max_tokens on internal reasoning_content.",
     ),
     "mammouth": ModelChain(
-        primary="gpt-4.1-nano",
-        fallbacks=("gpt-4.1-mini",),
-        cost_hint="$0.10 / $0.40 per 1M tok",
+        primary="gpt-5.4-nano",
+        fallbacks=("gpt-4.1-nano", "gemini-2.5-flash-lite", "gpt-4.1-mini"),
+        cost_hint="~$0.05 / $0.40 per 1M tok (gateway, passthrough)",
+        notes="Mammouth is a unified gateway and does NOT expose pricing in "
+        "list_models() (all 74 cataloged models return None for cost fields). "
+        "Pricing follows upstream provider rates approximately. gpt-5.4-nano "
+        "is the newer / cheaper-input GPT nano variant, verified to pass the "
+        "test contract (simple completion + ACKNOWLEDGED). gpt-5-nano is "
+        "skipped: Mammouth metadata reports supports_reasoning=False but the "
+        "model burns through max_tokens=20 with empty content, suggesting "
+        "the catalog flag is wrong for that variant.",
     ),
     "azure": ModelChain(
         primary="Phi-4",
