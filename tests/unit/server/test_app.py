@@ -203,6 +203,70 @@ class TestChatEndpoint:
         assert call_kwargs["tools"][0]["function"]["name"] == "f"
 
 
+    def test_chat_provider_extra_forwarded_to_factory(self, client) -> None:
+        """provider_extra body field should be unpacked into the
+        get_provider() call so provider-constructor kwargs (e.g. LangDock's
+        agent_id / backend) reach the provider's __init__. extra (per-call
+        kwargs) and provider_extra (per-construction kwargs) must NOT bleed
+        into each other — verified by inspecting both call sites."""
+        mock_provider = MagicMock()
+        mock_provider.chat_completion.return_value = LLMResponse(
+            content="ok", model="agent:abc", input_tokens=1, output_tokens=1
+        )
+        with patch(
+            "eq_chatbot_core.server.app.get_provider",
+            return_value=mock_provider,
+        ) as mock_factory:
+            resp = client.post(
+                "/chat",
+                headers=AUTH,
+                json={
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "provider": "langdock",
+                    "api_key": "ld-x",
+                    "provider_extra": {"backend": "agent", "agent_id": "abc"},
+                    "extra": {"reasoning_effort": "high"},
+                },
+            )
+        assert resp.status_code == 200
+        # Constructor kwargs landed on the factory
+        factory_kwargs = mock_factory.call_args.kwargs
+        assert factory_kwargs["backend"] == "agent"
+        assert factory_kwargs["agent_id"] == "abc"
+        # Per-call kwargs landed on chat_completion, NOT on the factory
+        call_kwargs = mock_provider.chat_completion.call_args.kwargs
+        assert call_kwargs["reasoning_effort"] == "high"
+        assert "backend" not in call_kwargs
+        assert "agent_id" not in call_kwargs
+
+    def test_chat_stream_provider_extra_forwarded_to_factory(self, client) -> None:
+        """Same routing guarantee for the streaming endpoint."""
+        mock_provider = MagicMock()
+        mock_provider.stream_completion.return_value = iter(
+            [StreamChunk(content="ok", is_final=True, finish_reason="stop")]
+        )
+        with patch(
+            "eq_chatbot_core.server.app.get_provider",
+            return_value=mock_provider,
+        ) as mock_factory:
+            resp = client.post(
+                "/chat/stream",
+                headers=AUTH,
+                json={
+                    "messages": [{"role": "user", "content": "hi"}],
+                    "provider": "langdock",
+                    "api_key": "ld-x",
+                    "provider_extra": {"backend": "agent", "agent_id": "abc"},
+                },
+            )
+        # Streaming endpoint validates eagerly; even before consuming the
+        # body, the factory must have been called with our kwargs.
+        assert resp.status_code == 200
+        factory_kwargs = mock_factory.call_args.kwargs
+        assert factory_kwargs["backend"] == "agent"
+        assert factory_kwargs["agent_id"] == "abc"
+
+
 @pytest.mark.unit
 class TestChatStreamEndpoint:
     def test_stream_chat_emits_chunk_and_done(self, client) -> None:

@@ -42,6 +42,14 @@ class ChatRequest(BaseModel):
     tools: list[dict[str, Any]] | None = None
     extra: dict[str, Any] | None = None
     """Provider-specific extras forwarded as **kwargs to chat_completion."""
+    provider_extra: dict[str, Any] | None = None
+    """Provider-constructor kwargs forwarded to get_provider(**kwargs).
+
+    Use this for parameters that bind at provider-construction time rather
+    than per-request — e.g. LangDock's ``backend`` / ``agent_id`` /
+    ``region`` / ``reasoning_effort``, Azure's ``deployment``, or any
+    other field the provider's ``__init__`` accepts. Per-call settings
+    like ``temperature`` go through dedicated fields or ``extra``."""
 
 
 class ChatResponse(BaseModel):

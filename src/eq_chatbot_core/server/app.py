@@ -95,7 +95,13 @@ def create_app(auth_token: str) -> FastAPI:
     @app.post("/chat", response_model=ChatResponse, tags=["chat"])
     async def chat(req: ChatRequest) -> ChatResponse:
         try:
-            provider_inst = get_provider(req.provider, api_key=req.api_key, base_url=req.base_url)
+            provider_extras = req.provider_extra or {}
+            provider_inst = get_provider(
+                req.provider,
+                api_key=req.api_key,
+                base_url=req.base_url,
+                **provider_extras,
+            )
             extras = req.extra or {}
             llm_response = provider_inst.chat_completion(
                 messages=[m.model_dump(exclude_none=True) for m in req.messages],
@@ -123,7 +129,13 @@ def create_app(auth_token: str) -> FastAPI:
         # Validate provider eagerly so a bad provider name returns a clean 400
         # instead of an SSE stream containing only an error event.
         try:
-            provider_inst = get_provider(req.provider, api_key=req.api_key, base_url=req.base_url)
+            provider_extras = req.provider_extra or {}
+            provider_inst = get_provider(
+                req.provider,
+                api_key=req.api_key,
+                base_url=req.base_url,
+                **provider_extras,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
         except ProviderError as exc:
