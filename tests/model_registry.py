@@ -87,10 +87,15 @@ MODELS: dict[str, ModelChain] = {
         notes="LangDock uses '-default' suffix for stable Anthropic aliases.",
     ),
     "openrouter": ModelChain(
-        primary="deepseek/deepseek-v4-flash",
-        fallbacks=("openai/gpt-4o-mini",),
-        cost_hint="OpenRouter gateway (see openrouter.ai/models)",
-        notes="Reasoning models truncate at low max_tokens (see test_system_message).",
+        primary="mistralai/mistral-nemo",
+        fallbacks=("meta-llama/llama-3.1-8b-instruct", "openai/gpt-4o-mini"),
+        cost_hint="$0.02 / $0.03 per 1M tok",
+        notes="OpenRouter exposes per-model input/output_cost_per_token in "
+        "list_models(). Picked the cheapest model that passes the test "
+        "contract (simple completion + ACKNOWLEDGED system message). "
+        "mistral-nemo is 12B and tokenizes English compactly. Avoid reasoning "
+        "models like deepseek/deepseek-v4-flash here; they cost more and "
+        "burn most of max_tokens on internal reasoning_content.",
     ),
     "mammouth": ModelChain(
         primary="gpt-4.1-nano",
