@@ -4,6 +4,8 @@ LLM cost calculation service.
 
 from typing import TypedDict
 
+from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
+
 
 class ModelPricing(TypedDict):
     """Pricing structure for a model."""
@@ -77,14 +79,18 @@ def calculate_cost(
     Returns:
         Cost in USD (6 decimal places)
     """
+    # Strip provider prefix used by gateways like OpenRouter
+    # ("openai/gpt-4o-mini" -> "gpt-4o-mini") so lookup matches PRICING keys.
+    lookup = strip_provider_prefix(model)
+
     # Try exact match
-    pricing = PRICING.get(model)
+    pricing = PRICING.get(lookup)
 
     # Try longest-prefix match if no exact match
     if pricing is None:
         best_match_len = 0
         for key, p in PRICING.items():
-            if model.startswith(key) and len(key) > best_match_len:
+            if lookup.startswith(key) and len(key) > best_match_len:
                 pricing = p
                 best_match_len = len(key)
 
@@ -132,13 +138,14 @@ def get_model_pricing(model: str) -> ModelPricing:
     Returns:
         ModelPricing dict with input/output rates
     """
-    pricing = PRICING.get(model)
+    lookup = strip_provider_prefix(model)
+    pricing = PRICING.get(lookup)
 
     if pricing is None:
         best_match_len = 0
         best_match: ModelPricing | None = None
         for key, p in PRICING.items():
-            if model.startswith(key) and len(key) > best_match_len:
+            if lookup.startswith(key) and len(key) > best_match_len:
                 best_match = p
                 best_match_len = len(key)
         if best_match is not None:

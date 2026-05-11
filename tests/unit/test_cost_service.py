@@ -103,6 +103,25 @@ class TestCalculateCost:
         # output pricing is 0.0, so output_tokens contribute nothing
         assert cost == pytest.approx(round(expected, 6))
 
+    def test_openrouter_prefix_openai_gpt4o_mini(self):
+        """OpenRouter-style 'openai/gpt-4o-mini' must resolve to gpt-4o-mini pricing, not DEFAULT."""
+        cost = calculate_cost("openai/gpt-4o-mini", input_tokens=1000, output_tokens=1000)
+        expected = (1000 / 1000) * PRICING["gpt-4o-mini"]["input"] + (1000 / 1000) * PRICING["gpt-4o-mini"]["output"]
+        assert cost == pytest.approx(round(expected, 6))
+        # Regression guard: must NOT silently fall back to DEFAULT_PRICING
+        from eq_chatbot_core.services.cost_service import DEFAULT_PRICING
+
+        default_cost = (1000 / 1000) * DEFAULT_PRICING["input"] + (1000 / 1000) * DEFAULT_PRICING["output"]
+        assert cost != pytest.approx(round(default_cost, 6))
+
+    def test_openrouter_prefix_anthropic_claude_dated(self):
+        """OpenRouter-style 'anthropic/claude-3-5-sonnet-20241022' resolves via prefix-strip."""
+        cost = calculate_cost("anthropic/claude-3-5-sonnet-20241022", input_tokens=1000, output_tokens=1000)
+        expected = (1000 / 1000) * PRICING["claude-3-5-sonnet-20241022"]["input"] + (1000 / 1000) * PRICING[
+            "claude-3-5-sonnet-20241022"
+        ]["output"]
+        assert cost == pytest.approx(round(expected, 6))
+
 
 # =============================================================================
 # get_model_pricing() Tests
@@ -134,6 +153,15 @@ class TestGetModelPricing:
         pricing = get_model_pricing("nonexistent-model-42")
         assert pricing["input"] == pytest.approx(DEFAULT_PRICING["input"])
         assert pricing["output"] == pytest.approx(DEFAULT_PRICING["output"])
+
+    def test_openrouter_prefix_resolves_to_real_pricing(self):
+        """OpenRouter 'openai/gpt-4o' resolves via prefix-strip to gpt-4o pricing, not DEFAULT."""
+        pricing = get_model_pricing("openai/gpt-4o")
+        gpt4o = PRICING["gpt-4o"]
+        assert pricing["input"] == pytest.approx(gpt4o["input"])
+        assert pricing["output"] == pytest.approx(gpt4o["output"])
+        # Regression guard
+        assert pricing["input"] != pytest.approx(DEFAULT_PRICING["input"])
 
 
 # =============================================================================
