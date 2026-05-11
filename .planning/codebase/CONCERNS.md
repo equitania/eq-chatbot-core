@@ -10,17 +10,17 @@
 - Impact: Callers cannot reliably type-check the return value; `ModelInfo` is dead code that misleads integrators
 - Fix approach: Either remove `ModelInfo` from the union and from public exports, or migrate all providers to return `list[ModelInfo]`
 
-**`cost_service.py` pricing table is stale:**
-- Issue: Header comment says "Last updated: February 2025". The models actively used in tests and integrations as of 2026-05 — `gpt-5.4-nano`, `gpt-5.4-mini`, `o4-mini`, `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `gemini-2.5-flash-lite` — are absent from `PRICING`. Unknown models silently fall back to `DEFAULT_PRICING` (`$0.01/$0.03 per 1K`), which is wrong by 10–100× for nano/flash-tier models.
+**`cost_service.py` pricing table is stale for newer model variants:**
+- Issue: Header comment says "Last updated: February 2025" (`cost_service.py:16`). Base families (`gpt-5-mini`, `gpt-5.1-chat`, `gpt-5.2-chat`, `claude-haiku-4-5`, `gpt-4o-mini`) are present, but the **dated aliases** and **5.4-variants** actually used in `tests/model_registry.py` since 2026-05 are missing: `gpt-5.4-nano`, `gpt-5.4-mini`, `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `gemini-2.5-flash-lite`. Longest-prefix matching in `calculate_cost()` (`cost_service.py:84-89`) catches some via family prefix but not the dated suffixes — `claude-haiku-4-5-20251001` does match `claude-haiku-4-5` (good), while `gpt-5.4-nano` does **not** match any key starting with `gpt-5.4` (falls back to `DEFAULT_PRICING`).
 - Files: `src/eq_chatbot_core/services/cost_service.py:16-58`
-- Impact: `calculate_cost()` and `estimate_monthly_cost()` return silently wrong figures for the most commonly used cheap models
-- Fix approach: Add entries for all models in `tests/model_registry.py` MODELS dict; update the "Last updated" comment; consider a CI lint that warns when a registry model has no pricing entry
+- Impact: Silent fallback to `DEFAULT_PRICING` (`$0.01/$0.03 per 1K`) for any `gpt-5.4-*` model — wrong by 10–100× for nano/flash-tier
+- Fix approach: Add `gpt-5.4-nano` / `gpt-5.4-mini` / `gemini-2.5-flash-lite` entries; update the "Last updated" comment; add a parametrized test that asserts every model in `tests/model_registry.MODELS` resolves to a non-default `PRICING` entry
 
 **OpenRouter model IDs with provider prefix never match `PRICING`:**
 - Issue: OpenRouter model IDs use `provider/model` format (e.g. `mistralai/mistral-nemo`, `openai/gpt-4o-mini`). `calculate_cost()` does prefix matching against plain names like `gpt-4o-mini`. The slash prefix means no key in `PRICING` can ever match, so every OpenRouter cost calculation silently returns the `DEFAULT_PRICING` fallback.
 - Files: `src/eq_chatbot_core/services/cost_service.py:81-89`, `src/eq_chatbot_core/providers/openrouter_provider.py`
 - Impact: All OpenRouter cost calculations are wrong
-- Fix approach: Strip provider prefix in `calculate_cost()` via `strip_provider_prefix()` from `temperature_constraints.py` before lookup (that function already exists)
+- Fix approach: Call `strip_provider_prefix(model)` before lookup in `calculate_cost()`. Helper exists at `src/eq_chatbot_core/providers/temperature_constraints.py:68` and is already used by `openrouter_provider.py:139,213` — same pattern just needs to be applied in the cost path
 
 **`LangDockProvider` is the largest file (1956 lines) with duplicated chat/stream logic:**
 - Issue: `langdock_provider.py` contains separate near-identical `_openai_chat_completion` / `_anthropic_chat_completion` / `_google_chat_completion` branches, each ~200 lines. The streaming counterparts are another 200 lines each. The backend dispatch pattern (`chat_completion` → `_dispatch` → `_openai_chat_completion`) duplicates error handling and payload construction.
@@ -35,10 +35,11 @@
 - Fix approach: Normalize model ID to lowercase before lookup, remove duplicate entries
 
 **108 mypy errors with `strict = true` (unresolved):**
-- Issue: `pyproject.toml` sets `mypy strict = true`, but as of May 2026 the codebase has ~108 mypy errors dominated by `no-untyped-def` (45), `type-arg` (18), `no-any-return` (14). The server module suppresses these with `# type: ignore[no-untyped-def]` comments. The `**kwargs` signatures throughout providers are typed as `**kwargs` without `**kwargs: Any`, triggering mypy errors.
-- Files: `src/eq_chatbot_core/server/__init__.py:22,34`, `src/eq_chatbot_core/server/auth.py:30`, `src/eq_chatbot_core/server/app.py:147`; all provider `chat_completion` / `stream_completion` methods
+- Issue: `pyproject.toml` sets `mypy strict = true`, but `uv run mypy src/` (2026-05-11) reports `Found 108 errors in 21 files (checked 39 source files)`. Dominated by `no-untyped-def`, `type-arg`, `no-any-return`. The `**kwargs` signatures throughout providers lack `**kwargs: Any` annotations.
+- Repro: `uv run mypy src/ 2>&1 | tail -5`
+- Files: `src/eq_chatbot_core/cli.py:264,386,553`, all provider `chat_completion` / `stream_completion` methods
 - Impact: CI mypy check is effectively non-enforcing; type safety guarantees are illusory
-- Fix approach: Add `**kwargs: Any` to all provider method signatures; type the server module properly or downgrade mypy config to match actual coverage
+- Fix approach: Add `**kwargs: Any` to all provider method signatures; type the server / cli modules properly or downgrade mypy config to match actual coverage
 
 ## Known Bugs
 
@@ -192,6 +193,30 @@
 - Files: `src/eq_chatbot_core/services/cost_service.py`, `tests/model_registry.py`
 - Risk: Silent cost miscalculation for all current primary models
 - Priority: High — a simple parametrized test would cover this
+
+## Recent Releases — Open Follow-ups
+
+**Anthropic SDK 0.76.0 → 0.100.0 upgrade (commit `1572` from 2026-05-08):**
+- Context: SDK was bumped as part of the test-registry overhaul. `pyproject.toml` pins `anthropic>=0.90.0,<2.0.0` — a wide range that allows further auto-updates without recompat-testing.
+- Risk: `cache_control` block construction in `anthropic_provider.py:111-155` and the streaming overload-retry loop (lines 386-496) depend on SDK message-block schema and exception types. A 0.100.x → 0.110.x bump could silently change either.
+- Recommendation: Tighten upper bound (`<0.110.0` or `<1.0.0`) or add a smoke test that exercises both cache_control and overload paths against the current SDK.
+
+**`ChatRequest.provider_extra` kwarg-passthrough (Release 1.7.1, commit `3f97b68`):**
+- Context: `server/app.py:98-103,132-137` unpacks `req.provider_extra` directly into `get_provider(**provider_extras)`. Any field name the caller sends becomes a constructor kwarg on the chosen provider class.
+- Risk: No allowlist of accepted kwarg names. A caller can attempt to pass internal-only fields (e.g. `_client`, `timeout` overrides), and downstream behavior depends entirely on each provider's `__init__` signature tolerance. With `**kwargs` typed as untyped (mypy issue above), the surface is invisible to static analysis.
+- Recommendation: Define a per-provider allowlist of `provider_extra` keys (or a typed `ProviderExtras` Pydantic model per provider). At minimum, document the expectation that callers send only documented kwargs.
+
+**`ChatMessage.cache_control` API contract (Release 1.7.2, commit `f9ce426`):**
+- Context: Schema exposes `cache_control` on every message, but only system messages honor it (see "Known Bugs" above). The contract is wider than the implementation.
+- Risk: Integrators set `cache_control` on user/assistant turns expecting Anthropic-style cache-break and get silent no-ops. Other providers (OpenAI, OpenRouter, etc.) silently ignore the field entirely.
+- Recommendation: Either narrow the schema (`cache_control` only on system role) or implement the documented Anthropic behavior for user content blocks.
+
+## Process / Workflow Risks
+
+**Dual-remote push workflow (GitLab origin + GitHub upstream):**
+- Context: `eq_chatbot_core` is pushed to both `gitlab.ownerp.io:pypi-projects/eq_chatbot_core.git` and `github.com:equitania/eq-chatbot-core.git`. Every commit must hit both — historical convention enforced manually.
+- Risk: A `git push` that only goes to one remote leaves the mirrors out of sync. No CI check enforces parity. PyPI releases are cut locally (per memory `release_workflow_local.md`) which means a desync can ship asymmetric tags.
+- Recommendation: Add a pre-release script (`/afterwork` candidate) that checks `git rev-parse origin/main` against `git rev-parse upstream/main` and refuses to publish if they diverge.
 
 ---
 
