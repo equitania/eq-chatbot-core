@@ -13,7 +13,10 @@ _logger = logging.getLogger(__name__)
 
 
 # Per-model temperature constraints.
-# Key: model ID or prefix for longest-prefix matching.
+# Key: model ID or prefix (lowercase) for case-insensitive longest-prefix matching.
+# get_temperature_constraints() lowercases the input before lookup, so all keys
+# here MUST be lowercase. Mixed-case Azure model IDs (DeepSeek-V3, MAI-DS-R1)
+# and lowercase OpenRouter IDs (deepseek-v3) both resolve to the same entry.
 MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     # Reasoning models: temperature fixed at 1.0 (not configurable)
     "o1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
@@ -40,22 +43,21 @@ MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "gemini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     # Mistral: 0.0-1.0 (covers Mistral-Large-3 etc.)
     "mistral": {"min": 0.0, "max": 1.0, "supports_temperature": True},
-    "Mistral": {"min": 0.0, "max": 1.0, "supports_temperature": True},
-    # DeepSeek (lowercase for OpenRouter/direct, uppercase for Azure)
+    # DeepSeek
     "deepseek-chat": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "deepseek-reasoner": {"min": 1.0, "max": 1.0, "supports_temperature": False},
-    "DeepSeek-V3": {"min": 0.0, "max": 2.0, "supports_temperature": True},
-    "DeepSeek-R1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "deepseek-v3": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "deepseek-r1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
     # Microsoft MAI (reasoning)
-    "MAI-DS-R1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "mai-ds-r1": {"min": 1.0, "max": 1.0, "supports_temperature": False},
     # Meta Llama: 0.0-2.0
-    "Llama": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "llama": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     # xAI Grok: 0.0-2.0
     "grok": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     # Cohere: 0.0-1.0
-    "Cohere": {"min": 0.0, "max": 1.0, "supports_temperature": True},
+    "cohere": {"min": 0.0, "max": 1.0, "supports_temperature": True},
     # Moonshot Kimi: 0.0-1.0
-    "Kimi": {"min": 0.0, "max": 1.0, "supports_temperature": True},
+    "kimi": {"min": 0.0, "max": 1.0, "supports_temperature": True},
 }
 
 DEFAULT_TEMP_CONSTRAINTS: dict[str, Any] = {
@@ -83,24 +85,27 @@ def get_temperature_constraints(model: str) -> dict[str, Any]:
     """
     Get temperature constraints for a specific model.
 
-    Uses exact match first, then longest-prefix match against
-    MODEL_TEMPERATURE_CONSTRAINTS, falling back to DEFAULT_TEMP_CONSTRAINTS.
+    Case-insensitive: the model ID is lowercased before lookup. Uses exact match
+    first, then longest-prefix match against MODEL_TEMPERATURE_CONSTRAINTS,
+    falling back to DEFAULT_TEMP_CONSTRAINTS.
 
     Args:
-        model: Model ID (without provider prefix)
+        model: Model ID (without provider prefix). Case is ignored.
 
     Returns:
         Dict with keys: min, max, supports_temperature
     """
+    lookup = model.lower()
+
     # Exact match
-    if model in MODEL_TEMPERATURE_CONSTRAINTS:
-        return MODEL_TEMPERATURE_CONSTRAINTS[model]
+    if lookup in MODEL_TEMPERATURE_CONSTRAINTS:
+        return MODEL_TEMPERATURE_CONSTRAINTS[lookup]
 
     # Longest-prefix match
     best_match_len = 0
     best_match: dict[str, Any] | None = None
     for key, constraints in MODEL_TEMPERATURE_CONSTRAINTS.items():
-        if model.startswith(key) and len(key) > best_match_len:
+        if lookup.startswith(key) and len(key) > best_match_len:
             best_match = constraints
             best_match_len = len(key)
 
