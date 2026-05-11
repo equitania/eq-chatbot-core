@@ -212,6 +212,57 @@ class TestSystemPromptExtraction:
         assert system is None
         assert len(filtered) == 2
 
+    def test_system_prompt_with_cache_control_emits_blocks(self):
+        """Test that cache_control hint switches output to content-block list."""
+        provider = AnthropicProvider(api_key="sk-ant-test")
+        messages = [
+            {
+                "role": "system",
+                "content": "Long FastReport context here.",
+                "cache_control": {"type": "ephemeral"},
+            },
+            {"role": "user", "content": "Hello"},
+        ]
+
+        system, filtered = provider._extract_system_prompt(messages)
+
+        # Content-block list, not a plain string — Anthropic prompt-caching shape.
+        assert isinstance(system, list)
+        assert len(system) == 1
+        assert system[0] == {
+            "type": "text",
+            "text": "Long FastReport context here.",
+            "cache_control": {"type": "ephemeral"},
+        }
+        assert len(filtered) == 1
+
+    def test_mixed_system_prompts_with_partial_cache_control(self):
+        """A single cache_control hint on one of several system messages still
+        switches the whole emission to content blocks; the un-tagged ones come
+        through as plain text blocks. Anthropic caches up to the last tagged
+        block in the prefix."""
+        provider = AnthropicProvider(api_key="sk-ant-test")
+        messages = [
+            {"role": "system", "content": "Persona instructions."},
+            {
+                "role": "system",
+                "content": "Knowledge base section.",
+                "cache_control": {"type": "ephemeral"},
+            },
+            {"role": "user", "content": "Hello"},
+        ]
+
+        system, filtered = provider._extract_system_prompt(messages)
+
+        assert isinstance(system, list)
+        assert len(system) == 2
+        # First block: no cache_control key — un-tagged passes through as text only.
+        assert system[0] == {"type": "text", "text": "Persona instructions."}
+        # Second block carries the hint.
+        assert system[1]["cache_control"] == {"type": "ephemeral"}
+        assert system[1]["text"] == "Knowledge base section."
+        assert len(filtered) == 1
+
 
 # =============================================================================
 # Tool Conversion Tests

@@ -22,6 +22,15 @@ class ChatMessage(BaseModel):
     name: str | None = None
     tool_call_id: str | None = None
     tool_calls: list[dict[str, Any]] | None = None
+    cache_control: dict[str, Any] | None = None
+    """Optional Anthropic prompt-caching hint, e.g. ``{"type": "ephemeral"}``.
+
+    Honoured by :class:`AnthropicProvider` on system messages: when set, the
+    system content is sent as a list of content-blocks instead of a plain
+    string, with ``cache_control`` attached to the last block so all prefix
+    blocks become cacheable (5 min TTL for ``ephemeral``). Other providers
+    ignore the field — including for non-system roles, since the wire shape
+    of caching is provider-specific. Requires sidecar version 1.7.2+."""
 
 
 class ChatRequest(BaseModel):

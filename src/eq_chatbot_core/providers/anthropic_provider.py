@@ -94,27 +94,67 @@ class AnthropicProvider(BaseLLMProvider):
             )
         return self._client
 
-    def _extract_system_prompt(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
+    def _extract_system_prompt(
+        self, messages: list[dict[str, Any]]
+    ) -> tuple[str | list[dict[str, Any]] | None, list[dict[str, Any]]]:
         """
         Extract system prompt from messages.
 
-        Anthropic requires system prompt as a separate parameter.
+        Anthropic requires system prompt as a separate parameter. Two output
+        shapes are supported, picked automatically:
+
+        * Plain string (legacy path): used when no system message carries a
+          ``cache_control`` hint. Cheapest path, preserves the original
+          single-string behaviour for callers that don't opt in to caching.
+        * List of content blocks (prompt-caching path): used when ANY system
+          message carries a ``cache_control`` value. Each system message
+          contributes a ``{"type": "text", "text": ..., "cache_control": ...}``
+          block; messages without a hint emit a plain text block. Anthropic
+          caches all prefix blocks up to and including the last one tagged
+          ``cache_control`` (5 min TTL for ``ephemeral``).
         """
-        system_prompt = None
-        filtered_messages = []
+        text_parts: list[tuple[str, dict[str, Any] | None]] = []
+        filtered_messages: list[dict[str, Any]] = []
+        any_cache_control = False
 
         for msg in messages:
-            if msg.get("role") == "system":
-                # Concatenate multiple system messages
-                content = msg.get("content", "")
-                if system_prompt:
-                    system_prompt = f"{system_prompt}\n\n{content}"
-                else:
-                    system_prompt = content
-            else:
+            if msg.get("role") != "system":
                 filtered_messages.append(msg)
+                continue
 
-        return system_prompt, filtered_messages
+            cc = msg.get("cache_control")
+            if cc is not None:
+                any_cache_control = True
+
+            # Normalise content: callers may already pass a list of content
+            # blocks (e.g. when constructing the prompt programmatically) —
+            # in that case, harvest the text payloads and concat them.
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                text = "\n\n".join(
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict) and block.get("type") == "text"
+                )
+            else:
+                text = str(content)
+            text_parts.append((text, cc))
+
+        if not text_parts:
+            return None, filtered_messages
+
+        if not any_cache_control:
+            # Legacy fast path — plain string.
+            return "\n\n".join(t for t, _ in text_parts), filtered_messages
+
+        # Prompt-caching path — emit content blocks.
+        blocks: list[dict[str, Any]] = []
+        for text, cc in text_parts:
+            block: dict[str, Any] = {"type": "text", "text": text}
+            if cc is not None:
+                block["cache_control"] = cc
+            blocks.append(block)
+        return blocks, filtered_messages
 
     def _convert_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
