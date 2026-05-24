@@ -18,11 +18,13 @@ granularity: standard
 ## Phase Details
 
 ### Phase 0: Codebase Cleanup
+
 **Goal**: `CLOUD_PROVIDERS` and `LOCAL_PROVIDERS` are exported as authoritative constants from `providers/__init__.py`; no hardcoded duplicates remain anywhere in the codebase
 **Depends on**: Nothing (pre-condition for all subsequent phases)
 **Requirements**: CLN-01, CLN-02, CLN-03, CLN-04
 
 **Success Criteria** (what must be TRUE):
+
   1. `grep -rn "CLOUD_PROVIDERS\|LOCAL_PROVIDERS" src/` returns exactly one definition site (in `providers/__init__.py`) and zero inline literal lists
   2. `server/app.py` imports both constants from `providers/__init__.py` — no hardcoded provider name list inside that file
   3. `cli.py` imports both constants from `providers/__init__.py` — no hardcoded provider name list inside that file
@@ -31,18 +33,28 @@ granularity: standard
 **Plans**: 3 plans
 
 Plans:
+**Wave 1**
+
 - [ ] 00-01-PLAN.md — Export CLOUD_PROVIDERS and LOCAL_PROVIDERS from providers/__init__.py
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 00-02-PLAN.md — Replace hardcoded lists in cli.py and server/app.py with imports
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
 - [ ] 00-03-PLAN.md — Verify grep gate and unit test suite (read-only verification)
 
 ---
 
 ### Phase 1: Contracts + Foundation
+
 **Goal**: The complete realtime type system, ABC, WebSocket base class with reconnect/backoff, factory, MockRealtimeProvider, and test infrastructure exist and are verifiable in isolation — every subsequent phase builds on this without touching shared files
 **Depends on**: Phase 0
 **Requirements**: CON-01, CON-02, CON-03, CON-04, CON-05, CON-06, CON-07, CON-08, CON-09, CON-10, CON-11, CON-12, CON-13, QUAL-02
 
 **Success Criteria** (what must be TRUE):
+
   1. `test_contracts.py` byte-for-byte string assertions pass for all 12 `NormalizedRealtimeEventTypes` constants — any future string drift is caught immediately in CI
   2. `isinstance(MockRealtimeProvider(), RealtimeAdapterContract)` returns `True` at the Python REPL without installing `[realtime]` extra (MockRealtimeProvider is stdlib-only)
   3. `pip install eq-chatbot-core` (without `[realtime]`) then `from eq_chatbot_core.realtime import get_realtime_provider` raises a friendly `ImportError` with install instructions, not a bare `ModuleNotFoundError`
@@ -55,6 +67,7 @@ Plans:
 ---
 
 ### Phase 2: OpenAI Realtime Provider
+
 **Goal**: `OpenAIRealtimeClient` is a working production port of the GlassAgents reference implementation (~391 LOC), with the `server_vad`/`include_turn_detection` inconsistency resolved before a single line is written, and a verified current model name as the default
 **Depends on**: Phase 1
 **Requirements**: PROV-01, PROV-02, PROV-03, PROV-04, QUAL-01 (OpenAI portion), QUAL-03 (OpenAI portion)
@@ -62,6 +75,7 @@ Plans:
 > **Split note — QUAL-01 and QUAL-03:** These requirements span two phases. The OpenAI-specific unit test suite (`test_realtime_openai.py`) and the OpenAI integration test (real API key, SESSION_READY → PCM16 chunk → close) are delivered in this phase. The Gemini/Nova portions land in Phase 3.
 
 **Success Criteria** (what must be TRUE):
+
   1. The `server_vad` capability flag and `include_turn_detection` config default are consistent: the resolved design is documented in a code comment before implementation begins (PITFALL-28 resolved)
   2. `OpenAIRealtimeConfig.model` default is a valid, currently-accepted OpenAI Realtime API model ID — verified live against the OpenAI models list at phase start
   3. An integration test (skipped if `OPENAI_API_KEY` absent) connects to the OpenAI Realtime API, receives a `SESSION_READY` normalized event, sends one PCM16 audio chunk, and disconnects cleanly without errors
@@ -72,6 +86,7 @@ Plans:
 ---
 
 ### Phase 3: Gemini Live + Nova Sonic Stub
+
 **Goal**: `GeminiLiveClient` (~919 LOC port) and `NovaSonicStub` (<30 LOC) complete the provider set; Gemini API key redaction is present and unit-tested; the Nova stub satisfies `RealtimeAdapterContract` structurally while pointing clearly to v1.9.0
 **Depends on**: Phase 2 (recommended sequential; contract shape issues surface earlier; `manual_turn_commit_required` pattern builds on OpenAI patterns)
 **Requirements**: PROV-05, PROV-06, PROV-07, PROV-08, QUAL-01 (Gemini + Nova portion), QUAL-03 (Gemini portion)
@@ -79,6 +94,7 @@ Plans:
 > **Split note — QUAL-01 and QUAL-03:** Unit tests for Gemini (`test_realtime_gemini.py`) and Nova (`test_realtime_nova.py`) land here, completing QUAL-01. The Gemini integration test (real Vertex EU credentials, SESSION_READY gate) lands here, completing QUAL-03.
 
 **Success Criteria** (what must be TRUE):
+
   1. `GeminiLiveConfig.model` default is verified as a currently-valid model alias at phase start (PITFALL-20 resolved)
   2. `_redact_sensitive_url` unit test confirms the returned endpoint string contains no `key=` query parameter — Gemini API key never appears in logs
   3. An integration test (skipped if Vertex EU credentials absent) connects to a `europe-west*` Vertex region, receives `SESSION_READY`, and disconnects cleanly
@@ -90,11 +106,13 @@ Plans:
 ---
 
 ### Phase 4: CLI, Hardening, Docs, Release
+
 **Goal**: All developer-facing surface (CLI command, bilingual documentation, CHANGELOG) is complete, the GlassAgents migration gate is clean, and the wheel is tag-ready for local publish via `/afterwork`
 **Depends on**: Phase 3 (all providers must exist before CLI smoke-test and docs can be complete)
 **Requirements**: QUAL-04, QUAL-05, QUAL-06, REL-01, REL-02, REL-03, REL-04, REL-05
 
 **Success Criteria** (what must be TRUE):
+
   1. `eq-chatbot realtime-test -p mock` runs without a real API key and prints a success message — proves the CLI command, factory wiring, and MockRealtimeProvider are all connected end-to-end
   2. A pre-release grep of `GlassAgents/backend/realtime/bridge.py` event-type strings finds zero mismatches against `NormalizedRealtimeEventTypes` library constants (PITFALL-27 gate: silent audio loss on migration is impossible)
   3. `docs/realtime.md` exists with both `#deutsch` and `#english` anchors; contains explicit "not available via HTTP sidecar" and "not available via CLI JSON I/O" sections
