@@ -98,7 +98,17 @@ Plans:
   3. An integration test (skipped if `OPENAI_API_KEY` absent) connects to the OpenAI Realtime API, receives a `SESSION_READY` normalized event, sends one PCM16 audio chunk, and disconnects cleanly without errors
   4. Unit tests for connect lifecycle, `iter_normalized_events` replay (scrubbed fixture frames), close lifecycle, and capability flag assertions all pass — no real network calls
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Create OpenAIRealtimeClient + OpenAIRealtimeConfig + OPENAI_REALTIME_CAPABILITIES + full 11-method implementation with PITFALL-28 comment
+
+**Wave 2** *(parallel — no file overlap)*
+
+- [ ] 02-02-PLAN.md — Unit test suite for OpenAI provider (test_realtime_openai.py)
+- [ ] 02-03-PLAN.md — Factory registration + realtime/__init__.py re-exports + integration test
 
 ---
 
