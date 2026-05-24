@@ -65,6 +65,20 @@ class StreamChunk:
     """Number of output tokens (only set on final chunk with usage data)."""
 
 
+@dataclass(frozen=True, slots=True)
+class ToolDefinition:
+    """Typed tool/function definition shared by chat and realtime providers.
+
+    Parameters must use flat JSON Schema (no $ref, $defs, allOf, anyOf, oneOf).
+    Both OpenAI and Gemini strip or reject JSON Schema references (PITFALL-12).
+    """
+
+    name: str
+    description: str
+    parameters: dict[str, Any]  # Flat JSON Schema dict
+    strict: bool = False
+
+
 class BaseLLMProvider(ABC):
     """
     Abstract base class for LLM providers.
@@ -112,7 +126,7 @@ class BaseLLMProvider(ABC):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
         **kwargs: Any,
     ) -> LLMResponse:
         """
@@ -142,7 +156,7 @@ class BaseLLMProvider(ABC):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """

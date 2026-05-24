@@ -71,6 +71,9 @@ azure = [
 vertex = [
     "google-genai>=1.0.0",
 ]
+realtime = [
+    "websockets>=13.0,<17.0",
+]
 server = [
     # Localhost HTTP gateway for cross-language integrations (e.g. fr-designer
     # Avalonia desktop app spawning eq-chatbot as a sidecar).
