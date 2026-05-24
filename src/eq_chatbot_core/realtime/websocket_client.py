@@ -5,6 +5,7 @@ exponential backoff reconnect, and error normalization across websockets 13.x–
 """
 
 import asyncio
+import inspect
 import json
 import logging
 import random
@@ -21,6 +22,19 @@ except ImportError:
     ws_exceptions = None
 
 _logger = logging.getLogger(__name__)
+
+# Detect which header kwarg websockets.connect accepts — done once at import time
+# to avoid exception-as-control-flow inside connect() (PITFALL: TypeError from the
+# fallback arm would be silently wrapped as RealtimeConnectionError, hiding the real cause).
+# websockets >=13 uses additional_headers; older versions used extra_headers.
+_CONNECT_HEADERS_KWARG: str = "extra_headers"
+if websockets is not None:
+    try:
+        _sig = inspect.signature(websockets.connect)
+        if "additional_headers" in _sig.parameters:
+            _CONNECT_HEADERS_KWARG = "additional_headers"
+    except (ValueError, TypeError):
+        pass  # If signature introspection fails, fall back to extra_headers
 
 
 # ---------------------------------------------------------------------------
@@ -130,18 +144,13 @@ class BaseRealtimeWebsocketClient(ABC):
             return
 
         try:
-            try:
-                # websockets >=13 uses additional_headers; older used extra_headers
-                connection = websockets.connect(
-                    self._url,
-                    additional_headers=self._headers,
-                )
-            except TypeError:
-                connection = websockets.connect(
-                    self._url,
-                    extra_headers=self._headers,
-                )
-            self._ws = await connection
+            # Use the header kwarg detected at import time (_CONNECT_HEADERS_KWARG).
+            # Avoids exception-as-control-flow: if `extra_headers` fallback also raised
+            # TypeError, it would be silently wrapped as RealtimeConnectionError.
+            self._ws = await websockets.connect(
+                self._url,
+                **{_CONNECT_HEADERS_KWARG: self._headers},
+            )
         except Exception as exc:
             # Cross-version HTTP status introspection (handles both legacy and new asyncio impl)
             status_code = getattr(
