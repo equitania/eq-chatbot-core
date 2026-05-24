@@ -38,6 +38,8 @@ Standalone Python library that provides a unified, provider-agnostic interface t
 - ✓ Knowledge export service for vector DBs and LangDock Knowledge Folders — v1.4.0
 - ✓ 1 125+ unit tests + ~30 integration tests + per-run Markdown report — v1.6.0
 - ✓ GitHub Actions CI matrix Python 3.10–3.13 — v1.6.0
+- ✓ Realtime contracts + `RealtimeProvider` ABC + `BaseRealtimeWebsocketClient` + factory + `MockRealtimeProvider` (`[realtime]` extra) — Phase 1, v1.8.0
+- ✓ OpenAI Realtime provider (`OpenAIRealtimeClient`, `gpt-realtime` GA, PITFALL-28 resolved, 11-method contract, unit + live integration test) — Phase 2, v1.8.0 (PROV-01..04, QUAL-01/03 OpenAI portions)
 
 ### Active
 
@@ -110,7 +112,7 @@ See **Current Milestone** below.
 
 **Goal:** Port bidirectional voice streaming (OpenAI Realtime + Gemini Live) from GlassAgents into `eq-chatbot-core` as a new `[realtime]` extra, plus evaluate alternative providers to avoid vendor lock-in.
 
-**Progress:** Phase 1 (Contracts + Foundation) complete (2026-05-24) — realtime type system, `RealtimeProvider` ABC, `BaseRealtimeWebsocketClient` (reconnect/backoff), factory, stdlib-only `MockRealtimeProvider`, and `[realtime]` extra shipped with 30 realtime unit tests (verified 5/5 criteria, zero regressions). Next: Phase 2 — OpenAI Realtime provider port.
+**Progress:** Phase 1 (Contracts + Foundation) complete (2026-05-24) — realtime type system, `RealtimeProvider` ABC, `BaseRealtimeWebsocketClient` (reconnect/backoff), factory, stdlib-only `MockRealtimeProvider`, and `[realtime]` extra shipped with 30 realtime unit tests. Phase 2 (OpenAI Realtime Provider) complete (2026-05-24) — faithful port of `OpenAIRealtimeClient` (`gpt-realtime` GA default, PITFALL-28 reconciled, full 11-method contract), provider registered in factory + public re-exports, OpenAI unit suite + skip-safe live integration test (verified 4/4 criteria after gap closure). Next: Phase 3 — Gemini Live + Nova Sonic stub.
 
 **Target features:**
 - `RealtimeAdapterContract` + minimal `RealtimeProvider` ABC + `NormalizedRealtimeEvent` schema (12 event constants) + `RealtimeProviderCapabilities` metadata
@@ -147,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-24 after Phase 1 (Contracts + Foundation) completion*
+*Last updated: 2026-05-24 after Phase 2 (OpenAI Realtime Provider) completion*
