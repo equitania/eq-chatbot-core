@@ -110,10 +110,13 @@ class BaseRealtimeWebsocketClient(ABC):
     def _connection_error_endpoint(self) -> str:
         """Return a REDACTED URL string safe for error messages and logs.
 
-        Override to strip API keys. Default returns self._url unchanged
-        (safe only for providers that don't embed secrets in URL).
+        You MUST override this and strip API keys before returning.
+        Raise NotImplementedError if called directly — no safe default exists,
+        because URLs may embed secrets (e.g. ?api_key=sk-...).
         """
-        return self._url
+        raise NotImplementedError(
+            "_connection_error_endpoint must be overridden to redact secrets from URL"
+        )
 
     async def connect(self) -> None:
         """Open the WebSocket connection and invoke _on_connected().
