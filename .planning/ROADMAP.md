@@ -10,7 +10,7 @@ granularity: standard
 ## Phases
 
 - [x] **Phase 0: Codebase Cleanup** - Export provider-name constants; eliminate 3-file hardcoded-list anti-pattern (completed 2026-05-24)
-- [ ] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure
+- [x] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure (completed 2026-05-24)
 - [ ] **Phase 2: OpenAI Realtime Provider** - Port ~391 LOC from GlassAgents; reconcile server_vad flag; integration test
 - [ ] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC
 - [ ] **Phase 4: CLI, Hardening, Docs, Release** - `realtime-test` CLI command; bilingual docs; GlassAgents migration gate; v1.8.0 tag
@@ -79,7 +79,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 01-05-PLAN.md — realtime/__init__.py (import guard + public API), providers/__init__.py ToolDefinition re-export, test_import_guard.py, test_pyproject.py
+- [x] 01-05-PLAN.md — realtime/__init__.py (import guard + public API), providers/__init__.py ToolDefinition re-export, test_import_guard.py, test_pyproject.py
 
 ---
 
@@ -145,7 +145,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
-| 1. Contracts + Foundation | 4/5 | In Progress|  |
+| 1. Contracts + Foundation | 5/5 | Complete   | 2026-05-24 |
 | 2. OpenAI Realtime Provider | 0/? | Not started | - |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
