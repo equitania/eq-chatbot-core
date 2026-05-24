@@ -28,7 +28,12 @@ granularity: standard
   3. `cli.py` imports both constants from `providers/__init__.py` — no hardcoded provider name list inside that file
   4. All existing unit and integration tests pass without modification (zero behavior change)
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 00-01-PLAN.md — Export CLOUD_PROVIDERS and LOCAL_PROVIDERS from providers/__init__.py
+- [ ] 00-02-PLAN.md — Replace hardcoded lists in cli.py and server/app.py with imports
+- [ ] 00-03-PLAN.md — Verify grep gate and unit test suite (read-only verification)
 
 ---
 
@@ -104,7 +109,7 @@ granularity: standard
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Codebase Cleanup | 0/? | Not started | - |
+| 0. Codebase Cleanup | 0/3 | Not started | - |
 | 1. Contracts + Foundation | 0/? | Not started | - |
 | 2. OpenAI Realtime Provider | 0/? | Not started | - |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
