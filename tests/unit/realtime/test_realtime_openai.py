@@ -15,6 +15,7 @@ import dataclasses
 import pytest
 
 from eq_chatbot_core.providers.base import ToolDefinition
+from eq_chatbot_core.realtime.contracts import NormalizedRealtimeEventTypes, RealtimeAdapterContract
 from eq_chatbot_core.realtime.providers.openai import (
     OPENAI_REALTIME_CAPABILITIES,
     OpenAIRealtimeClient,
@@ -318,3 +319,226 @@ class TestNormalizeTools:
         assert len(result) == 2
         assert result[0]["name"] == "td_fn"
         assert result[1]["name"] == "raw_fn"
+
+
+# ===========================================================================
+# TestIterNormalizedEvents
+# ===========================================================================
+
+
+class TestIterNormalizedEvents:
+    """PROV-01: _to_normalized_runtime_event routes all wire types to correct constants.
+
+    Called directly (no WS needed) — validates the Stage 1+2 pipeline.
+    """
+
+    def test_session_created_maps_to_session_ready(self) -> None:
+        """session.created → SESSION_READY (PROV-01)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "session.created"})
+        assert result["type"] == NormalizedRealtimeEventTypes.SESSION_READY
+
+    def test_session_updated_maps_to_session_ready(self) -> None:
+        """session.updated also maps to SESSION_READY (PROV-01)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "session.updated"})
+        assert result["type"] == NormalizedRealtimeEventTypes.SESSION_READY
+
+    def test_response_audio_delta_normalized(self) -> None:
+        """response.audio.delta → RESPONSE_AUDIO_DELTA via Stage 1 alias + Stage 2 routing."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "response.audio.delta"})
+        assert result["type"] == NormalizedRealtimeEventTypes.RESPONSE_AUDIO_DELTA
+
+    def test_response_audio_done_normalized(self) -> None:
+        """response.audio.done → RESPONSE_AUDIO_DONE via alias normalization."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "response.audio.done"})
+        assert result["type"] == NormalizedRealtimeEventTypes.RESPONSE_AUDIO_DONE
+
+    def test_response_done_normalized(self) -> None:
+        """response.done → RESPONSE_DONE."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "response.done"})
+        assert result["type"] == NormalizedRealtimeEventTypes.RESPONSE_DONE
+
+    def test_input_speech_started_normalized(self) -> None:
+        """input_audio_buffer.speech_started → INPUT_SPEECH_STARTED."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(
+            {"type": "input_audio_buffer.speech_started"}
+        )
+        assert result["type"] == NormalizedRealtimeEventTypes.INPUT_SPEECH_STARTED
+
+    def test_input_speech_stopped_normalized(self) -> None:
+        """input_audio_buffer.speech_stopped → INPUT_SPEECH_STOPPED."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(
+            {"type": "input_audio_buffer.speech_stopped"}
+        )
+        assert result["type"] == NormalizedRealtimeEventTypes.INPUT_SPEECH_STOPPED
+
+    def test_response_created_normalized(self) -> None:
+        """response.created → RESPONSE_CREATED."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "response.created"})
+        assert result["type"] == NormalizedRealtimeEventTypes.RESPONSE_CREATED
+
+    def test_input_audio_committed_normalized(self) -> None:
+        """input_audio_buffer.committed → INPUT_AUDIO_COMMITTED."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(
+            {"type": "input_audio_buffer.committed"}
+        )
+        assert result["type"] == NormalizedRealtimeEventTypes.INPUT_AUDIO_COMMITTED
+
+    def test_error_normalized(self) -> None:
+        """error → ERROR."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "error", "message": "oops"})
+        assert result["type"] == NormalizedRealtimeEventTypes.ERROR
+
+    def test_unknown_event_normalized(self) -> None:
+        """Unknown wire type → UNHANDLED."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "some.unknown.event"})
+        assert result["type"] == NormalizedRealtimeEventTypes.UNHANDLED
+
+    def test_missing_type_normalized(self) -> None:
+        """Event with no 'type' key → UNHANDLED (missing_type source)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"data": "no-type-key"})
+        assert result["type"] == NormalizedRealtimeEventTypes.UNHANDLED
+
+    def test_raw_and_source_fields_present(self) -> None:
+        """NormalizedRealtimeEventFull includes 'source' and 'raw' metadata fields."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event({"type": "response.done"})
+        assert "source" in result
+        assert "raw" in result
+
+
+# ===========================================================================
+# TestToolCallNormalization
+# ===========================================================================
+
+
+class TestToolCallNormalization:
+    """QUAL-01 / PITFALL-05: response.function_call_arguments.done → TOOL_CALL_COMPLETED
+    with custom payload shape (item sub-dict + top-level fields for GlassAgents bridge).
+    """
+
+    _TOOL_CALL_EVENT = {
+        "type": "response.function_call_arguments.done",
+        "item_id": "item-1",
+        "call_id": "call-1",
+        "name": "my_fn",
+        "arguments": "{}",
+        "response_id": "resp-1",
+    }
+
+    def test_function_call_arguments_done_maps_to_tool_call_completed(self) -> None:
+        """response.function_call_arguments.done → TOOL_CALL_COMPLETED (QUAL-01)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        assert result["type"] == NormalizedRealtimeEventTypes.TOOL_CALL_COMPLETED
+
+    def test_function_call_arguments_done_has_item_sub_dict(self) -> None:
+        """Payload must contain item sub-dict with call_id, name, arguments (PITFALL-05)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        payload = result["payload"]
+        assert "item" in payload, "payload must contain 'item' sub-dict (PITFALL-05)"
+        item = payload["item"]
+        assert item["call_id"] == "call-1", "payload.item.call_id must match wire call_id"
+        assert item["name"] == "my_fn", "payload.item.name must match wire name"
+        assert item["arguments"] == "{}", "payload.item.arguments must match wire arguments"
+
+    def test_function_call_top_level_fields(self) -> None:
+        """Payload must also have top-level call_id and name for backward compat (PITFALL-05)."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        payload = result["payload"]
+        assert payload["call_id"] == "call-1", "payload.call_id top-level field required"
+        assert payload["name"] == "my_fn", "payload.name top-level field required"
+
+    def test_function_call_item_id_in_item(self) -> None:
+        """item.id maps from wire-level item_id field."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        item = result["payload"]["item"]
+        assert item["id"] == "item-1"
+
+    def test_function_call_response_id_in_payload(self) -> None:
+        """payload.response_id must be present for correlation."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        assert result["payload"]["response_id"] == "resp-1"
+
+    def test_function_call_item_type_is_function_call(self) -> None:
+        """item.type must be 'function_call' for GlassAgents dispatch compatibility."""
+        client = _make_client()
+        result = client._to_normalized_runtime_event(dict(self._TOOL_CALL_EVENT))
+        assert result["payload"]["item"]["type"] == "function_call"
+
+    def test_response_output_item_done_with_function_call_maps_to_tool_call_completed(
+        self,
+    ) -> None:
+        """response.output_item.done with item.type=function_call → TOOL_CALL_COMPLETED."""
+        client = _make_client()
+        event = {
+            "type": "response.output_item.done",
+            "item": {"type": "function_call", "call_id": "c1", "name": "fn"},
+        }
+        result = client._to_normalized_runtime_event(event)
+        assert result["type"] == NormalizedRealtimeEventTypes.TOOL_CALL_COMPLETED
+
+    def test_response_output_item_done_non_function_call_maps_to_unhandled(self) -> None:
+        """response.output_item.done with item.type=message → UNHANDLED."""
+        client = _make_client()
+        event = {
+            "type": "response.output_item.done",
+            "item": {"type": "message"},
+        }
+        result = client._to_normalized_runtime_event(event)
+        assert result["type"] == NormalizedRealtimeEventTypes.UNHANDLED
+
+
+# ===========================================================================
+# TestConnectLifecycle
+# ===========================================================================
+
+
+class TestConnectLifecycle:
+    """PROV-01: Connect lifecycle — _on_connected fires initialize_session."""
+
+    async def test_on_connected_calls_initialize_session(self) -> None:
+        """_on_connected() must await initialize_session() (PROV-01)."""
+        from unittest.mock import AsyncMock, patch
+
+        client = _make_client()
+        with patch.object(client, "initialize_session", new_callable=AsyncMock) as mock_init:
+            await client._on_connected()
+            mock_init.assert_awaited_once()
+
+    def test_implements_contract(self) -> None:
+        """OpenAIRealtimeClient must satisfy the RealtimeAdapterContract protocol."""
+        client = _make_client()
+        assert isinstance(client, RealtimeAdapterContract), (
+            "OpenAIRealtimeClient must implement RealtimeAdapterContract (PROV-01)"
+        )
+
+
+# ===========================================================================
+# TestCloseLifecycle
+# ===========================================================================
+
+
+class TestCloseLifecycle:
+    """PROV-01: Close lifecycle — close() does not raise when not connected."""
+
+    async def test_close_does_not_raise_when_not_connected(self) -> None:
+        """Calling close() before connect() must not raise any exception."""
+        client = _make_client()
+        # Should complete without raising (client has no active WS)
+        await client.close()
