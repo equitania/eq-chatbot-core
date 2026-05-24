@@ -69,11 +69,9 @@ class MockRealtimeProvider:
         return self._iter_impl()
 
     async def _iter_impl(self) -> AsyncIterator[dict[str, Any]]:
-        while True:
-            event = await self._event_queue.get()
-            yield event
-            if self._event_queue.empty():
-                break
+        """Drain all currently-queued events and stop. Non-blocking."""
+        while not self._event_queue.empty():
+            yield self._event_queue.get_nowait()
 
     async def __aenter__(self) -> "MockRealtimeProvider":
         await self.connect()
