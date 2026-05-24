@@ -33,11 +33,21 @@ class NormalizedRealtimeEventTypes:
     UNHANDLED = "provider.event.unhandled"
 
 
-class NormalizedRealtimeEvent(TypedDict, total=False):
-    """Envelope for normalized events from any realtime provider."""
+class NormalizedRealtimeEvent(TypedDict):
+    """Envelope for normalized events from any realtime provider.
+
+    Required keys: type, payload — these are the primary dispatch keys and
+    must always be present. Optional keys (source, raw) are defined in the
+    subclass with total=False for Python 3.10 compatibility.
+    """
 
     type: str
     payload: dict[str, Any]
+
+
+class NormalizedRealtimeEventFull(NormalizedRealtimeEvent, total=False):
+    """NormalizedRealtimeEvent with optional metadata fields."""
+
     source: str
     raw: Any
 
@@ -99,6 +109,7 @@ __all__ = [
     "INPUT_AUDIO_SAMPLE_RATE",
     "NormalizedRealtimeEventTypes",
     "NormalizedRealtimeEvent",
+    "NormalizedRealtimeEventFull",
     "RealtimeProviderCapabilities",
     "RealtimeAdapterContract",
 ]

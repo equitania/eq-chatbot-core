@@ -12,6 +12,7 @@ import pytest
 from eq_chatbot_core.realtime.contracts import (
     INPUT_AUDIO_SAMPLE_RATE,
     NormalizedRealtimeEvent,
+    NormalizedRealtimeEventFull,
     NormalizedRealtimeEventTypes,
     RealtimeAdapterContract,
     RealtimeProviderCapabilities,
@@ -60,14 +61,26 @@ def test_input_audio_sample_rate():
 
 @pytest.mark.unit
 def test_normalized_event_typeddict():
-    """NormalizedRealtimeEvent TypedDict must have the expected keys."""
+    """NormalizedRealtimeEvent TypedDict must have the expected required and optional keys.
+
+    type and payload are required (defined on NormalizedRealtimeEvent directly).
+    source and raw are optional (defined on NormalizedRealtimeEventFull with total=False).
+    """
     from typing import get_type_hints
 
-    hints = get_type_hints(NormalizedRealtimeEvent)
-    assert "type" in hints
-    assert "payload" in hints
-    assert "source" in hints
-    assert "raw" in hints
+    required_hints = get_type_hints(NormalizedRealtimeEvent)
+    assert "type" in required_hints
+    assert "payload" in required_hints
+    # source and raw are optional keys — live on NormalizedRealtimeEventFull
+    assert "source" not in required_hints
+    assert "raw" not in required_hints
+
+    full_hints = get_type_hints(NormalizedRealtimeEventFull)
+    assert "source" in full_hints
+    assert "raw" in full_hints
+    # Required keys are inherited
+    assert "type" in full_hints
+    assert "payload" in full_hints
 
 
 @pytest.mark.unit
