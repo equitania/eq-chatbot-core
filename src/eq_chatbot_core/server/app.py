@@ -25,7 +25,9 @@ from sse_starlette.sse import EventSourceResponse
 
 from eq_chatbot_core.providers import (
     AuthenticationError,
+    CLOUD_PROVIDERS,
     ContextLengthError,
+    LOCAL_PROVIDERS,
     OverloadedError,
     ProviderError,
     RateLimitError,
@@ -41,20 +43,6 @@ from eq_chatbot_core.server.models import (
 )
 from eq_chatbot_core.server.streaming import stream_chunk_to_sse_events
 from eq_chatbot_core.version import __version__
-
-# Hardcoded provider catalog. Mirrors the dispatch table in
-# eq_chatbot_core.providers.__init__.get_provider() — keep in sync when adding
-# providers there.
-_CLOUD_PROVIDERS: list[str] = [
-    "openai",
-    "anthropic",
-    "langdock",
-    "openrouter",
-    "mammouth",
-    "azure",
-    "vertex",
-]
-_LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
 
 
 def create_app(auth_token: str) -> FastAPI:
@@ -78,7 +66,7 @@ def create_app(auth_token: str) -> FastAPI:
 
     @app.get("/providers", response_model=ProviderInfo, tags=["meta"])
     async def providers() -> ProviderInfo:
-        return ProviderInfo(cloud=list(_CLOUD_PROVIDERS), local=list(_LOCAL_PROVIDERS))
+        return ProviderInfo(cloud=list(CLOUD_PROVIDERS), local=list(LOCAL_PROVIDERS))
 
     @app.post("/models", tags=["meta"])
     async def list_models(req: ListModelsRequest) -> dict[str, Any]:
