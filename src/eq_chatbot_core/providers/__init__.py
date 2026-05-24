@@ -161,6 +161,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
 )
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
@@ -183,6 +184,7 @@ __all__ = [
     "LocalLLMProvider",
     "MammouthProvider",
     "OpenRouterProvider",
+    "ToolDefinition",
     "CLOUD_PROVIDERS",
     "LOCAL_PROVIDERS",
 ]
