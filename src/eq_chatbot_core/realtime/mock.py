@@ -45,9 +45,7 @@ class MockRealtimeProvider:
 
     async def append_client_audio(self, pcm16_audio: bytes) -> None:
         if len(pcm16_audio) % 2 != 0:
-            raise ValueError(
-                f"PCM16 audio must be even-length bytes, got {len(pcm16_audio)}"
-            )
+            raise ValueError(f"PCM16 audio must be even-length bytes, got {len(pcm16_audio)}")
 
     async def commit_client_turn(self) -> None:
         pass

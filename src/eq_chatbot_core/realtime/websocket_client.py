@@ -129,9 +129,7 @@ class BaseRealtimeWebsocketClient(ABC):
         Raise NotImplementedError if called directly — no safe default exists,
         because URLs may embed secrets (e.g. ?api_key=sk-...).
         """
-        raise NotImplementedError(
-            "_connection_error_endpoint must be overridden to redact secrets from URL"
-        )
+        raise NotImplementedError("_connection_error_endpoint must be overridden to redact secrets from URL")
 
     async def connect(self) -> None:
         """Open the WebSocket connection and invoke _on_connected().
@@ -154,17 +152,15 @@ class BaseRealtimeWebsocketClient(ABC):
             )
         except Exception as exc:
             # Cross-version HTTP status introspection (handles both legacy and new asyncio impl)
-            status_code = getattr(
-                getattr(exc, "response", None), "status_code", None
-            ) or getattr(exc, "status_code", None)
+            status_code = getattr(getattr(exc, "response", None), "status_code", None) or getattr(
+                exc, "status_code", None
+            )
             if status_code == 429:
                 raise RealtimeRateLimitError(
                     f"Rate limited by {self._connection_error_endpoint()}",
                     retry_after=None,
                 ) from exc
-            raise RealtimeConnectionError(
-                f"Failed to connect to {self._connection_error_endpoint()}: {exc}"
-            ) from exc
+            raise RealtimeConnectionError(f"Failed to connect to {self._connection_error_endpoint()}: {exc}") from exc
 
         try:
             await self._on_connected()
@@ -201,16 +197,10 @@ class BaseRealtimeWebsocketClient(ABC):
             raw: Any = await self._ws.recv()
         except Exception as exc:
             # Map ws_exceptions.ConnectionClosed → RealtimeClosedError
-            if ws_exceptions is not None and isinstance(
-                exc, ws_exceptions.ConnectionClosed
-            ):
-                code = getattr(exc, "code", None) or getattr(
-                    getattr(exc, "rcvd", None), "code", None
-                )
+            if ws_exceptions is not None and isinstance(exc, ws_exceptions.ConnectionClosed):
+                code = getattr(exc, "code", None) or getattr(getattr(exc, "rcvd", None), "code", None)
                 retriable = code != 1000
-                raise RealtimeClosedError(
-                    "WebSocket closed", code=code, retriable=retriable
-                ) from exc
+                raise RealtimeClosedError("WebSocket closed", code=code, retriable=retriable) from exc
             raise
         result: dict[str, Any] = json.loads(raw)
         return result
@@ -251,10 +241,7 @@ class BaseRealtimeWebsocketClient(ABC):
             except (RealtimeConnectionError, RealtimeRateLimitError) as exc:
                 last_exc = exc
                 if attempt < max_attempts - 1:
-                    if (
-                        isinstance(exc, RealtimeRateLimitError)
-                        and exc.retry_after is not None
-                    ):
+                    if isinstance(exc, RealtimeRateLimitError) and exc.retry_after is not None:
                         delay = min(exc.retry_after, max_delay_s)
                     else:
                         delay = min(
@@ -270,8 +257,7 @@ class BaseRealtimeWebsocketClient(ABC):
                     )
                     await asyncio.sleep(delay)
         raise RealtimeConnectionError(
-            f"Failed to connect after {max_attempts} attempts"
-            " (last error: RealtimeRateLimitError)"
+            f"Failed to connect after {max_attempts} attempts (last error: RealtimeRateLimitError)"
             if isinstance(last_exc, RealtimeRateLimitError)
             else f"Failed to connect after {max_attempts} attempts"
         ) from last_exc

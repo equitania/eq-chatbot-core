@@ -9,6 +9,7 @@ Key differences from the reference:
   - ToolDefinition.to_openai_tool() does not exist — inline conversion used instead
   - GlassAgents ABC connect(config=None) stub NOT ported (Phase 1 ABC is compatible)
 """
+
 from __future__ import annotations
 
 import base64
@@ -92,14 +93,10 @@ class OpenAIRealtimeClient(BaseRealtimeWebsocketClient, RealtimeProvider):
     def __init__(self, config: OpenAIRealtimeConfig, *, trace_events: bool = False) -> None:
         # D-03: fail fast with library-native exceptions before any network I/O
         if not config.api_key.strip():
-            raise ValueError(
-                "OpenAIRealtimeConfig.api_key must be non-empty. "
-                "Provide a valid OpenAI API key."
-            )
+            raise ValueError("OpenAIRealtimeConfig.api_key must be non-empty. Provide a valid OpenAI API key.")
         if not config.model.strip():
             raise ValueError(
-                "OpenAIRealtimeConfig.model must be non-empty. "
-                "Valid models: gpt-realtime, gpt-realtime-2025-08-28"
+                "OpenAIRealtimeConfig.model must be non-empty. Valid models: gpt-realtime, gpt-realtime-2025-08-28"
             )
 
         # Phase 1 base class takes url + headers (NOT trace_events — see RESEARCH.md Pitfall 1)
@@ -169,9 +166,7 @@ class OpenAIRealtimeClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         #
         # Reference: GlassAgents/backend/realtime/client.py lines 334-339,
         #            GlassAgents/backend/realtime/providers/openai.py lines 16-26
-        resolved_instructions = (
-            self._config.instructions if instructions is None else instructions
-        )
+        resolved_instructions = self._config.instructions if instructions is None else instructions
         resolved_voice = self._config.voice if voice is None else voice
 
         session: dict[str, Any] = {

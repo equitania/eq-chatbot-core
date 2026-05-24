@@ -103,9 +103,7 @@ def _get_realtime_provider_impl(name: str, **kwargs: Any) -> Any:
     definition = _DEFAULT_REGISTRY.get(name_lower)
     if definition is None:
         available = _DEFAULT_REGISTRY.registered_names()
-        raise ValueError(
-            f"Unknown realtime provider: {name}. Available: {', '.join(available)}"
-        )
+        raise ValueError(f"Unknown realtime provider: {name}. Available: {', '.join(available)}")
     return definition.factory_fn(**kwargs)
 
 

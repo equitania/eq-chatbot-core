@@ -24,10 +24,10 @@ from fastapi import FastAPI, HTTPException, status
 from sse_starlette.sse import EventSourceResponse
 
 from eq_chatbot_core.providers import (
-    AuthenticationError,
     CLOUD_PROVIDERS,
-    ContextLengthError,
     LOCAL_PROVIDERS,
+    AuthenticationError,
+    ContextLengthError,
     OverloadedError,
     ProviderError,
     RateLimitError,
