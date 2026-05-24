@@ -17,7 +17,15 @@ def mock_websockets_module():
     Session-scoped so the sys.modules entry is installed once.
     Uses REAL exception classes so except clauses in production code work correctly.
     AsyncMock is required for connect() — MagicMock breaks `async with` (PITFALL-14).
+
+    Restores the original sys.modules entries after the session ends so that
+    integration tests running in the same pytest session (e.g. via -k or --co)
+    receive the real websockets library and are not silently handed this mock.
     """
+    # Snapshot originals before installing the mock
+    original_websockets = sys.modules.get("websockets")
+    original_ws_exc = sys.modules.get("websockets.exceptions")
+
     mock_ws_module = MagicMock()
     mock_ws_instance = AsyncMock()
     mock_ws_instance.closed = False
@@ -54,8 +62,18 @@ def mock_websockets_module():
 
     sys.modules["websockets"] = mock_ws_module
     sys.modules["websockets.exceptions"] = mock_ws_module.exceptions
+
     yield mock_ws_module
-    # Note: do NOT restore sys.modules after session — other tests may depend on the mock
+
+    # Restore originals after session so integration tests in the same run get the real library
+    if original_websockets is not None:
+        sys.modules["websockets"] = original_websockets
+    else:
+        sys.modules.pop("websockets", None)
+    if original_ws_exc is not None:
+        sys.modules["websockets.exceptions"] = original_ws_exc
+    else:
+        sys.modules.pop("websockets.exceptions", None)
 
 
 @pytest.fixture
