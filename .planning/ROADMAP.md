@@ -145,7 +145,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
-| 1. Contracts + Foundation | 0/? | Not started | - |
+| 1. Contracts + Foundation | 0/5 | Planned    |  |
 | 2. OpenAI Realtime Provider | 0/? | Not started | - |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
