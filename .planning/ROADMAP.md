@@ -103,7 +103,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 02-01-PLAN.md — Create OpenAIRealtimeClient + OpenAIRealtimeConfig + OPENAI_REALTIME_CAPABILITIES + full 11-method implementation with PITFALL-28 comment
+- [x] 02-01-PLAN.md — Create OpenAIRealtimeClient + OpenAIRealtimeConfig + OPENAI_REALTIME_CAPABILITIES + full 11-method implementation with PITFALL-28 comment
 
 **Wave 2** *(parallel — no file overlap)*
 
@@ -156,7 +156,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
 | 1. Contracts + Foundation | 5/5 | Complete   | 2026-05-24 |
-| 2. OpenAI Realtime Provider | 0/? | Not started | - |
+| 2. OpenAI Realtime Provider | 1/3 | In Progress|  |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
 
