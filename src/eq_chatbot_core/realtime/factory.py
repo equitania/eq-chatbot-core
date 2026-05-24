@@ -1,5 +1,6 @@
 """Realtime provider registry and factory. Use get_realtime_provider() — do not import this module directly."""
 
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -54,16 +55,20 @@ def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
 
 
 _DEFAULT_REGISTRY: RealtimeProviderRegistry | None = None  # module-level singleton; lazy init
+_REGISTRY_LOCK = threading.Lock()
 
 
 def _get_realtime_provider_impl(name: str, **kwargs: Any) -> Any:
     """Resolve and instantiate a realtime provider by name.
 
     Called by realtime/__init__.py after the websockets import guard fires.
+    Thread-safe via double-checked locking on _REGISTRY_LOCK.
     """
     global _DEFAULT_REGISTRY
     if _DEFAULT_REGISTRY is None:
-        _DEFAULT_REGISTRY = build_default_realtime_provider_registry()
+        with _REGISTRY_LOCK:
+            if _DEFAULT_REGISTRY is None:
+                _DEFAULT_REGISTRY = build_default_realtime_provider_registry()
     name_lower = name.lower()
     definition = _DEFAULT_REGISTRY.get(name_lower)
     if definition is None:
