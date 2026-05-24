@@ -51,7 +51,29 @@ def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
             description="Queue-backed in-process mock provider for consumer test suites.",
         )
     )
+    registry.register(
+        RealtimeProviderDefinition(
+            name="openai",
+            factory_fn=lambda **kwargs: _build_openai_provider(**kwargs),
+            description="OpenAI Realtime API — GPT speech-to-speech, server VAD, tool calling.",
+        )
+    )
     return registry
+
+
+def _build_openai_provider(**kwargs: Any) -> Any:
+    """Build an OpenAIRealtimeClient from keyword arguments.
+
+    Deferred import keeps factory.py importable without the [realtime] extra installed.
+    """
+    from eq_chatbot_core.realtime.providers.openai import (  # noqa: PLC0415
+        OpenAIRealtimeClient,
+        OpenAIRealtimeConfig,
+    )
+
+    api_key = kwargs.pop("api_key")
+    config = OpenAIRealtimeConfig(api_key=api_key, **kwargs)
+    return OpenAIRealtimeClient(config)
 
 
 _DEFAULT_REGISTRY: RealtimeProviderRegistry | None = None  # module-level singleton; lazy init
