@@ -14,7 +14,10 @@ import sys
 
 import click
 
+from eq_chatbot_core.providers import CLOUD_PROVIDERS, LOCAL_PROVIDERS
 from eq_chatbot_core.version import __version__
+
+ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
 
 @click.group()
@@ -26,12 +29,6 @@ def main() -> None:
     listing available models, and managing chatbot configurations.
     """
     pass
-
-
-# Available providers for CLI choices
-CLOUD_PROVIDERS = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex"]
-LOCAL_PROVIDERS = ["local", "lm_studio", "ollama"]
-ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
 
 @main.command("test-provider")
