@@ -66,6 +66,14 @@ def _build_openai_provider(**kwargs: Any) -> Any:
 
     Deferred import keeps factory.py importable without the [realtime] extra installed.
     """
+    # D-03 fail-fast: validate required kwargs before the deferred import so the
+    # caller gets a clear library-native error regardless of [realtime] install state.
+    if "api_key" not in kwargs:
+        raise ValueError(
+            "OpenAI realtime provider requires an 'api_key' keyword argument. "
+            'Pass it via get_realtime_provider("openai", api_key="sk-...").'
+        )
+
     from eq_chatbot_core.realtime.providers.openai import (  # noqa: PLC0415
         OpenAIRealtimeClient,
         OpenAIRealtimeConfig,

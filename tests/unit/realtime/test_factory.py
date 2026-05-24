@@ -37,6 +37,13 @@ def test_get_realtime_provider_unknown_raises() -> None:
 
 
 @pytest.mark.unit
+def test_get_realtime_provider_openai_missing_api_key_raises_value_error() -> None:
+    """D-03 fail-fast: omitting api_key yields a clear ValueError, not a bare KeyError."""
+    with pytest.raises(ValueError, match="api_key"):
+        _get_realtime_provider_impl("openai")
+
+
+@pytest.mark.unit
 def test_registry_registered_names_sorted() -> None:
     reg = build_default_realtime_provider_registry()
     names = reg.registered_names()

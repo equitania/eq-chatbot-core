@@ -12,8 +12,16 @@ import os
 
 import pytest
 
-from eq_chatbot_core.realtime.contracts import NormalizedRealtimeEventTypes
-from eq_chatbot_core.realtime.providers.openai import OpenAIRealtimeClient, OpenAIRealtimeConfig
+# Self-skip when the [realtime] extra (websockets) is not installed, even if
+# OPENAI_API_KEY is present. Without this guard the provider import / connect
+# fails hard instead of skipping. SC-3 is an optional live test.
+pytest.importorskip("websockets")
+
+from eq_chatbot_core.realtime.contracts import NormalizedRealtimeEventTypes  # noqa: E402
+from eq_chatbot_core.realtime.providers.openai import (  # noqa: E402
+    OpenAIRealtimeClient,
+    OpenAIRealtimeConfig,
+)
 
 pytestmark = pytest.mark.integration
 
