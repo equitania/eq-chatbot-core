@@ -66,8 +66,8 @@ Plans:
 Plans:
 **Wave 1** *(parallel — no file overlap)*
 
-- [ ] 01-01-PLAN.md — realtime/contracts.py, realtime/abc.py, ToolDefinition in providers/base.py, pyproject.toml [realtime] extra
-- [ ] 01-02-PLAN.md — tests/unit/realtime/__init__.py, conftest.py, test_contracts.py (CON-13 byte-for-byte assertions)
+- [x] 01-01-PLAN.md — realtime/contracts.py, realtime/abc.py, ToolDefinition in providers/base.py, pyproject.toml [realtime] extra
+- [x] 01-02-PLAN.md — tests/unit/realtime/__init__.py, conftest.py, test_contracts.py (CON-13 byte-for-byte assertions)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -145,7 +145,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
-| 1. Contracts + Foundation | 0/5 | Planned    |  |
+| 1. Contracts + Foundation | 2/5 | In Progress|  |
 | 2. OpenAI Realtime Provider | 0/? | Not started | - |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
