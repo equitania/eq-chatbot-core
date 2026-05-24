@@ -99,44 +99,49 @@ Explicitly excluded for v1.8.0. Documented to prevent scope creep.
 
 Which phases cover which requirements. Updated during roadmap creation.
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| CLN-01 | Phase 0 | Pending |
-| CLN-02 | Phase 0 | Pending |
-| CLN-03 | Phase 0 | Pending |
-| CLN-04 | Phase 0 | Pending |
-| CON-01 | Phase 1 | Pending |
-| CON-02 | Phase 1 | Pending |
-| CON-03 | Phase 1 | Pending |
-| CON-04 | Phase 1 | Pending |
-| CON-05 | Phase 1 | Pending |
-| CON-06 | Phase 1 | Pending |
-| CON-07 | Phase 1 | Pending |
-| CON-08 | Phase 1 | Pending |
-| CON-09 | Phase 1 | Pending |
-| CON-10 | Phase 1 | Pending |
-| CON-11 | Phase 1 | Pending |
-| CON-12 | Phase 1 | Pending |
-| CON-13 | Phase 1 | Pending |
-| PROV-01 | Phase 2 | Pending |
-| PROV-02 | Phase 2 | Pending |
-| PROV-03 | Phase 2 | Pending |
-| PROV-04 | Phase 2 | Pending |
-| PROV-05 | Phase 3 | Pending |
-| PROV-06 | Phase 3 | Pending |
-| PROV-07 | Phase 3 | Pending |
-| PROV-08 | Phase 3 | Pending |
-| QUAL-01 | Phase 2/3 | Pending |
-| QUAL-02 | Phase 1 | Pending |
-| QUAL-03 | Phase 2/3 | Pending |
-| QUAL-04 | Phase 4 | Pending |
-| QUAL-05 | Phase 4 | Pending |
-| QUAL-06 | Phase 4 | Pending |
-| REL-01 | Phase 4 | Pending |
-| REL-02 | Phase 4 | Pending |
-| REL-03 | Phase 4 | Pending |
-| REL-04 | Phase 4 | Pending |
-| REL-05 | Phase 4 | Pending |
+> **QUAL-01 and QUAL-03 are split across two phases.** Both requirements span all production providers.
+> The OpenAI-specific deliverables (unit test file `test_realtime_openai.py` + OpenAI integration test) land in **Phase 2**.
+> The Gemini/Nova-specific deliverables (unit test files `test_realtime_gemini.py`, `test_realtime_nova.py` + Gemini integration test) land in **Phase 3**.
+> Both requirements are fully satisfied only when both phases are complete.
+
+| Requirement | Phase | Split detail | Status |
+|-------------|-------|--------------|--------|
+| CLN-01 | Phase 0 | — | Pending |
+| CLN-02 | Phase 0 | — | Pending |
+| CLN-03 | Phase 0 | — | Pending |
+| CLN-04 | Phase 0 | — | Pending |
+| CON-01 | Phase 1 | — | Pending |
+| CON-02 | Phase 1 | — | Pending |
+| CON-03 | Phase 1 | — | Pending |
+| CON-04 | Phase 1 | — | Pending |
+| CON-05 | Phase 1 | — | Pending |
+| CON-06 | Phase 1 | — | Pending |
+| CON-07 | Phase 1 | — | Pending |
+| CON-08 | Phase 1 | — | Pending |
+| CON-09 | Phase 1 | — | Pending |
+| CON-10 | Phase 1 | — | Pending |
+| CON-11 | Phase 1 | — | Pending |
+| CON-12 | Phase 1 | — | Pending |
+| CON-13 | Phase 1 | — | Pending |
+| QUAL-02 | Phase 1 | — | Pending |
+| PROV-01 | Phase 2 | — | Pending |
+| PROV-02 | Phase 2 | — | Pending |
+| PROV-03 | Phase 2 | — | Pending |
+| PROV-04 | Phase 2 | — | Pending |
+| QUAL-01 | Phase 2 + Phase 3 | Phase 2: OpenAI unit tests; Phase 3: Gemini + Nova unit tests | Pending |
+| QUAL-03 | Phase 2 + Phase 3 | Phase 2: OpenAI integration test; Phase 3: Gemini integration test | Pending |
+| PROV-05 | Phase 3 | — | Pending |
+| PROV-06 | Phase 3 | — | Pending |
+| PROV-07 | Phase 3 | — | Pending |
+| PROV-08 | Phase 3 | — | Pending |
+| QUAL-04 | Phase 4 | — | Pending |
+| QUAL-05 | Phase 4 | — | Pending |
+| QUAL-06 | Phase 4 | — | Pending |
+| REL-01 | Phase 4 | — | Pending |
+| REL-02 | Phase 4 | — | Pending |
+| REL-03 | Phase 4 | — | Pending |
+| REL-04 | Phase 4 | — | Pending |
+| REL-05 | Phase 4 | — | Pending |
 
 **Coverage:**
 - v1.8.0 requirements: 35 total
@@ -145,4 +150,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-05-24*
-*Last updated: 2026-05-24 after initial definition*
+*Last updated: 2026-05-24 — roadmap created; QUAL-01/03 split documented*
