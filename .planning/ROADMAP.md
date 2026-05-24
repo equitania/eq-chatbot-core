@@ -61,8 +61,25 @@ Plans:
   4. `pip install eq-chatbot-core[realtime]` succeeds and `from eq_chatbot_core.realtime import get_realtime_provider, RealtimeAdapterContract, INPUT_AUDIO_SAMPLE_RATE` all resolve
   5. A mock-websockets unit test exercising `connect_with_backoff` with 3 failures then success completes without real network calls and asserts retry delays were applied
 
-**Plans**: TBD
-**UI hint**: no
+**Plans**: 5 plans
+
+Plans:
+**Wave 1** *(parallel — no file overlap)*
+
+- [ ] 01-01-PLAN.md — realtime/contracts.py, realtime/abc.py, ToolDefinition in providers/base.py, pyproject.toml [realtime] extra
+- [ ] 01-02-PLAN.md — tests/unit/realtime/__init__.py, conftest.py, test_contracts.py (CON-13 byte-for-byte assertions)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 01-03-PLAN.md — realtime/websocket_client.py (BaseRealtimeWebsocketClient + error hierarchy + connect_with_backoff), test_websocket_client.py
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 01-04-PLAN.md — realtime/factory.py, realtime/mock.py, realtime/providers/__init__.py, test_mock.py, test_factory.py
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 01-05-PLAN.md — realtime/__init__.py (import guard + public API), providers/__init__.py ToolDefinition re-export, test_import_guard.py, test_pyproject.py
 
 ---
 
