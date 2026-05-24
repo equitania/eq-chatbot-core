@@ -226,19 +226,28 @@ class BaseRealtimeWebsocketClient(ABC):
         Deterministic in tests: patch asyncio.sleep and random.uniform.
 
         Raises RealtimeConnectionError after *max_attempts* failed attempts.
+        RealtimeRateLimitError is also retried — when retry_after is provided by
+        the server, that delay is used (capped at max_delay_s); otherwise the
+        standard exponential backoff applies.
         """
-        last_exc: RealtimeConnectionError | None = None
+        last_exc: RealtimeClientError | None = None
         for attempt in range(max_attempts):
             try:
                 await self.connect()
                 return
-            except RealtimeConnectionError as exc:
+            except (RealtimeConnectionError, RealtimeRateLimitError) as exc:
                 last_exc = exc
                 if attempt < max_attempts - 1:
-                    delay = min(
-                        base_delay_s * (2**attempt) + random.uniform(0, 1),
-                        max_delay_s,
-                    )
+                    if (
+                        isinstance(exc, RealtimeRateLimitError)
+                        and exc.retry_after is not None
+                    ):
+                        delay = min(exc.retry_after, max_delay_s)
+                    else:
+                        delay = min(
+                            base_delay_s * (2**attempt) + random.uniform(0, 1),
+                            max_delay_s,
+                        )
                     _logger.warning(
                         "Realtime connect attempt %d/%d failed, retrying in %.1fs: %s",
                         attempt + 1,
@@ -249,6 +258,9 @@ class BaseRealtimeWebsocketClient(ABC):
                     await asyncio.sleep(delay)
         raise RealtimeConnectionError(
             f"Failed to connect after {max_attempts} attempts"
+            " (last error: RealtimeRateLimitError)"
+            if isinstance(last_exc, RealtimeRateLimitError)
+            else f"Failed to connect after {max_attempts} attempts"
         ) from last_exc
 
     async def __aenter__(self) -> "BaseRealtimeWebsocketClient":
