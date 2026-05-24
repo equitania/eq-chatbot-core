@@ -40,6 +40,16 @@ def get_realtime_provider(name: str, **kwargs: Any) -> Any:
     return _get_realtime_provider_impl(name, **kwargs)
 
 
+# OpenAI realtime provider — importable only when [realtime] extra (websockets) is installed
+try:
+    from eq_chatbot_core.realtime.providers.openai import (  # noqa: E402
+        OPENAI_REALTIME_CAPABILITIES,
+        OpenAIRealtimeClient,
+        OpenAIRealtimeConfig,
+    )
+except ImportError:
+    pass
+
 # Always importable (stdlib-only) — no websockets required for these imports
 from eq_chatbot_core.realtime.abc import (  # noqa: E402
     AudioDeltaEvent,
@@ -82,4 +92,8 @@ __all__ = [
     "ErrorEvent",
     # Mock
     "MockRealtimeProvider",
+    # OpenAI provider (requires [realtime] extra)
+    "OpenAIRealtimeClient",
+    "OpenAIRealtimeConfig",
+    "OPENAI_REALTIME_CAPABILITIES",
 ]

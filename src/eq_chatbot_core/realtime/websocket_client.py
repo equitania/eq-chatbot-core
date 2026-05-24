@@ -10,6 +10,7 @@ import json
 import logging
 import random
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any
 
 _websockets_available = True
@@ -213,6 +214,18 @@ class BaseRealtimeWebsocketClient(ABC):
             raise
         result: dict[str, Any] = json.loads(raw)
         return result
+
+    async def iter_events(self) -> AsyncIterator[dict[str, Any]]:
+        """Yield parsed JSON frames from the WebSocket until the connection closes.
+
+        This is the primary event-consumption API for production event loops.
+        `_on_message` is the low-level callback used by subclasses that prefer
+        push-style processing; `iter_events` is preferred for pull-style consumers.
+
+        Raises RealtimeClosedError when the connection closes.
+        """
+        while True:
+            yield await self.recv_json()
 
     async def connect_with_backoff(
         self,
