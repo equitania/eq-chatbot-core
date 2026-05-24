@@ -32,6 +32,9 @@ Usage:
     response = provider.chat_completion(messages=[...])
 """
 
+CLOUD_PROVIDERS: list[str] = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex"]
+LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
+
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -180,4 +183,6 @@ __all__ = [
     "LocalLLMProvider",
     "MammouthProvider",
     "OpenRouterProvider",
+    "CLOUD_PROVIDERS",
+    "LOCAL_PROVIDERS",
 ]
