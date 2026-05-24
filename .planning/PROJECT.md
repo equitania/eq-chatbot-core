@@ -110,6 +110,8 @@ See **Current Milestone** below.
 
 **Goal:** Port bidirectional voice streaming (OpenAI Realtime + Gemini Live) from GlassAgents into `eq-chatbot-core` as a new `[realtime]` extra, plus evaluate alternative providers to avoid vendor lock-in.
 
+**Progress:** Phase 1 (Contracts + Foundation) complete (2026-05-24) — realtime type system, `RealtimeProvider` ABC, `BaseRealtimeWebsocketClient` (reconnect/backoff), factory, stdlib-only `MockRealtimeProvider`, and `[realtime]` extra shipped with 30 realtime unit tests (verified 5/5 criteria, zero regressions). Next: Phase 2 — OpenAI Realtime provider port.
+
 **Target features:**
 - `RealtimeAdapterContract` + minimal `RealtimeProvider` ABC + `NormalizedRealtimeEvent` schema (12 event constants) + `RealtimeProviderCapabilities` metadata
 - `BaseRealtimeWebsocketClient` with reconnect/backoff
@@ -145,4 +147,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-24 after bootstrap for milestone v1.8.0*
+*Last updated: 2026-05-24 after Phase 1 (Contracts + Foundation) completion*
