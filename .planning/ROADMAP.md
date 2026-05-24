@@ -9,7 +9,7 @@ granularity: standard
 
 ## Phases
 
-- [ ] **Phase 0: Codebase Cleanup** - Export provider-name constants; eliminate 3-file hardcoded-list anti-pattern
+- [x] **Phase 0: Codebase Cleanup** - Export provider-name constants; eliminate 3-file hardcoded-list anti-pattern (completed 2026-05-24)
 - [ ] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure
 - [ ] **Phase 2: OpenAI Realtime Provider** - Port ~391 LOC from GlassAgents; reconcile server_vad flag; integration test
 - [ ] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC
@@ -35,15 +35,15 @@ granularity: standard
 Plans:
 **Wave 1**
 
-- [ ] 00-01-PLAN.md — Export CLOUD_PROVIDERS and LOCAL_PROVIDERS from providers/__init__.py
+- [x] 00-01-PLAN.md — Export CLOUD_PROVIDERS and LOCAL_PROVIDERS from providers/__init__.py
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 00-02-PLAN.md — Replace hardcoded lists in cli.py and server/app.py with imports
+- [x] 00-02-PLAN.md — Replace hardcoded lists in cli.py and server/app.py with imports
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 00-03-PLAN.md — Verify grep gate and unit test suite (read-only verification)
+- [x] 00-03-PLAN.md — Verify grep gate and unit test suite (read-only verification)
 
 ---
 
@@ -127,7 +127,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Codebase Cleanup | 0/3 | Not started | - |
+| 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
 | 1. Contracts + Foundation | 0/? | Not started | - |
 | 2. OpenAI Realtime Provider | 0/? | Not started | - |
 | 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
