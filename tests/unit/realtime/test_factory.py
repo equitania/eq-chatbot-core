@@ -48,3 +48,36 @@ def test_registry_registered_names_sorted() -> None:
     reg = build_default_realtime_provider_registry()
     names = reg.registered_names()
     assert names == sorted(names)  # must be alphabetically sorted
+
+
+@pytest.mark.unit
+def test_registry_contains_gemini_live() -> None:
+    reg = build_default_realtime_provider_registry()
+    assert "gemini_live" in reg.registered_names()
+
+
+@pytest.mark.unit
+def test_registry_contains_nova_sonic() -> None:
+    reg = build_default_realtime_provider_registry()
+    assert "nova_sonic" in reg.registered_names()
+
+
+@pytest.mark.unit
+def test_get_realtime_provider_nova_sonic_returns_stub() -> None:
+    """D-08: nova_sonic resolves without any AWS extras installed."""
+    from eq_chatbot_core.realtime.providers.nova import NovaSonicStub
+
+    provider = _get_realtime_provider_impl("nova_sonic")
+    assert isinstance(provider, NovaSonicStub)
+
+
+@pytest.mark.unit
+def test_get_realtime_provider_gemini_live_developer_missing_api_key_raises() -> None:
+    with pytest.raises(ValueError, match="api_key"):
+        _get_realtime_provider_impl("gemini_live", mode="developer")
+
+
+@pytest.mark.unit
+def test_get_realtime_provider_gemini_live_vertex_missing_access_token_raises() -> None:
+    with pytest.raises(ValueError, match="access_token"):
+        _get_realtime_provider_impl("gemini_live", mode="vertex")
