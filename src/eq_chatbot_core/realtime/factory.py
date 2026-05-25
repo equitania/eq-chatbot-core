@@ -58,6 +58,20 @@ def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
             description="OpenAI Realtime API — GPT speech-to-speech, server VAD, tool calling.",
         )
     )
+    registry.register(
+        RealtimeProviderDefinition(
+            name="gemini_live",
+            factory_fn=lambda **kwargs: _build_gemini_live_provider(**kwargs),
+            description="Google Gemini Live API — BidiGenerateContent, manual turn commit, tool calling.",
+        )
+    )
+    registry.register(
+        RealtimeProviderDefinition(
+            name="nova_sonic",
+            factory_fn=lambda **kwargs: _build_nova_sonic_provider(**kwargs),
+            description="AWS Nova Sonic stub — production implementation in v1.9.0.",
+        )
+    )
     return registry
 
 
@@ -82,6 +96,43 @@ def _build_openai_provider(**kwargs: Any) -> Any:
     api_key = kwargs.pop("api_key")
     config = OpenAIRealtimeConfig(api_key=api_key, **kwargs)
     return OpenAIRealtimeClient(config)
+
+
+def _build_gemini_live_provider(**kwargs: Any) -> Any:
+    """Build a GeminiLiveClient from keyword arguments.
+
+    Deferred import keeps factory.py importable without the [realtime] extra installed.
+    D-06 fail-fast: credential validation runs before the deferred import so the caller
+    gets a clear library-native ValueError regardless of [realtime] install state.
+    """
+    mode = kwargs.get("mode", "developer")
+    if mode == "developer":
+        if not kwargs.get("api_key", ""):
+            raise ValueError(
+                "Gemini Live developer mode requires an 'api_key' keyword argument. "
+                'Pass it via get_realtime_provider("gemini_live", api_key="...", mode="developer").'
+            )
+    elif mode == "vertex":
+        if not kwargs.get("access_token", ""):
+            raise ValueError(
+                "Gemini Live vertex mode requires an 'access_token' keyword argument. "
+                'Pass it via get_realtime_provider("gemini_live", access_token="...", mode="vertex").'
+            )
+
+    from eq_chatbot_core.realtime.providers.gemini_live import GeminiLiveClient, GeminiLiveConfig  # noqa: PLC0415
+
+    config = GeminiLiveConfig(**kwargs)
+    return GeminiLiveClient(config)
+
+
+def _build_nova_sonic_provider(**kwargs: Any) -> Any:
+    """Build a NovaSonicStub from keyword arguments.
+
+    Stdlib-only deferred import — no websockets or AWS packages required (D-08 / SC-5).
+    """
+    from eq_chatbot_core.realtime.providers.nova import NovaSonicStub  # noqa: PLC0415
+
+    return NovaSonicStub()
 
 
 _DEFAULT_REGISTRY: RealtimeProviderRegistry | None = None  # module-level singleton; lazy init
