@@ -170,7 +170,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 03.1-01-PLAN.md — ElevenLabsRealtimeClient + ElevenLabsRealtimeConfig + ELEVENLABS_REALTIME_CAPABILITIES (elevenlabs.py)
+- [x] 03.1-01-PLAN.md — ElevenLabsRealtimeClient + ElevenLabsRealtimeConfig + ELEVENLABS_REALTIME_CAPABILITIES (elevenlabs.py)
 
 **Wave 2** *(parallel — no file overlap)*
 
