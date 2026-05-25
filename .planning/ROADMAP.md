@@ -13,7 +13,7 @@ granularity: standard
 - [x] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure (completed 2026-05-24)
 - [x] **Phase 2: OpenAI Realtime Provider** - Port ~391 LOC from GlassAgents; reconcile server_vad flag; integration test (completed 2026-05-24)
 - [x] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC (completed 2026-05-25)
-- [ ] **Phase 3.1: ElevenLabs Agents Realtime Provider** *(INSERTED)* - Lean WebSocket adapter; preferred GDPR provider; pulled forward from v1.9.0
+- [x] **Phase 3.1: ElevenLabs Agents Realtime Provider** *(INSERTED)* - Lean WebSocket adapter; preferred GDPR provider; pulled forward from v1.9.0 (completed 2026-05-25)
 - [ ] **Phase 4: CLI, Hardening, Docs, Release** - `realtime-test` CLI command; bilingual docs; GlassAgents migration gate; v1.8.0 tag
 
 ## Phase Details
@@ -174,8 +174,8 @@ Plans:
 
 **Wave 2** *(parallel — no file overlap)*
 
-- [ ] 03.1-02-PLAN.md — Unit test suite test_realtime_elevenlabs.py (QUAL-01)
-- [ ] 03.1-03-PLAN.md — Factory registration + integration test + README GDPR section
+- [x] 03.1-02-PLAN.md — Unit test suite test_realtime_elevenlabs.py (QUAL-01)
+- [x] 03.1-03-PLAN.md — Factory registration + integration test + README GDPR section
 
 ### Phase 4: CLI, Hardening, Docs, Release
 
