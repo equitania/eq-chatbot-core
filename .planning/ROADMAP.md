@@ -13,6 +13,7 @@ granularity: standard
 - [x] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure (completed 2026-05-24)
 - [x] **Phase 2: OpenAI Realtime Provider** - Port ~391 LOC from GlassAgents; reconcile server_vad flag; integration test (completed 2026-05-24)
 - [ ] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC
+- [ ] **Phase 3.1: ElevenLabs Agents Realtime Provider** *(INSERTED)* - Lean WebSocket adapter; preferred GDPR provider; pulled forward from v1.9.0
 - [ ] **Phase 4: CLI, Hardening, Docs, Release** - `realtime-test` CLI command; bilingual docs; GlassAgents migration gate; v1.8.0 tag
 
 ## Phase Details
@@ -128,9 +129,43 @@ Plans:
   4. `NovaSonicStub()` satisfies `isinstance(NovaSonicStub(), RealtimeAdapterContract)` and every method raises `NotImplementedError` with a message referencing v1.9.0
   5. `get_realtime_provider("nova_sonic")` resolves via the factory without installing any AWS extras
 
-**Plans**: TBD
+**Plans**: 5 plans
+
+Plans:
+**Wave 1** *(blocking gate — must complete before any code is written)*
+
+- [ ] 03-01-PLAN.md — [BLOCKING] Live-verify Gemini Live model alias (D-05 / SC-1 / PITFALL-20)
+
+**Wave 2** *(parallel — no file overlap)*
+
+- [ ] 03-02-PLAN.md — GeminiLiveClient + GeminiLiveConfig + GEMINI_LIVE_REALTIME_CAPABILITIES + dual-endpoint + redaction (gemini_live.py)
+- [ ] 03-03-PLAN.md — NovaSonicStub (<30 LOC, stdlib-only) + test_realtime_nova.py (nova.py)
+
+**Wave 3** *(parallel — no file overlap)*
+
+- [ ] 03-04-PLAN.md — Factory registration gemini_live + nova_sonic + test_factory.py extensions
+- [ ] 03-05-PLAN.md — test_realtime_gemini.py (12 unit test classes) + test_realtime_gemini_live.py (Vertex EU integration test)
 
 ---
+
+### Phase 03.1: ElevenLabs Agents Realtime Provider (INSERTED)
+
+**Goal**: `ElevenLabsRealtimeClient` is a lean WebSocket transport adapter for ElevenLabs Agents (speech-to-speech) that satisfies `RealtimeAdapterContract`; it is registered equal-rank in the factory as `"elevenlabs"`, redacts the `xi-api-key` from all logs, and ships a README GDPR setup guide. ElevenLabs is positioned as the preferred GDPR provider; OpenAI/Gemini/Nova remain fully supported. Pulled forward from v1.9.0 (PROV-FUT-03).
+**Depends on**: Phase 1 (contracts) + Phase 2 (OpenAI adapter pattern to mirror); sequenced after Phase 3 per roadmap decision (no functional dependency on Gemini)
+**Requirements**: PROV-FUT-03 (promoted), QUAL-01 (ElevenLabs unit-test portion), QUAL-03 (ElevenLabs integration-test portion)
+**Design**: `docs/superpowers/specs/2026-05-25-elevenlabs-realtime-provider-design.md`
+
+**Success Criteria** (what must be TRUE):
+
+  1. `isinstance(ElevenLabsRealtimeClient(config), RealtimeAdapterContract)` holds; the adapter mirrors the OpenAI provider structure
+  2. `commit_client_turn()` and `create_response()` are no-ops (ElevenLabs server-side turn-taking); `manual_turn_commit_required=False` in capabilities
+  3. A unit test confirms `_safe_url()` / log output never contains the `xi-api-key` — the key never appears in logs
+  4. `ElevenLabsRealtimeConfig.session_sample_rate` defaults to 16000 (the override prepared in `contracts.py`); fail-fast `ValueError` on empty `api_key` or `agent_id` before any network I/O
+  5. `get_realtime_provider("elevenlabs", agent_id=..., api_key=...)` resolves via the factory, equal-rank alongside `openai`/`gemini_live`/`nova_sonic`
+  6. An integration test (skipped if EU credentials absent) connects to the agent endpoint, receives `SESSION_READY`, and disconnects cleanly
+  7. README documents the four EU-residency conditions (Enterprise, Zero Retention Mode, EU-hosted Custom LLM, EU endpoint) plus the voice-cloning retention caveat
+
+**Plans**: TBD (run /gsd:plan-phase 03.1 to break down)
 
 ### Phase 4: CLI, Hardening, Docs, Release
 
@@ -157,7 +192,7 @@ Plans:
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
 | 1. Contracts + Foundation | 5/5 | Complete   | 2026-05-24 |
 | 2. OpenAI Realtime Provider | 3/3 | Complete   | 2026-05-24 |
-| 3. Gemini Live + Nova Sonic Stub | 0/? | Not started | - |
+| 3. Gemini Live + Nova Sonic Stub | 0/5 | Not started | - |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
 
 ---
