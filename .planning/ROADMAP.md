@@ -12,7 +12,7 @@ granularity: standard
 - [x] **Phase 0: Codebase Cleanup** - Export provider-name constants; eliminate 3-file hardcoded-list anti-pattern (completed 2026-05-24)
 - [x] **Phase 1: Contracts + Foundation** - Full type system, ABC, WebSocket base class, factory, MockRealtimeProvider, test infrastructure (completed 2026-05-24)
 - [x] **Phase 2: OpenAI Realtime Provider** - Port ~391 LOC from GlassAgents; reconcile server_vad flag; integration test (completed 2026-05-24)
-- [ ] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC
+- [x] **Phase 3: Gemini Live + Nova Sonic Stub** - Port ~919 LOC GeminiLiveClient; redaction helpers; NovaSonicStub <30 LOC (completed 2026-05-25)
 - [ ] **Phase 3.1: ElevenLabs Agents Realtime Provider** *(INSERTED)* - Lean WebSocket adapter; preferred GDPR provider; pulled forward from v1.9.0
 - [ ] **Phase 4: CLI, Hardening, Docs, Release** - `realtime-test` CLI command; bilingual docs; GlassAgents migration gate; v1.8.0 tag
 
@@ -143,8 +143,8 @@ Plans:
 
 **Wave 3** *(parallel — no file overlap)*
 
-- [ ] 03-04-PLAN.md — Factory registration gemini_live + nova_sonic + test_factory.py extensions
-- [ ] 03-05-PLAN.md — test_realtime_gemini.py (12 unit test classes) + test_realtime_gemini_live.py (Vertex EU integration test)
+- [x] 03-04-PLAN.md — Factory registration gemini_live + nova_sonic + test_factory.py extensions
+- [x] 03-05-PLAN.md — test_realtime_gemini.py (12 unit test classes) + test_realtime_gemini_live.py (Vertex EU integration test)
 
 ---
 
@@ -192,7 +192,7 @@ Plans:
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
 | 1. Contracts + Foundation | 5/5 | Complete   | 2026-05-24 |
 | 2. OpenAI Realtime Provider | 3/3 | Complete   | 2026-05-24 |
-| 3. Gemini Live + Nova Sonic Stub | 3/5 | In Progress|  |
+| 3. Gemini Live + Nova Sonic Stub | 5/5 | Complete   | 2026-05-25 |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
 
 ---
