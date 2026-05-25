@@ -40,6 +40,7 @@ Standalone Python library that provides a unified, provider-agnostic interface t
 - ✓ GitHub Actions CI matrix Python 3.10–3.13 — v1.6.0
 - ✓ Realtime contracts + `RealtimeProvider` ABC + `BaseRealtimeWebsocketClient` + factory + `MockRealtimeProvider` (`[realtime]` extra) — Phase 1, v1.8.0
 - ✓ OpenAI Realtime provider (`OpenAIRealtimeClient`, `gpt-realtime` GA, PITFALL-28 resolved, 11-method contract, unit + live integration test) — Phase 2, v1.8.0 (PROV-01..04, QUAL-01/03 OpenAI portions)
+- ✓ Gemini Live provider (`GeminiLiveClient`, dual-endpoint Developer/Vertex EU, default `gemini-3.1-flash-live-preview` verified live 2026-05-25, credential redaction) + `NovaSonicStub` (<30 LOC, contract-conformant, points to v1.9.0) + factory registration — Phase 3, v1.8.0 (PROV-05..08, QUAL-01 Gemini+Nova, QUAL-03 Gemini portion; live Vertex roundtrip pending HUMAN-UAT)
 
 ### Active
 
@@ -112,7 +113,7 @@ See **Current Milestone** below.
 
 **Goal:** Port bidirectional voice streaming (OpenAI Realtime + Gemini Live) from GlassAgents into `eq-chatbot-core` as a new `[realtime]` extra, plus evaluate alternative providers to avoid vendor lock-in.
 
-**Progress:** Phase 1 (Contracts + Foundation) complete (2026-05-24) — realtime type system, `RealtimeProvider` ABC, `BaseRealtimeWebsocketClient` (reconnect/backoff), factory, stdlib-only `MockRealtimeProvider`, and `[realtime]` extra shipped with 30 realtime unit tests. Phase 2 (OpenAI Realtime Provider) complete (2026-05-24) — faithful port of `OpenAIRealtimeClient` (`gpt-realtime` GA default, PITFALL-28 reconciled, full 11-method contract), provider registered in factory + public re-exports, OpenAI unit suite + skip-safe live integration test (verified 4/4 criteria after gap closure). Next: Phase 3 — Gemini Live + Nova Sonic stub.
+**Progress:** Phase 1 (Contracts + Foundation) complete (2026-05-24) — realtime type system, `RealtimeProvider` ABC, `BaseRealtimeWebsocketClient` (reconnect/backoff), factory, stdlib-only `MockRealtimeProvider`, and `[realtime]` extra shipped with 30 realtime unit tests. Phase 2 (OpenAI Realtime Provider) complete (2026-05-24) — faithful port of `OpenAIRealtimeClient` (`gpt-realtime` GA default, PITFALL-28 reconciled, full 11-method contract), provider registered in factory + public re-exports, OpenAI unit suite + skip-safe live integration test (verified 4/4 criteria after gap closure). Phase 3 (Gemini Live + Nova Sonic Stub) complete (2026-05-25) — `GeminiLiveClient` (dual-endpoint, default `gemini-3.1-flash-live-preview` verified live, PROV-07 redaction), `NovaSonicStub` (contract-conformant, → v1.9.0), both registered in factory; 171 realtime unit tests green, 8/8 must-haves verified, QUAL-03 live Vertex roundtrip tracked in HUMAN-UAT. Next: Phase 3.1 — ElevenLabs Agents Realtime Provider (preferred GDPR provider).
 
 **Target features:**
 - `RealtimeAdapterContract` + minimal `RealtimeProvider` ABC + `NormalizedRealtimeEvent` schema (12 event constants) + `RealtimeProviderCapabilities` metadata
@@ -149,4 +150,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-05-24 after Phase 2 (OpenAI Realtime Provider) completion*
+*Last updated: 2026-05-25 after Phase 3 (Gemini Live + Nova Sonic Stub) completion*
