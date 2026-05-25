@@ -76,6 +76,65 @@ For more — streaming, other providers, ADC for Vertex, error handling — see 
 | RAG pipeline (chunking, embedding, retrieval) | [docs/rag.md](docs/rag.md#english) |
 | Testing (markers, integration setup, cost-aware patterns) | [docs/testing.md](docs/testing.md) |
 
+### Realtime Providers
+
+#### ElevenLabs (Recommended GDPR Provider)
+
+ElevenLabs Conversational AI (`"elevenlabs"`) is the recommended provider for EU/GDPR deployments.
+
+```python
+from eq_chatbot_core.realtime import get_realtime_provider
+
+provider = get_realtime_provider(
+    "elevenlabs",
+    api_key="xi-...",
+    agent_id="YOUR_AGENT_ID",
+)
+```
+
+OpenAI Realtime and Gemini Live remain supported providers. ElevenLabs is recommended for
+EU-regulated deployments because it offers an enterprise-grade EU data residency path.
+
+##### Full EU Compliance Checklist
+
+Four conditions must ALL be met for complete data residency compliance:
+
+1. **Enterprise plan** — EU data residency is available on the Enterprise plan only.
+   Standard and Creator plans route data through US infrastructure.
+
+2. **Zero Retention Mode** — Enable Zero Retention Mode in the ElevenLabs Enterprise
+   dashboard and confirm it via the Zero Retention API. Covers TTS, STT, and Conversational
+   AI sessions. Voice cloning models are excluded (see caveat below).
+
+3. **EU-hosted Custom LLM backend** — ElevenLabs Agents orchestrate an LLM under the
+   hood. For full EU residency, configure a Custom LLM endpoint hosted in the EU
+   (e.g. Azure OpenAI EU region, or a self-hosted model in an EU data centre).
+   Configure this in the ElevenLabs dashboard, not in the adapter.
+
+4. **EU data-residency endpoint** — Pass the EU base URL as `base_url`:
+
+   ```python
+   from eq_chatbot_core.realtime import get_realtime_provider
+
+   provider = get_realtime_provider(
+       "elevenlabs",
+       api_key="YOUR_EU_API_KEY",   # EU key — different from global key
+       agent_id="YOUR_AGENT_ID",
+       base_url="wss://api.eu.residency.elevenlabs.io",
+   )
+   ```
+
+   > **Important:** The EU API key is a **separate key** provisioned by ElevenLabs
+   > Enterprise support. Your global `xi-api-key` will return 403 Forbidden on the
+   > EU endpoint.
+
+##### Voice Cloning Caveat
+
+Voice cloning models are **not eligible for Zero Retention Mode** — cloned voice
+model data persists in ElevenLabs infrastructure. If your use case requires voice
+cloning, assess whether that data qualifies as personal data under GDPR before
+deploying in an EU-regulated context.
+
 ---
 
 ## Deutsch

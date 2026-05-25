@@ -37,7 +37,7 @@ class RealtimeProviderRegistry:
 def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
     """Create a new registry pre-populated with the built-in providers.
 
-    Phase 2 adds 'openai'. Phase 3 adds 'gemini_live' and 'nova_sonic'.
+    Phase 2 adds 'openai'. Phase 3 adds 'gemini_live' and 'nova_sonic'. Phase 3.1 adds 'elevenlabs'.
     All provider imports are deferred inside factory_fn to keep this module
     importable without any extras installed.
     """
@@ -70,6 +70,13 @@ def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
             name="nova_sonic",
             factory_fn=lambda **kwargs: _build_nova_sonic_provider(**kwargs),
             description="AWS Nova Sonic stub — production implementation in v1.9.0.",
+        )
+    )
+    registry.register(
+        RealtimeProviderDefinition(
+            name="elevenlabs",
+            factory_fn=lambda **kwargs: _build_elevenlabs_provider(**kwargs),
+            description="ElevenLabs Conversational AI — speech-to-speech, server VAD, GDPR-preferred provider.",
         )
     )
     return registry
@@ -133,6 +140,33 @@ def _build_nova_sonic_provider(**kwargs: Any) -> Any:
     from eq_chatbot_core.realtime.providers.nova import NovaSonicStub  # noqa: PLC0415
 
     return NovaSonicStub()
+
+
+def _build_elevenlabs_provider(**kwargs: Any) -> Any:
+    """Build an ElevenLabsRealtimeClient from keyword arguments.
+
+    Deferred import keeps factory.py importable without the [realtime] extra installed.
+    D-03 fail-fast: credential validation runs before the deferred import so the caller
+    gets a clear library-native ValueError regardless of [realtime] install state.
+    """
+    if not kwargs.get("api_key", "").strip():
+        raise ValueError(
+            'ElevenLabs realtime provider requires an "api_key" keyword argument. '
+            'Pass it via get_realtime_provider("elevenlabs", api_key="xi-...", agent_id="...").'
+        )
+    if not kwargs.get("agent_id", "").strip():
+        raise ValueError(
+            'ElevenLabs realtime provider requires an "agent_id" keyword argument. '
+            'Pass it via get_realtime_provider("elevenlabs", api_key="xi-...", agent_id="...").'
+        )
+
+    from eq_chatbot_core.realtime.providers.elevenlabs import (  # noqa: PLC0415
+        ElevenLabsRealtimeClient,
+        ElevenLabsRealtimeConfig,
+    )
+
+    config = ElevenLabsRealtimeConfig(**kwargs)
+    return ElevenLabsRealtimeClient(config)
 
 
 _DEFAULT_REGISTRY: RealtimeProviderRegistry | None = None  # module-level singleton; lazy init
