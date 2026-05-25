@@ -43,9 +43,9 @@ Requirements for this milestone release. Each maps to roadmap phases.
 
 ### Quality & Developer Surface
 
-- [ ] **QUAL-01**: Unit test suite `tests/unit/realtime/` covers each provider: connect lifecycle, `iter_normalized_events` produces every expected event type from recorded scrubbed frames, close lifecycle, capability flag assertions
+- [x] **QUAL-01**: Unit test suite `tests/unit/realtime/` covers each provider: connect lifecycle, `iter_normalized_events` produces every expected event type from recorded scrubbed frames, close lifecycle, capability flag assertions
 - [ ] **QUAL-02**: `tests/unit/realtime/conftest.py` establishes AsyncMock pattern for `websockets.connect` (not MagicMock; isolates from existing sys.modules mock-leak issue)
-- [ ] **QUAL-03**: Integration test for each production provider connects to real API, receives `SESSION_READY`, sends a PCM16 chunk, disconnects cleanly (gated by API key env var; skipped in CI if absent)
+- [x] **QUAL-03**: Integration test for each production provider connects to real API, receives `SESSION_READY`, sends a PCM16 chunk, disconnects cleanly (gated by API key env var; skipped in CI if absent)
 - [ ] **QUAL-04**: `cli.py` adds `eq-chatbot realtime-test -p {openai|gemini_live|nova_sonic|mock}` smoke-test command
 - [ ] **QUAL-05**: GlassAgents migration gate — pre-release check greps GlassAgents `backend/realtime/bridge.py` for hardcoded event-type strings and verifies all 12 match library constants exactly
 - [ ] **QUAL-06**: Full CI matrix (Python 3.10, 3.11, 3.12, 3.13) passes including new realtime test suite
