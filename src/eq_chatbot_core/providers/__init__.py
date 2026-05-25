@@ -32,10 +32,10 @@ Usage:
     response = provider.chat_completion(messages=[...])
 """
 
+from typing import TYPE_CHECKING, Any
+
 CLOUD_PROVIDERS: list[str] = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex"]
 LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
-
-from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from eq_chatbot_core.providers.base import BaseLLMProvider

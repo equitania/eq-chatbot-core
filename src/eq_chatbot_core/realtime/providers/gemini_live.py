@@ -99,22 +99,17 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         # D-06: fail fast with library-native exceptions before any network I/O
         if not config.model.strip():
             raise ValueError(
-                "GeminiLiveConfig.model must be non-empty. "
-                "Valid floating alias: gemini-3.1-flash-live-preview"
+                "GeminiLiveConfig.model must be non-empty. Valid floating alias: gemini-3.1-flash-live-preview"
             )
         if config.mode == "developer":
             if not config.api_key.strip():
-                raise ValueError(
-                    "GeminiLiveConfig.api_key must be non-empty when mode='developer'."
-                )
+                raise ValueError("GeminiLiveConfig.api_key must be non-empty when mode='developer'.")
             base = config.base_url or _GEMINI_DEVELOPER_BASE_URL
             url = f"{base}{_GEMINI_DEVELOPER_ENDPOINT}?key={config.api_key}"
             headers: dict[str, str] = {}
         elif config.mode == "vertex":
             if not config.access_token.strip():
-                raise ValueError(
-                    "GeminiLiveConfig.access_token must be non-empty when mode='vertex'."
-                )
+                raise ValueError("GeminiLiveConfig.access_token must be non-empty when mode='vertex'.")
             base = config.base_url or f"wss://{config.region}-aiplatform.googleapis.com"
             url = f"{base}{_VERTEX_ENDPOINT}"
             headers = {
@@ -259,11 +254,7 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         """
         if not pcm16_audio:
             return
-        await self.send_json({
-            "realtimeInput": {
-                "audio": {"data": base64.b64encode(pcm16_audio).decode("ascii")}
-            }
-        })
+        await self.send_json({"realtimeInput": {"audio": {"data": base64.b64encode(pcm16_audio).decode("ascii")}}})
 
     async def commit_client_turn(self) -> None:
         """Commit the current audio turn (always required — Gemini has no server VAD).
@@ -295,13 +286,9 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
             output_value = json.loads(output)
         except (json.JSONDecodeError, TypeError):
             output_value = {"output": output}
-        await self.send_json({
-            "toolResponse": {
-                "functionResponses": [
-                    {"id": call_id, "response": {"output": output_value}}
-                ]
-            }
-        })
+        await self.send_json(
+            {"toolResponse": {"functionResponses": [{"id": call_id, "response": {"output": output_value}}]}}
+        )
 
     # ------------------------------------------------------------------
     # Tool schema conversion
@@ -334,8 +321,7 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         result = {k: v for k, v in schema.items() if k != "additionalProperties"}
         if "properties" in result:
             result["properties"] = {
-                k: GeminiLiveClient._to_gemini_schema(v) or {}
-                for k, v in result["properties"].items()
+                k: GeminiLiveClient._to_gemini_schema(v) or {} for k, v in result["properties"].items()
             }
         if "items" in result:
             result["items"] = GeminiLiveClient._to_gemini_schema(result["items"])
@@ -353,9 +339,7 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
     # Event normalization (RealtimeAdapterContract)
     # ------------------------------------------------------------------
 
-    def _normalize_tool_call_events(
-        self, event: dict[str, Any]
-    ) -> list[NormalizedRealtimeEventFull]:
+    def _normalize_tool_call_events(self, event: dict[str, Any]) -> list[NormalizedRealtimeEventFull]:
         """Normalize toolCall wire event to TOOL_CALL_COMPLETED items.
 
         Source: GlassAgents reference lines 490-528.
@@ -365,29 +349,35 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         for fn_call in event.get("toolCall", {}).get("functionCalls", []):
             # ADAPTATION C — stdlib time.time_ns(), no GlassAgents utility import
             call_id = fn_call.get("id") or f"tool_call_{time.time_ns() // 1_000_000}"
-            results.append({
-                "type": NormalizedRealtimeEventTypes.TOOL_CALL_COMPLETED,
-                "payload": {
-                    "call_id": call_id,
-                    "name": fn_call.get("name"),
-                    "arguments": json.dumps(fn_call.get("args", {})),
-                },
-                "source": "toolCall",
-                "raw": event,
-            })
+            results.append(
+                {
+                    "type": NormalizedRealtimeEventTypes.TOOL_CALL_COMPLETED,
+                    "payload": {
+                        "call_id": call_id,
+                        "name": fn_call.get("name"),
+                        "arguments": json.dumps(fn_call.get("args", {})),
+                    },
+                    "source": "toolCall",
+                    "raw": event,
+                }
+            )
         return results
 
-    def _to_normalized_runtime_events(
-        self, event: dict[str, Any]
-    ) -> list[NormalizedRealtimeEventFull]:
+    def _to_normalized_runtime_events(self, event: dict[str, Any]) -> list[NormalizedRealtimeEventFull]:
         """Route Gemini wire types to NormalizedRealtimeEventTypes constants.
 
         Port from GlassAgents reference lines 270-510.
         Returns a list (Gemini serverContent may yield multiple audio delta + done events).
         """
         if "setupComplete" in event:
-            return [{"type": NormalizedRealtimeEventTypes.SESSION_READY,
-                     "payload": event, "source": "setupComplete", "raw": event}]
+            return [
+                {
+                    "type": NormalizedRealtimeEventTypes.SESSION_READY,
+                    "payload": event,
+                    "source": "setupComplete",
+                    "raw": event,
+                }
+            ]
 
         if "serverContent" in event:
             results: list[NormalizedRealtimeEventFull] = []
@@ -398,42 +388,52 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
                 inline_data = part.get("inlineData", {})
                 audio_data = inline_data.get("data")
                 if audio_data:
-                    results.append({
-                        "type": NormalizedRealtimeEventTypes.RESPONSE_AUDIO_DELTA,
-                        "payload": {"audio": audio_data},
+                    results.append(
+                        {
+                            "type": NormalizedRealtimeEventTypes.RESPONSE_AUDIO_DELTA,
+                            "payload": {"audio": audio_data},
+                            "source": "serverContent",
+                            "raw": event,
+                        }
+                    )
+            if server_content.get("turnComplete"):
+                results.append(
+                    {
+                        "type": NormalizedRealtimeEventTypes.RESPONSE_DONE,
+                        "payload": event,
                         "source": "serverContent",
                         "raw": event,
-                    })
-            if server_content.get("turnComplete"):
-                results.append({
-                    "type": NormalizedRealtimeEventTypes.RESPONSE_DONE,
-                    "payload": event,
-                    "source": "serverContent",
-                    "raw": event,
-                })
+                    }
+                )
             elif not results:
                 # serverContent with no audio parts and no turnComplete
-                results.append({
-                    "type": NormalizedRealtimeEventTypes.UNHANDLED,
-                    "payload": event,
-                    "source": "serverContent",
-                    "raw": event,
-                })
+                results.append(
+                    {
+                        "type": NormalizedRealtimeEventTypes.UNHANDLED,
+                        "payload": event,
+                        "source": "serverContent",
+                        "raw": event,
+                    }
+                )
             return results
 
         if "toolCall" in event:
             return self._normalize_tool_call_events(event)
 
         if "toolCallCancellation" in event:
-            return [{"type": NormalizedRealtimeEventTypes.TOOL_CALL_CANCELLED,
-                     "payload": event, "source": "toolCallCancellation", "raw": event}]
+            return [
+                {
+                    "type": NormalizedRealtimeEventTypes.TOOL_CALL_CANCELLED,
+                    "payload": event,
+                    "source": "toolCallCancellation",
+                    "raw": event,
+                }
+            ]
 
         if "error" in event:
-            return [{"type": NormalizedRealtimeEventTypes.ERROR,
-                     "payload": event, "source": "error", "raw": event}]
+            return [{"type": NormalizedRealtimeEventTypes.ERROR, "payload": event, "source": "error", "raw": event}]
 
-        return [{"type": NormalizedRealtimeEventTypes.UNHANDLED,
-                 "payload": event, "source": "unknown", "raw": event}]
+        return [{"type": NormalizedRealtimeEventTypes.UNHANDLED, "payload": event, "source": "unknown", "raw": event}]
 
     async def iter_normalized_events(self) -> AsyncIterator[NormalizedRealtimeEventFull]:
         """Yield normalized events from the Gemini Live stream.

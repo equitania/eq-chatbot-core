@@ -1,8 +1,8 @@
-# Test Report - 2026-05-24 23:24:46
+# Test Report - 2026-05-25 20:48:43
 
-**eq_chatbot_core v1.7.2** | 4.84s | Python 3.13.12 | macOS-26.5-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.7.2** | 4.66s | Python 3.13.12 | macOS-26.5-arm64-arm-64bit-Mach-O
 
-> **Result: ALL PASSED - 1230 tests OK, 5 expected failures**
+> **Result: ALL PASSED - 1362 tests OK, 5 expected failures**
 
 Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.13/site-packages/pytest/__main__.py tests/unit/ -q`
 
@@ -10,10 +10,10 @@ Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/lib/python3.
 
 | Status | Count |
 |--------|-------|
-| Passed | 1230 |
+| Passed | 1362 |
 | Failed | 0 |
 | XFailed (expected) | 5 |
-| **Total** | **1235** |
+| **Total** | **1367** |
 
 ## Configuration Status
 
@@ -40,21 +40,21 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|------------|--------|--------|---------|---------|-------|----------|
 | **Provider: OpenAI** | - | 41 | 0 | 0 | 0 | 41 | <0.01s |
-| **Provider: Anthropic** | - | 46 | 0 | 0 | 0 | 46 | <0.01s |
+| **Provider: Anthropic** | - | 46 | 0 | 0 | 0 | 46 | 0.03s |
 | **Provider: LangDock** | - | 56 | 0 | 0 | 0 | 56 | 0.01s |
 | **Provider: OpenRouter** | - | 35 | 0 | 0 | 0 | 35 | <0.01s |
 | **Provider: Mammouth AI** | - | 37 | 0 | 0 | 0 | 37 | <0.01s |
 | **Provider: Google Vertex AI** | - | 44 | 0 | 0 | 0 | 44 | 0.01s |
-| **Provider: Local (LM Studio / Ollama)** | - | 32 | 0 | 0 | 0 | 32 | 0.01s |
+| **Provider: Local (LM Studio / Ollama)** | - | 32 | 0 | 0 | 0 | 32 | <0.01s |
 | **Security** | - | 411 | 0 | 0 | 5 | 416 | 0.04s |
 | **RAG Pipeline** | - | 116 | 0 | 0 | 0 | 116 | 0.32s |
-| **Services & Core** | - | 183 | 0 | 0 | 0 | 183 | 0.01s |
-| **MCP Client** | - | 92 | 0 | 0 | 0 | 92 | 1.59s |
-| **Other** | - | 137 | 0 | 0 | 0 | 137 | 1.86s |
+| **Services & Core** | - | 188 | 0 | 0 | 0 | 188 | 0.01s |
+| **MCP Client** | - | 92 | 0 | 0 | 0 | 92 | 1.58s |
+| **Other** | - | 264 | 0 | 0 | 0 | 264 | 1.79s |
 
 ## Detailed Results
 
-### Unit Tests (1230 passed, 5 xfailed)
+### Unit Tests (1362 passed, 5 xfailed)
 
 #### Provider: OpenAI (41 passed) - <0.01s
 
@@ -102,7 +102,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_model_no_temperature` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
 
-#### Provider: Anthropic (46 passed) - <0.01s
+#### Provider: Anthropic (46 passed) - 0.03s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -131,7 +131,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_mixed_content` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_completion` | PASSED | <0.01s |
-| `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_includes_usage` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_includes_usage` | PASSED | 0.02s |
 | `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_with_system_prompt` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicListModels::test_list_models` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicListModels::test_list_models_includes_constraints` | PASSED | <0.01s |
@@ -345,7 +345,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexFactoryIntegration::test_get_provider_vertex_no_api_key_needed` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (32 passed) - 0.01s
+#### Provider: Local (LM Studio / Ollama) (32 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -830,7 +830,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_chunker.py::TestEdgeCases::test_text_with_only_punctuation` | PASSED | <0.01s |
 | `unit/test_chunker.py::TestEdgeCases::test_very_small_chunk_size` | PASSED | <0.01s |
 | `unit/test_chunker.py::TestEdgeCases::test_overlap_equal_to_chunk_size_does_not_infinite_loop` | PASSED | <0.01s |
-| `unit/test_chunker.py::TestLazyInitialization::test_encoder_is_none_before_first_access` | PASSED | 0.02s |
+| `unit/test_chunker.py::TestLazyInitialization::test_encoder_is_none_before_first_access` | PASSED | <0.01s |
 | `unit/test_chunker.py::TestLazyInitialization::test_encoder_initialized_on_first_property_access` | PASSED | <0.01s |
 | `unit/test_chunker.py::TestLazyInitialization::test_encoder_cached_after_initialization` | PASSED | <0.01s |
 | `unit/test_chunker.py::TestLazyInitialization::test_import_error_raised_when_tiktoken_missing` | PASSED | <0.01s |
@@ -880,7 +880,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_prepare_for_langdock` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.29s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.31s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -924,7 +924,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (183 passed) - 0.01s
+#### Services & Core (188 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -934,6 +934,11 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/realtime/test_factory.py::test_get_realtime_provider_unknown_raises` | PASSED | <0.01s |
 | `unit/realtime/test_factory.py::test_get_realtime_provider_openai_missing_api_key_raises_value_error` | PASSED | <0.01s |
 | `unit/realtime/test_factory.py::test_registry_registered_names_sorted` | PASSED | <0.01s |
+| `unit/realtime/test_factory.py::test_registry_contains_gemini_live` | PASSED | <0.01s |
+| `unit/realtime/test_factory.py::test_registry_contains_nova_sonic` | PASSED | <0.01s |
+| `unit/realtime/test_factory.py::test_get_realtime_provider_nova_sonic_returns_stub` | PASSED | <0.01s |
+| `unit/realtime/test_factory.py::test_get_realtime_provider_gemini_live_developer_missing_api_key_raises` | PASSED | <0.01s |
+| `unit/realtime/test_factory.py::test_get_realtime_provider_gemini_live_vertex_missing_access_token_raises` | PASSED | <0.01s |
 | `unit/test_cost_service.py::TestCalculateCost::test_exact_match_gpt4o_mini` | PASSED | <0.01s |
 | `unit/test_cost_service.py::TestCalculateCost::test_prefix_match_gpt4o_dated` | PASSED | <0.01s |
 | `unit/test_cost_service.py::TestCalculateCost::test_longest_prefix_o1_mini_over_o1` | PASSED | <0.01s |
@@ -1112,7 +1117,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |
 
-#### MCP Client (92 passed) - 1.59s
+#### MCP Client (92 passed) - 1.58s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1134,15 +1139,15 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestMCPClientSSEEventHandling::test_handle_endpoint_event_rejects_non_http_scheme` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_not_connected` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.00s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
@@ -1203,13 +1208,13 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestStdioEnvWhitelistHardening::test_pythonpath_via_explicit_env_still_works` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_returns_resolved_ips` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_returns_empty_set_for_unresolvable` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.04s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_passes_when_resolution_matches` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_skips_check_for_unpinned_hosts` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_base_url_on_init` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_endpoint_from_sse_event` | PASSED | <0.01s |
 
-#### Other (137 passed) - 1.86s
+#### Other (264 passed) - 1.79s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1232,6 +1237,133 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/realtime/test_mock.py::test_append_client_audio_odd_raises` | PASSED | <0.01s |
 | `unit/realtime/test_pyproject.py::test_realtime_extra_declared` | PASSED | <0.01s |
 | `unit/realtime/test_pyproject.py::test_dev_extra_has_pytest_asyncio` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_frozen_dataclass` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_sample_rate` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_base_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_voice_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_instructions_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_custom_base_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_no_manual_turn_commit` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_result_mode_elevenlabs_native` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_session_sample_rate_16k` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_server_vad_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_calling_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_api_key_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_api_key_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_agent_id_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_agent_id_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_valid_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_api_key_not_in_endpoint` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_agent_id_in_endpoint` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_endpoint_starts_with_wss` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_no_auth_header_in_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_provider_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_capabilities_property` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_conversation_initiation_metadata_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_audio_maps_to_response_audio_delta` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_complete_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_user_transcript_maps_to_input_audio_committed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_interruption_maps_to_input_speech_started` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_client_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_ping_returns_none_sentinel` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_correction_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_unknown_event_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_missing_type_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_has_user_audio_chunk_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_no_type_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_is_base64` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_empty_audio_is_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_commit_client_turn_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_create_response_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_cancel_response_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_client_tool_result_type` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_tool_call_id_not_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_tool_call_id_value` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_result_field` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_is_error_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_frozen` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_has_dataclass_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_contains_gemini` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_is_verified_alias` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_mode_is_developer` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_region_is_europe_west4` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_custom_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_server_vad_is_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_manual_turn_commit_required_is_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_result_mode_is_provider_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_all_streaming_flags` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_calling_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_voice_selection_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_interruption_cancel_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_api_key_for_developer_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_api_key_for_developer_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_unknown_mode_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_model_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_developer_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_vertex_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_key_param` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_has_no_authorization_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_is_wss` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_generativelanguage` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_aiplatform` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_region` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_authorization_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_project_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_does_not_contain_key_param` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_does_not_contain_api_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_does_not_contain_access_token` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_is_wss_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_is_wss_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_key_param_from_developer_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_url_without_key_param_unchanged` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_bearer_token_from_error_text` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_api_key_from_error_text` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_empty_text_returns_empty` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_adds_models_prefix` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_does_not_double_prefix` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_includes_system_instruction` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_no_system_instruction_when_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_top_level_key_is_setup` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_contains_model` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_tool_definition_uses_parameters_field` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_strips_additional_properties` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_empty_object_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_none_input_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_dict_tool_passthrough` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_setup_complete_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_audio_maps_to_audio_delta` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_turn_complete_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_payload_has_call_id_and_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_cancellation_maps_to_tool_call_cancelled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_error_frame_maps_to_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_unknown_key_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_all_results_have_source_and_raw_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestManualTurnCommit::test_commit_client_turn_sends_audio_stream_end` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_sends_correct_shape` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_decodes_json_output` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_fallback_for_malformed_json` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_on_connected_does_not_call_initialize_session` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestContractConformance::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[connect-kwargs0]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[close-kwargs1]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[initialize_session-kwargs2]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[update_session-kwargs3]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[append_client_audio-kwargs4]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[commit_client_turn-kwargs5]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[create_response-kwargs6]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[cancel_response-kwargs7]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[register_tools-kwargs8]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[submit_tool_result-kwargs9]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_iter_normalized_events_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestErrorMessages::test_message_references_v190` | PASSED | <0.01s |
 | `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_frozen` | PASSED | <0.01s |
 | `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_model_is_gpt_realtime` | PASSED | <0.01s |
 | `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_voice_is_ash` | PASSED | <0.01s |
@@ -1289,7 +1421,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |
 | `unit/realtime/test_realtime_openai.py::TestCloseLifecycle::test_close_does_not_raise_when_not_connected` | PASSED | <0.01s |
 | `unit/realtime/test_websocket_client.py::test_connect_with_backoff_3_failures_then_success` | PASSED | <0.01s |
-| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 1.81s |
+| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 1.74s |
 | `unit/realtime/test_websocket_client.py::test_realtime_closed_error_fields` | PASSED | <0.01s |
 | `unit/realtime/test_websocket_client.py::test_realtime_rate_limit_error` | PASSED | <0.01s |
 | `unit/realtime/test_websocket_client.py::test_error_hierarchy` | PASSED | <0.01s |
