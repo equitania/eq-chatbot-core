@@ -649,19 +649,22 @@ async def test_gemini_live_vertex_eu_session_ready_and_pcm_chunk():
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Gemini Live model alias at phase start (D-05 — BLOCKING for default value)**
+   - **Resolution:** Resolves during Plan 01 execution (live model-alias verification gate). Plan 01 includes a blocking checkpoint that runs `curl "https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}" | python3 -m json.tool | grep -i live` at implementation start to confirm the current valid alias before any code is committed. The floating-alias default (`gemini-2.5-flash-preview-native-audio-12-2025`) is confirmed there and recorded in a code comment before the first commit. The literal alias value remains pending the live Plan 01 check — it is not confirmed in this research document.
    - What we know: `gemini-2.5-flash-preview-native-audio-12-2025` is referenced in docs from late 2025 and Q1 2026 forum discussions. `gemini-2.0-flash` is shutting down June 1, 2026.
    - What's unclear: Whether `gemini-2.5-flash-preview-native-audio-12-2025` is still the correct alias for May 2026 or whether a newer alias (e.g., `gemini-3.1-flash-live-preview`) is preferred. WebSearch found references to `gemini-3.1-flash-live-preview` as a latest Live API model.
    - Recommendation: At implementation start, run `curl "https://generativelanguage.googleapis.com/v1beta/models?key={GEMINI_API_KEY}" | python3 -m json.tool | grep -i live` to list available Live models and confirm the current valid alias. Update `GeminiLiveConfig.model` default and code comment before first commit.
 
 2. **Vertex AI `europe-west4` Live API availability**
+   - **Resolution:** Design adopts `europe-west4` (Netherlands) as the recommended EU region. The integration test uses `region=os.getenv("VERTEX_REGION", "europe-west4")` as the default, with `europe-west1` as the documented fallback if a region error is returned. This env-var override allows the integration test to run against any available EU Vertex region without code changes.
    - What we know: Vertex Live API docs confirm regional format `{region}-aiplatform.googleapis.com`. `europe-west4` (Netherlands) is a major EU Vertex AI region.
    - What's unclear: Whether Gemini Live API specifically (not just general Vertex AI) is available in `europe-west4` vs only global endpoint for some models.
    - Recommendation: Integration test uses `region=os.getenv("VERTEX_REGION", "europe-west4")` — if it fails with a region error, try `europe-west1`. Mark test as environment-dependent in test docstring.
 
 3. **`GeminiLiveConfig` mode-switch mechanism (Claude's Discretion)**
+   - **Resolution:** Claude's Discretion per CONTEXT.md. Planner chose explicit `mode: Literal["developer", "vertex"] = "developer"` field — unambiguous, self-documenting, and easy to validate in `__init__`. See `GeminiLiveConfig` code example in this document.
    - What we know: D-01 leaves exact field names to planner.
    - Recommendation: Use explicit `mode: Literal["developer", "vertex"] = "developer"` field. It is unambiguous, self-documenting, and easy to validate in `__init__`. The alternative (infer from `access_token` presence) is brittle — a consumer could accidentally provide both.
 
