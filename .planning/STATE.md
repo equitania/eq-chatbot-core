@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.8.0
 milestone_name: milestone
-status: ready_to_plan
-last_updated: 2026-05-24T21:14:43.808Z
-last_activity: 2026-05-24 -- Phase 02 execution started
+status: planning
+last_updated: "2026-05-25T11:10:09.876Z"
+last_activity: 2026-05-24
 progress:
-  total_phases: 5
-  completed_phases: 2
+  total_phases: 6
+  completed_phases: 3
   total_plans: 11
   completed_plans: 11
-  percent: 40
-stopped_at: Phase 02 complete (3/3) — ready to discuss Phase 3
+  percent: 50
 ---
 
 # Project State
@@ -36,6 +35,10 @@ Progress: [░░░░░░░░░░] 0%
 | 4 | CLI, Hardening, Docs, Release | QUAL-04 – QUAL-06, REL-01 – REL-05 | Not started |
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 03.1 inserted after Phase 3: ElevenLabs Agents Realtime Provider — pulled forward from v1.9.0 (PROV-FUT-03) as preferred GDPR provider
 
 ### Decisions
 
