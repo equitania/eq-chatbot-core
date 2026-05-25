@@ -134,12 +134,12 @@ Plans:
 Plans:
 **Wave 1** *(blocking gate — must complete before any code is written)*
 
-- [ ] 03-01-PLAN.md — [BLOCKING] Live-verify Gemini Live model alias (D-05 / SC-1 / PITFALL-20)
+- [x] 03-01-PLAN.md — [BLOCKING] Live-verify Gemini Live model alias (D-05 / SC-1 / PITFALL-20)
 
 **Wave 2** *(parallel — no file overlap)*
 
-- [ ] 03-02-PLAN.md — GeminiLiveClient + GeminiLiveConfig + GEMINI_LIVE_REALTIME_CAPABILITIES + dual-endpoint + redaction (gemini_live.py)
-- [ ] 03-03-PLAN.md — NovaSonicStub (<30 LOC, stdlib-only) + test_realtime_nova.py (nova.py)
+- [x] 03-02-PLAN.md — GeminiLiveClient + GeminiLiveConfig + GEMINI_LIVE_REALTIME_CAPABILITIES + dual-endpoint + redaction (gemini_live.py)
+- [x] 03-03-PLAN.md — NovaSonicStub (<30 LOC, stdlib-only) + test_realtime_nova.py (nova.py)
 
 **Wave 3** *(parallel — no file overlap)*
 
@@ -192,7 +192,7 @@ Plans:
 | 0. Codebase Cleanup | 3/3 | Complete   | 2026-05-24 |
 | 1. Contracts + Foundation | 5/5 | Complete   | 2026-05-24 |
 | 2. OpenAI Realtime Provider | 3/3 | Complete   | 2026-05-24 |
-| 3. Gemini Live + Nova Sonic Stub | 0/5 | Not started | - |
+| 3. Gemini Live + Nova Sonic Stub | 3/5 | In Progress|  |
 | 4. CLI, Hardening, Docs, Release | 0/? | Not started | - |
 
 ---
