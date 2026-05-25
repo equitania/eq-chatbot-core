@@ -165,7 +165,17 @@ Plans:
   6. An integration test (skipped if EU credentials absent) connects to the agent endpoint, receives `SESSION_READY`, and disconnects cleanly
   7. README documents the four EU-residency conditions (Enterprise, Zero Retention Mode, EU-hosted Custom LLM, EU endpoint) plus the voice-cloning retention caveat
 
-**Plans**: TBD (run /gsd:plan-phase 03.1 to break down)
+**Plans**: 3 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 03.1-01-PLAN.md — ElevenLabsRealtimeClient + ElevenLabsRealtimeConfig + ELEVENLABS_REALTIME_CAPABILITIES (elevenlabs.py)
+
+**Wave 2** *(parallel — no file overlap)*
+
+- [ ] 03.1-02-PLAN.md — Unit test suite test_realtime_elevenlabs.py (QUAL-01)
+- [ ] 03.1-03-PLAN.md — Factory registration + integration test + README GDPR section
 
 ### Phase 4: CLI, Hardening, Docs, Release
 
