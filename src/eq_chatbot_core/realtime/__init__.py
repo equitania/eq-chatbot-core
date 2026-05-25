@@ -11,14 +11,14 @@ MockRealtimeProvider and type contracts are always importable (no extra needed):
 
 from typing import Any
 
-REALTIME_PROVIDERS: list[str] = ["openai", "gemini_live", "nova_sonic", "mock"]
+REALTIME_PROVIDERS: list[str] = ["openai", "gemini_live", "nova_sonic", "elevenlabs", "mock"]
 
 
 def get_realtime_provider(name: str, **kwargs: Any) -> Any:
     """Factory for realtime voice providers.
 
     Args:
-        name: Provider name — one of "openai", "gemini_live", "nova_sonic", "mock"
+        name: Provider name — one of "openai", "gemini_live", "nova_sonic", "elevenlabs", "mock"
         **kwargs: Provider-specific arguments (api_key, model, voice, ...)
 
     Returns:

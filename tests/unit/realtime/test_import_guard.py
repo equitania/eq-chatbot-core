@@ -44,11 +44,12 @@ def test_always_importable_without_websockets() -> None:
 
 @pytest.mark.unit
 def test_realtime_providers_constant() -> None:
-    """REALTIME_PROVIDERS lists exactly the 4 expected provider names."""
+    """REALTIME_PROVIDERS lists exactly the 5 expected provider names."""
     from eq_chatbot_core.realtime import REALTIME_PROVIDERS
 
     assert "mock" in REALTIME_PROVIDERS
     assert "openai" in REALTIME_PROVIDERS
     assert "gemini_live" in REALTIME_PROVIDERS
     assert "nova_sonic" in REALTIME_PROVIDERS
-    assert len(REALTIME_PROVIDERS) == 4
+    assert "elevenlabs" in REALTIME_PROVIDERS
+    assert len(REALTIME_PROVIDERS) == 5
