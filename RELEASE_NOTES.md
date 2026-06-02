@@ -1,5 +1,21 @@
 # Release Notes
 
+## Version 1.7.4 (02.06.2026)
+
+### Fixed
+
+- **[FIX] OpenRouter `list_models()` crash on null model fields**: `list_models()`
+  aborted the entire model listing with `AttributeError: 'NoneType' object has no
+  attribute 'get'` whenever OpenRouter returned a model whose `default_parameters`
+  field was an explicit JSON `null` (e.g. `openrouter/owl-alpha`). The `dict.get(key,
+  default)` fallback only applies when the key is *absent*, not when it is present with
+  a `null` value, so `default_params` became `None` and downstream `.get()` calls
+  failed. Consumers (e.g. the chatbot application) therefore received an empty model
+  list. All container fields (`default_parameters`, `supported_parameters`,
+  `input_modalities`, `output_modalities`, `top_provider`) are now coerced with `or`
+  to tolerate explicit `null` values. Verified live against all 342 current OpenRouter
+  models.
+
 ## Version 1.7.3 (02.06.2026)
 
 ### Fixed

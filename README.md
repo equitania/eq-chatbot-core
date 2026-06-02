@@ -210,7 +210,7 @@ Für mehr — Streaming, andere Provider, ADC für Vertex, Error-Handling — si
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.7.0 |
+| **Version** | 1.7.4 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |

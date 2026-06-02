@@ -374,10 +374,12 @@ class OpenRouterProvider(BaseLLMProvider):
         - output_modalities: list like ["text"]
         """
         model_id = model_data.get("id", "").lower()
-        supported_params = model_data.get("supported_parameters", [])
-        default_params = model_data.get("default_parameters", {})
-        input_modalities = model_data.get("input_modalities", ["text"])
-        output_modalities = model_data.get("output_modalities", ["text"])
+        # OpenRouter may return these fields explicitly as JSON null (not absent),
+        # so a dict.get(key, default) fallback does NOT apply — coerce with `or`.
+        supported_params = model_data.get("supported_parameters") or []
+        default_params = model_data.get("default_parameters") or {}
+        input_modalities = model_data.get("input_modalities") or ["text"]
+        output_modalities = model_data.get("output_modalities") or ["text"]
 
         # Check if it's a reasoning model
         is_reasoning = any(model_id.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
@@ -404,7 +406,7 @@ class OpenRouterProvider(BaseLLMProvider):
         supports_tools = "tools" in supported_params or "tool_choice" in supported_params
 
         # Max output tokens
-        max_output = model_data.get("top_provider", {}).get("max_completion_tokens")
+        max_output = (model_data.get("top_provider") or {}).get("max_completion_tokens")
         if not max_output:
             max_output = model_data.get("max_tokens", 4096)
 

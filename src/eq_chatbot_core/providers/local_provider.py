@@ -307,8 +307,7 @@ class LocalLLMProvider(BaseLLMProvider):
                             complete_tool_calls = None
                             if accumulated_tool_calls:
                                 complete_tool_calls = [
-                                    accumulated_tool_calls[i]
-                                    for i in sorted(accumulated_tool_calls.keys())
+                                    accumulated_tool_calls[i] for i in sorted(accumulated_tool_calls.keys())
                                 ]
                             yield StreamChunk(
                                 content="",
@@ -358,8 +357,7 @@ class LocalLLMProvider(BaseLLMProvider):
                             complete_tool_calls = None
                             if is_final and accumulated_tool_calls:
                                 complete_tool_calls = [
-                                    accumulated_tool_calls[i]
-                                    for i in sorted(accumulated_tool_calls.keys())
+                                    accumulated_tool_calls[i] for i in sorted(accumulated_tool_calls.keys())
                                 ]
 
                             yield StreamChunk(
