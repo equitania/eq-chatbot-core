@@ -287,6 +287,11 @@ class LocalLLMProvider(BaseLLMProvider):
 
                 accumulated_content = ""
                 accumulated_tokens = 0
+                # Accumulate streamed tool-call fragments by index so the final
+                # chunk can expose complete tool_calls (mirrors openai_provider).
+                # Without this, stream.py (which reads chunk.tool_calls) never sees
+                # any tool call and the IHA tool loop never runs for local models.
+                accumulated_tool_calls: dict[int, dict[str, Any]] = {}
 
                 for line in response.iter_lines():
                     if not line:
@@ -298,11 +303,18 @@ class LocalLLMProvider(BaseLLMProvider):
 
                         # Handle stream end marker
                         if data_str.strip() == "[DONE]":
-                            # Yield final chunk
+                            # Yield final chunk (include any accumulated tool calls)
+                            complete_tool_calls = None
+                            if accumulated_tool_calls:
+                                complete_tool_calls = [
+                                    accumulated_tool_calls[i]
+                                    for i in sorted(accumulated_tool_calls.keys())
+                                ]
                             yield StreamChunk(
                                 content="",
                                 is_final=True,
-                                finish_reason="stop",
+                                finish_reason="tool_calls" if complete_tool_calls else "stop",
+                                tool_calls=complete_tool_calls,
                                 output_tokens=accumulated_tokens,
                             )
                             break
@@ -319,18 +331,43 @@ class LocalLLMProvider(BaseLLMProvider):
                                 accumulated_content += content
                                 accumulated_tokens += 1  # Approximate token count
 
-                            # Handle tool call deltas
+                            # Handle tool call deltas (OpenAI-compatible chunked format):
+                            # each delta carries partial {index, id, function:{name, arguments}}.
                             tool_call_delta = None
                             if delta.get("tool_calls"):
                                 tool_call_delta = delta["tool_calls"]
+                                for tc in delta["tool_calls"]:
+                                    idx = tc.get("index", 0)
+                                    if idx not in accumulated_tool_calls:
+                                        accumulated_tool_calls[idx] = {
+                                            "id": tc.get("id") or "",
+                                            "type": "function",
+                                            "function": {"name": "", "arguments": ""},
+                                        }
+                                    if tc.get("id"):
+                                        accumulated_tool_calls[idx]["id"] = tc["id"]
+                                    fn = tc.get("function") or {}
+                                    if fn.get("name"):
+                                        accumulated_tool_calls[idx]["function"]["name"] += fn["name"]
+                                    if fn.get("arguments"):
+                                        accumulated_tool_calls[idx]["function"]["arguments"] += fn["arguments"]
 
                             is_final = finish_reason is not None
+
+                            # On the final chunk, expose the fully accumulated tool calls.
+                            complete_tool_calls = None
+                            if is_final and accumulated_tool_calls:
+                                complete_tool_calls = [
+                                    accumulated_tool_calls[i]
+                                    for i in sorted(accumulated_tool_calls.keys())
+                                ]
 
                             yield StreamChunk(
                                 content=content,
                                 is_final=is_final,
                                 finish_reason=finish_reason,
                                 tool_call_delta=tool_call_delta,
+                                tool_calls=complete_tool_calls,
                                 output_tokens=accumulated_tokens if is_final else 0,
                             )
 

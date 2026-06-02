@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.7.3 (02.06.2026)
+
+### Fixed
+
+- **[FIX] Local provider (Ollama/LM Studio) streaming tool calls**: `stream_completion`
+  only emitted raw `tool_call_delta` fragments and never populated `chunk.tool_calls`.
+  Consumers that read the assembled `tool_calls` (e.g. the Odoo IHA tool loop) therefore
+  never saw any tool call, so function calling was effectively dead for local models in
+  streaming mode. The provider now accumulates the chunked tool-call deltas by index and
+  exposes the complete `tool_calls` list on the final chunk, mirroring the OpenAI provider.
+
 ## Version 1.7.0 (07.05.2026)
 
 HTTP/SSE-Server-Mode für cross-language-Integrationen — eq_chatbot_core kann jetzt als lokaler Sidecar gestartet werden, den z.B. Desktop-Apps (Avalonia, Electron) per HTTP ansprechen.
