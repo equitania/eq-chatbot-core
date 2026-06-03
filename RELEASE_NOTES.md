@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.7.5 (03.06.2026)
+
+### Fixed
+
+- **[FIX] Spurious "Failed to parse SSE chunk" warnings for SSE comment lines**: the
+  OpenRouter and Mammouth streaming parsers tried to JSON-parse SSE comment / keep-alive
+  lines (which start with `:`, e.g. OpenRouter's `: OPENROUTER PROCESSING` emitted while the
+  upstream model warms up), logging a `WARNING` for every ping. Such lines are now skipped
+  per the SSE spec. The `local` and `langdock` providers already ignored non-`data:` lines
+  and were unaffected. Added a regression test (`test_stream_skips_sse_comment_lines`).
+
 ## Version 1.7.4 (02.06.2026)
 
 ### Fixed

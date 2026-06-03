@@ -238,6 +238,13 @@ class OpenRouterProvider(BaseLLMProvider):
                     if not line:
                         continue
 
+                    # SSE comment / keep-alive lines (OpenRouter sends
+                    # ": OPENROUTER PROCESSING" while the upstream model warms up) are
+                    # not data — ignore them per the SSE spec instead of failing to
+                    # JSON-parse and logging a warning for every ping.
+                    if line.startswith(":"):
+                        continue
+
                     # Handle SSE format
                     if line.startswith("data: "):
                         line = line[6:]  # Remove "data: " prefix

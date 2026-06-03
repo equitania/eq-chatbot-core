@@ -227,6 +227,12 @@ class MammouthProvider(BaseLLMProvider):
                     if not line:
                         continue
 
+                    # SSE comment / keep-alive lines (lines starting with ':') are not
+                    # data — ignore them per the SSE spec instead of failing to JSON-parse
+                    # and logging a warning for every ping.
+                    if line.startswith(":"):
+                        continue
+
                     # Handle SSE format
                     if line.startswith("data: "):
                         line = line[6:]

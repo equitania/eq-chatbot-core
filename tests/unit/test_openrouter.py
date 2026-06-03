@@ -446,6 +446,45 @@ class TestOpenRouterStreamCompletion:
             full = "".join(c.content for c in chunks if c.content)
             assert full == "Hello"
 
+    def test_stream_skips_sse_comment_lines(self):
+        """SSE comment / keep-alive lines (': OPENROUTER PROCESSING') must be ignored,
+        not parsed as JSON — no 'Failed to parse SSE chunk' warning, content intact."""
+        with (
+            patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx,
+            patch("eq_chatbot_core.providers.openrouter_provider._logger") as mock_logger,
+        ):
+            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+            sse_lines = [
+                ": OPENROUTER PROCESSING",
+                'data: {"choices":[{"delta":{"content":"Hel"}}]}',
+                ": OPENROUTER PROCESSING",
+                'data: {"choices":[{"delta":{"content":"lo"}}]}',
+                'data: {"choices":[{"delta":{},"finish_reason":"stop"}],'
+                '"usage":{"prompt_tokens":3,"completion_tokens":2}}',
+                "data: [DONE]",
+            ]
+            stream_cm = _build_stream_response(sse_lines)
+
+            mock_client = MagicMock()
+            mock_client.stream.return_value = stream_cm
+            mock_httpx.Client.return_value = mock_client
+
+            provider = OpenRouterProvider(api_key="sk-or-test-key")
+            provider._client = mock_client
+
+            chunks = list(
+                provider.stream_completion(
+                    messages=[{"role": "user", "content": "Hi"}],
+                    model="openai/gpt-4o",
+                )
+            )
+
+            # Comment lines skipped → content still parses, no spurious warning.
+            full = "".join(c.content for c in chunks if c.content)
+            assert full == "Hello"
+            mock_logger.warning.assert_not_called()
+
     def test_stream_finish_reason_propagates(self):
         """Final chunk must carry finish_reason and is_final=True."""
         with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
