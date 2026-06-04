@@ -403,6 +403,32 @@ class TestLocalLLMProviderErrors:
 
             assert exc_info.value.status_code == 400
 
+    def test_chat_completion_surfaces_error_body(self):
+        """HTTP 200 with an ``error`` body must raise instead of crashing on the
+        missing ``choices`` key (LM Studio context-length overflow)."""
+        mock_response = MagicMock(spec=httpx.Response)
+        mock_response.status_code = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = {
+            "error": {
+                "message": "The number of tokens to keep from the initial prompt is "
+                "greater than the context length"
+            }
+        }
+
+        mock_client = MagicMock()
+        mock_client.post.return_value = mock_response
+
+        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+            provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
+
+            with pytest.raises(ContextLengthError) as exc_info:
+                provider.chat_completion(
+                    messages=[{"role": "user", "content": "Hello!"}],
+                )
+
+            assert "context length" in str(exc_info.value).lower()
+
 
 # =============================================================================
 # Streaming Tests
@@ -516,6 +542,38 @@ class TestLocalLLMProviderStreaming:
                 )
 
             assert "Cannot connect" in str(exc_info.value)
+
+    def test_stream_completion_surfaces_error_event(self):
+        """An SSE error body (HTTP 200) must raise, not yield an empty/blank reply.
+
+        LM Studio returns ``event: error`` + ``data: {"error":{...}}`` when the
+        prompt exceeds the model context length. Previously the parser found no
+        ``choices`` and silently produced an empty chat reply.
+        """
+        sse_lines = [
+            "event: error",
+            'data: {"error":{"message":"The number of tokens to keep from the initial '
+            'prompt is greater than the context length"}}',
+        ]
+
+        mock_stream_response = MagicMock()
+        mock_stream_response.iter_lines.return_value = iter(sse_lines)
+        mock_stream_response.raise_for_status = MagicMock()
+
+        mock_client = MagicMock()
+        mock_client.stream.return_value.__enter__.return_value = mock_stream_response
+
+        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+            provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
+
+            with pytest.raises(ContextLengthError) as exc_info:
+                list(
+                    provider.stream_completion(
+                        messages=[{"role": "user", "content": "Hello!"}],
+                    )
+                )
+
+            assert "context length" in str(exc_info.value).lower()
 
 
 # =============================================================================

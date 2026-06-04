@@ -1,5 +1,18 @@
 # Release Notes
 
+## Version 1.7.6 (04.06.2026)
+
+### Fixed
+
+- **[FIX] Local provider silently swallowed server-side error bodies**: LM Studio / Ollama
+  return **HTTP 200** with an `error` object in the body (chat) or an `event: error` /
+  `data: {"error": {...}}` SSE frame (stream) when a request fails — most commonly when the
+  prompt exceeds the model's context length. The parser found no `choices`, produced empty
+  content and the user saw a **blank chat reply** with no explanation. `chat_completion` and
+  `stream_completion` now detect the `error` field and raise `ContextLengthError` (for
+  context/token errors) or `ProviderError` with the server message. Added regression tests
+  (`test_chat_completion_surfaces_error_body`, `test_stream_completion_surfaces_error_event`).
+
 ## Version 1.7.5 (03.06.2026)
 
 ### Fixed

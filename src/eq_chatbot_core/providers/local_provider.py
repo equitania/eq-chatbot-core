@@ -112,6 +112,34 @@ class LocalLLMProvider(BaseLLMProvider):
             return "ollama"
         return "lm_studio"
 
+    @staticmethod
+    def _extract_error_message(data: Any) -> str | None:
+        """Extract an error message from a local-server response body.
+
+        LM Studio / Ollama may return HTTP 200 while signalling failures via an
+        ``error`` field in the JSON body (chat) or SSE event (stream), e.g. when
+        the prompt exceeds the model's context length. Returns the message string
+        or ``None`` when no error is present.
+        """
+        if not isinstance(data, dict):
+            return None
+        err = data.get("error")
+        if not err:
+            return None
+        if isinstance(err, dict):
+            return err.get("message") or str(err)
+        return str(err)
+
+    def _error_from_message(self, message: str) -> ProviderError:
+        """Build the right exception type for a server-side error message."""
+        lowered = message.lower()
+        if "context" in lowered or "token" in lowered:
+            return ContextLengthError(
+                message=f"Context length exceeded: {message}",
+                provider=self.provider_name,
+            )
+        return ProviderError(message=message, provider=self.provider_name)
+
     def _handle_error(self, error: Exception, response: httpx.Response | None = None) -> ProviderError:
         """Convert HTTP errors to provider-specific exceptions."""
         status_code = response.status_code if response else None
@@ -200,6 +228,13 @@ class LocalLLMProvider(BaseLLMProvider):
             response.raise_for_status()
             data = response.json()
 
+            # Local servers (LM Studio/Ollama) may return HTTP 200 with an
+            # ``error`` object in the body (e.g. prompt exceeds context length).
+            # Surface it instead of crashing on the missing ``choices`` key.
+            error_msg = self._extract_error_message(data)
+            if error_msg:
+                raise self._error_from_message(error_msg)
+
             choice = data["choices"][0]
             message = choice.get("message", {})
 
@@ -233,6 +268,9 @@ class LocalLLMProvider(BaseLLMProvider):
                 f"Local model may be loading or server is slow. Error: {e}",
                 provider=self.provider_name,
             ) from e
+        except ProviderError:
+            # Already a typed provider error (e.g. server-side error body) — pass through.
+            raise
         except httpx.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
@@ -320,6 +358,14 @@ class LocalLLMProvider(BaseLLMProvider):
 
                         try:
                             data = json.loads(data_str)
+                            # LM Studio/Ollama signal failures (e.g. prompt exceeds
+                            # context length) via an ``error`` field in the SSE body
+                            # while the HTTP status stays 200. Surface it instead of
+                            # silently yielding empty content (which looks like a
+                            # blank chat reply to the user).
+                            error_msg = self._extract_error_message(data)
+                            if error_msg:
+                                raise self._error_from_message(error_msg)
                             choice = data.get("choices", [{}])[0]
                             delta = choice.get("delta", {})
 
@@ -387,6 +433,9 @@ class LocalLLMProvider(BaseLLMProvider):
                 message=f"Stream timed out after {self.timeout}s. Error: {e}",
                 provider=self.provider_name,
             ) from e
+        except ProviderError:
+            # Already a typed provider error (e.g. server-side error body) — pass through.
+            raise
         except httpx.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
@@ -433,6 +482,9 @@ class LocalLLMProvider(BaseLLMProvider):
                 f"Ensure the server is running. Error: {e}",
                 provider=self.provider_name,
             ) from e
+        except ProviderError:
+            # Already a typed provider error (e.g. server-side error body) — pass through.
+            raise
         except httpx.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
