@@ -451,10 +451,17 @@ class OpenRouterProvider(BaseLLMProvider):
             completion_price = None
             image_price = None
 
+        # Normalized per-1k-token keys (USD) so consumers read one consistent
+        # field regardless of provider. OpenRouter quotes per single token.
+        input_per_1k = round(prompt_price * 1000, 6) if prompt_price is not None else None
+        output_per_1k = round(completion_price * 1000, 6) if completion_price is not None else None
+
         return {
             "input_cost_per_token": prompt_price,
             "output_cost_per_token": completion_price,
             "image_cost_per_token": image_price,
+            "input_cost_per_1k": input_per_1k,
+            "output_cost_per_1k": output_per_1k,
         }
 
     def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:

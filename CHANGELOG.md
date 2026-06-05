@@ -5,6 +5,29 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-06-05
+
+### Added
+
+- **Model pricing catalog** (`services/pricing_catalog.py`): `PricingCatalog` resolves
+  per-1k-token input/output prices for any model across all supported providers, backed
+  by the community LiteLLM pricing database (`model_prices_and_context_window.json`, MIT).
+  A snapshot is bundled under `data/model_prices.json` (offline fallback); `from_remote()`
+  fetches the live file and degrades gracefully to the snapshot on any network error.
+  `lookup(model_id, provider=None)` does exact → normalized → longest-prefix matching with
+  optional provider scoping.
+- **Normalized live pricing**: `openrouter_provider` and `mammouth_provider` `list_models()`
+  now also emit `input_cost_per_1k` / `output_cost_per_1k` so consumers read one consistent
+  per-1k field regardless of the provider's native pricing unit.
+- `scripts/update_pricing_snapshot.py` to regenerate the bundled snapshot at release time.
+
+### Changed
+
+- `services/cost_service.py`: `get_model_pricing()` now falls back to the broader pricing
+  catalog before the generic default, widening coverage. The curated static `PRICING` table
+  still takes precedence (no behavioral change for known models); `calculate_cost()` now
+  delegates to `get_model_pricing()`.
+
 ## [1.2.1] - 2026-02-25
 
 ### Fixed

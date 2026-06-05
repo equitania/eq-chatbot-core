@@ -350,6 +350,17 @@ class MammouthProvider(BaseLLMProvider):
                 temp_constraints = self._get_temperature_constraints(model_id)
                 is_reasoning = self._is_reasoning_model(model_id)
 
+                # Normalize per-million prices to per-1k-token (USD) so consumers
+                # read one consistent field across providers.
+                in_million = model_data.get("input_price")
+                out_million = model_data.get("output_price")
+                try:
+                    input_per_1k = round(float(in_million) / 1000, 6) if in_million is not None else None
+                    output_per_1k = round(float(out_million) / 1000, 6) if out_million is not None else None
+                except (ValueError, TypeError):
+                    input_per_1k = None
+                    output_per_1k = None
+
                 models.append(
                     {
                         "id": model_id,
@@ -362,8 +373,10 @@ class MammouthProvider(BaseLLMProvider):
                         "max_temperature": temp_constraints["max"],
                         "supports_reasoning": is_reasoning,
                         "supports_streaming": True,
-                        "input_cost_per_million": model_data.get("input_price"),
-                        "output_cost_per_million": model_data.get("output_price"),
+                        "input_cost_per_million": in_million,
+                        "output_cost_per_million": out_million,
+                        "input_cost_per_1k": input_per_1k,
+                        "output_cost_per_1k": output_per_1k,
                     }
                 )
 

@@ -2,9 +2,33 @@
 LLM cost calculation service.
 """
 
+import logging
 from typing import TypedDict
 
 from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
+
+_logger = logging.getLogger(__name__)
+
+# Lazily-built singleton over the bundled pricing snapshot. Used only as a
+# gap-filler for models absent from the curated ``PRICING`` table below, so the
+# curated (intentionally overriding) values always win.
+_CATALOG = None
+_CATALOG_LOADED = False
+
+
+def _get_catalog():
+    """Return the bundled :class:`PricingCatalog` (snapshot), or ``None``."""
+    global _CATALOG, _CATALOG_LOADED
+    if not _CATALOG_LOADED:
+        _CATALOG_LOADED = True
+        try:
+            from eq_chatbot_core.services.pricing_catalog import PricingCatalog
+
+            _CATALOG = PricingCatalog.from_snapshot()
+        except Exception as e:  # missing snapshot / parse error -> static only
+            _logger.warning("Pricing catalog unavailable, using static table only: %s", e)
+            _CATALOG = None
+    return _CATALOG
 
 
 class ModelPricing(TypedDict):
@@ -79,25 +103,7 @@ def calculate_cost(
     Returns:
         Cost in USD (6 decimal places)
     """
-    # Strip provider prefix used by gateways like OpenRouter
-    # ("openai/gpt-4o-mini" -> "gpt-4o-mini") so lookup matches PRICING keys.
-    lookup = strip_provider_prefix(model)
-
-    # Try exact match
-    pricing = PRICING.get(lookup)
-
-    # Try longest-prefix match if no exact match
-    if pricing is None:
-        best_match_len = 0
-        for key, p in PRICING.items():
-            if lookup.startswith(key) and len(key) > best_match_len:
-                pricing = p
-                best_match_len = len(key)
-
-    # Use default if still not found
-    if pricing is None:
-        pricing = DEFAULT_PRICING
-
+    pricing = get_model_pricing(model)
     cost = (input_tokens / 1000) * pricing["input"] + (output_tokens / 1000) * pricing["output"]
 
     return round(cost, 6)
@@ -151,4 +157,15 @@ def get_model_pricing(model: str) -> ModelPricing:
         if best_match is not None:
             return best_match
 
-    return pricing or DEFAULT_PRICING
+    if pricing is not None:
+        return pricing
+
+    # Fall back to the broader bundled catalog before the generic default, so
+    # models absent from the curated table still get a real estimate.
+    catalog = _get_catalog()
+    if catalog is not None:
+        hit = catalog.lookup(model)
+        if hit is not None:
+            return {"input": hit["input"], "output": hit["output"]}
+
+    return DEFAULT_PRICING
