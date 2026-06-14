@@ -29,6 +29,7 @@ All providers implement the same `BaseLLMProvider` interface — `chat_completio
 | `langdock` | `LangDockProvider` | `api_key` | EU/US gateway, all models via single endpoint |
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ models via gateway |
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ models via unified API |
+| `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Any OpenAI-compatible gateway (LiteLLM proxy, vLLM). **No default URL** — `base_url` is required. Also supports TTS/STT |
 | `local` | `LocalLLMProvider` | `base_url` | Custom OpenAI-compatible endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Defaults to `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Defaults to `localhost:11434/v1` |
@@ -131,6 +132,37 @@ response = provider.chat_completion(
 
 **EU regions for GDPR compliance:** `europe-west1` (Belgium), `europe-west3` (Frankfurt), `europe-west4` (Netherlands).
 
+### LiteLLM / OpenAI-compatible gateway setup
+
+The `litellm` provider talks to any OpenAI-compatible endpoint — a LiteLLM proxy, vLLM, or a custom
+gateway. Unlike the cloud providers it has **no default `base_url`**: you must pass the endpoint
+explicitly. The API key is sent as `Authorization: Bearer <api_key>`.
+
+```python
+provider = get_provider(
+    "litellm",
+    api_key="YOUR_KEY",
+    base_url="https://api.ccsio.ai/v1",   # required — no default
+    model="qwen3.6-35b-a3b",              # optional default model (overridable per call)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hello!"}])
+```
+
+It also exposes audio via the OpenAI Audio API (when the gateway serves audio models):
+
+```python
+audio = provider.text_to_speech("Hello world", model="kokoro-tts-1", voice="af_bella")  # -> bytes
+text = provider.transcribe(("speech.wav", audio, "audio/wav"), model="whisper-large-v3")  # -> str
+```
+
+> **Reasoning models** (e.g. `qwen3.6-35b-a3b`) may emit a non-standard `reasoning_content` field.
+> The library returns the answer in `content`; the reasoning trace is preserved in
+> `LLMResponse.raw_response` but never merged into `content`.
+
+> **GDPR:** data residency depends entirely on the endpoint you configure. Verify the gateway's
+> hosting/residency before processing personal data in an EU-regulated context.
+
 ### Temperature clamping
 
 Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
@@ -155,6 +187,7 @@ This is automatic — pass `temperature=0.7` and the library passes through what
 | LangDock | ✓ | ✓ | ✓ | ✓ |
 | OpenRouter | ✓ | ✓ | ✓ | ✓ |
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
+| LiteLLM (gateway) | model-dependent | ✓ | model-dependent | ✓ |
 | Local (LM Studio/Ollama) | model-dependent | ✓ | model-dependent | — |
 
 ### See also
@@ -194,6 +227,7 @@ Alle Provider implementieren das gleiche `BaseLLMProvider`-Interface — `chat_c
 | `langdock` | `LangDockProvider` | `api_key` | EU/US-Gateway, alle Modelle über einen Endpoint |
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ Modelle via Gateway |
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ Modelle via Unified API |
+| `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Beliebiges OpenAI-kompatibles Gateway (LiteLLM-Proxy, vLLM). **Keine Default-URL** — `base_url` ist Pflicht. Unterstützt auch TTS/STT |
 | `local` | `LocalLLMProvider` | `base_url` | Beliebiger OpenAI-kompatibler Endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Default `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Default `localhost:11434/v1` |
@@ -296,6 +330,38 @@ response = provider.chat_completion(
 
 **EU-Regionen für DSGVO-Konformität:** `europe-west1` (Belgien), `europe-west3` (Frankfurt), `europe-west4` (Niederlande).
 
+### LiteLLM / OpenAI-kompatibles Gateway Setup
+
+Der `litellm`-Provider spricht beliebige OpenAI-kompatible Endpunkte an — einen LiteLLM-Proxy, vLLM
+oder ein eigenes Gateway. Anders als die Cloud-Provider hat er **keine Default-`base_url`**: der
+Endpunkt muss explizit übergeben werden. Der API-Key wird als `Authorization: Bearer <api_key>`
+gesendet.
+
+```python
+provider = get_provider(
+    "litellm",
+    api_key="DEIN_KEY",
+    base_url="https://api.ccsio.ai/v1",   # Pflicht — kein Default
+    model="qwen3.6-35b-a3b",              # optionales Default-Modell (pro Call überschreibbar)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
+```
+
+Audio steht über die OpenAI-Audio-API zur Verfügung (sofern das Gateway Audio-Modelle bereitstellt):
+
+```python
+audio = provider.text_to_speech("Hallo Welt", model="kokoro-tts-1", voice="af_bella")  # -> bytes
+text = provider.transcribe(("speech.wav", audio, "audio/wav"), model="whisper-large-v3")  # -> str
+```
+
+> **Reasoning-Modelle** (z. B. `qwen3.6-35b-a3b`) können ein Nicht-Standard-Feld `reasoning_content`
+> liefern. Die Library gibt die Antwort in `content` zurück; der Denkprozess bleibt in
+> `LLMResponse.raw_response` erhalten, wird aber nie in `content` gemischt.
+
+> **DSGVO:** Die Daten-Residency hängt vollständig vom konfigurierten Endpunkt ab. Vor der
+> Verarbeitung personenbezogener Daten im EU-Kontext das Hosting/die Residency des Gateways prüfen.
+
 ### Temperature-Clamping
 
 Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clampt automatisch auf den akzeptierten Bereich pro Modell:
@@ -320,6 +386,7 @@ Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht d
 | LangDock | ✓ | ✓ | ✓ | ✓ |
 | OpenRouter | ✓ | ✓ | ✓ | ✓ |
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
+| LiteLLM (Gateway) | modellabhängig | ✓ | modellabhängig | ✓ |
 | Local (LM Studio/Ollama) | modellabhängig | ✓ | modellabhängig | — |
 
 ### Siehe auch

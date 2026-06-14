@@ -1,3 +1,3 @@
 """Version information for eq-chatbot-core."""
 
-__version__ = "1.8.1"
+__version__ = "1.9.0"

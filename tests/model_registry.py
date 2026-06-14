@@ -127,6 +127,15 @@ MODELS: dict[str, ModelChain] = {
         cost_hint="$0 (local)",
         notes="Match what is downloaded in your local LM Studio / Ollama.",
     ),
+    "litellm": ModelChain(
+        primary="qwen3.6-35b-a3b",
+        fallbacks=(),
+        cost_hint="gateway (deployment-dependent)",
+        notes="OpenAI-compatible gateway with no fixed endpoint. Primary matches "
+        "the CCSolutions.io LiteLLM proxy chat model; override per deployment via "
+        "LITELLM_TEST_MODEL. The resolver validates against the gateway's "
+        "list_models(), so set this to a model your endpoint actually serves.",
+    ),
 }
 
 

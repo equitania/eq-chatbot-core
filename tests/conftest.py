@@ -192,6 +192,9 @@ def test_config() -> dict[str, Any]:
         "openrouter_site_name": os.getenv("OPENROUTER_SITE_NAME"),
         "azure_api_key": os.getenv("AZURE_API_KEY"),
         "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
+        # LiteLLM / OpenAI-compatible gateway (base_url is required, no default)
+        "litellm_api_key": os.getenv("LITELLM_API_KEY"),
+        "litellm_base_url": os.getenv("LITELLM_BASE_URL"),
         # Vertex AI
         "vertex_project": os.getenv("VERTEX_PROJECT"),
         "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
@@ -242,6 +245,18 @@ def openrouter_api_key(test_config) -> str | None:
 def azure_api_key(test_config) -> str | None:
     """Azure API key from environment."""
     return test_config["azure_api_key"]
+
+
+@pytest.fixture
+def litellm_api_key(test_config) -> str | None:
+    """LiteLLM gateway API key from environment."""
+    return test_config["litellm_api_key"]
+
+
+@pytest.fixture
+def litellm_base_url(test_config) -> str | None:
+    """LiteLLM gateway base URL from environment (required for the provider)."""
+    return test_config["litellm_base_url"]
 
 
 @pytest.fixture
@@ -496,6 +511,31 @@ def azure_resolved_model(test_config, resolved_models) -> str:
             resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
         except ImportError as exc:
             pytest.skip(f"Azure SDK not installed (use [azure] extra): {exc}")
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def litellm_resolved_model(test_config, resolved_models) -> str:
+    """Resolve LiteLLM gateway test model from registry against the live API.
+
+    Requires both LITELLM_API_KEY and LITELLM_BASE_URL (the provider has no
+    default endpoint).
+    """
+    api_key = test_config.get("litellm_api_key")
+    base_url = test_config.get("litellm_base_url")
+    if not api_key:
+        pytest.skip("LITELLM_API_KEY not set")
+    if not base_url:
+        pytest.skip("LITELLM_BASE_URL not set")
+
+    cache_key = "litellm"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("litellm", api_key=api_key, base_url=base_url)
+        chain = _select_chain(cache_key, "LITELLM_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
 
     return resolved_models[cache_key].actual
 

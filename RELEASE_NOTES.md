@@ -1,5 +1,36 @@
 # Release Notes
 
+## Version 1.9.0 (14.06.2026)
+
+### Added
+
+- **[ADD] LiteLLM provider** (`litellm_provider.py`, `get_provider("litellm")`): connects to any
+  OpenAI-compatible gateway — a LiteLLM proxy, vLLM, or custom endpoint. Built on the existing `openai`
+  SDK, so **no new dependency** is added. Key properties:
+  - **`base_url` is required, no default** — the endpoint must be passed explicitly (keeps the provider
+    open/extensible; any future gateway works by supplying a different URL).
+  - Configurable default model via the `model=` constructor arg (soft default `qwen3.6-35b-a3b`).
+  - Full chat contract: `chat_completion`, `stream_completion`, `list_models` (no provider-specific
+    name filtering, so non-`gpt-*` models like `qwen3.6-35b-a3b` are kept). Reasoning models'
+    `reasoning_content` is preserved in `raw_response`, never merged into `content`.
+  - **Gateway-robust streaming:** content/tool deltas are streamed as they arrive, then a single
+    authoritative final chunk carries `finish_reason`, accumulated tool calls, and token usage — so
+    gateways (LiteLLM/vLLM) that send `finish_reason` and `usage` in *separate* trailing frames still
+    report correct token counts on the final chunk.
+  - **Audio:** `text_to_speech()` (e.g. `kokoro-tts-1`) and `transcribe()` (e.g. `whisper-large-v3`)
+    via the OpenAI Audio API.
+  - SSRF guard on `base_url` (reuses `utils.validate_url`); error messages scrubbed via
+    `utils.scrub_secrets`.
+- **30 unit tests** (`tests/unit/test_litellm.py`) + **live integration tests**
+  (`tests/integration/test_litellm_live.py`, gated on `LITELLM_API_KEY` / `LITELLM_BASE_URL`).
+- Registry entry in `providers/__init__.py` (`CLOUD_PROVIDERS`, factory, exports); test config in
+  `tests/.env.example`, `tests/conftest.py`, `tests/model_registry.py`; docs in `docs/providers.md`
+  (EN + DE, incl. TTS/STT and GDPR note).
+
+### Changed
+
+- **Version**: `1.8.1` → `1.9.0`
+
 ## Version 1.8.1 (14.06.2026)
 
 ### Security

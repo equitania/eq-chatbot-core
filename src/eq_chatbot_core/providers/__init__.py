@@ -30,11 +30,15 @@ Usage:
     # Local providers (LM Studio or Ollama)
     provider = get_provider("local", base_url="http://localhost:1234/v1")
     response = provider.chat_completion(messages=[...])
+
+    # LiteLLM / any OpenAI-compatible gateway (base_url is REQUIRED, no default)
+    provider = get_provider("litellm", api_key="...", base_url="https://api.ccsio.ai/v1")
+    response = provider.chat_completion(messages=[...], model="qwen3.6-35b-a3b")
 """
 
 from typing import TYPE_CHECKING, Any
 
-CLOUD_PROVIDERS: list[str] = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex"]
+CLOUD_PROVIDERS: list[str] = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex", "litellm"]
 LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
 
 if TYPE_CHECKING:
@@ -52,7 +56,8 @@ def get_provider(
 
     Args:
         provider_name: One of "openai", "anthropic", "langdock", "openrouter",
-                       "mammouth", "azure", "vertex", "local", "lm_studio", "lmstudio", "ollama"
+                       "mammouth", "azure", "vertex", "litellm", "local",
+                       "lm_studio", "lmstudio", "ollama"
         api_key: API key for the provider (optional for local providers)
         base_url: Optional custom base URL. Required for local providers,
                   optional for cloud providers. For convenience aliases:
@@ -90,6 +95,7 @@ def get_provider(
     from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
     from eq_chatbot_core.providers.azure_provider import AzureProvider
     from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+    from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider
     from eq_chatbot_core.providers.local_provider import LocalLLMProvider
     from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
@@ -106,6 +112,7 @@ def get_provider(
         "azure": AzureProvider,
         "vertex": VertexProvider,
         "local": LocalLLMProvider,
+        "litellm": LiteLLMProvider,
     }
 
     # Convenience aliases for local providers with default URLs
@@ -127,6 +134,7 @@ def get_provider(
         | type[AzureProvider]
         | type[VertexProvider]
         | type[LocalLLMProvider]
+        | type[LiteLLMProvider]
         | None
     ) = None
 
@@ -163,6 +171,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     StreamChunk,
     ToolDefinition,
 )
+from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
@@ -182,6 +191,7 @@ __all__ = [
     "AzureProvider",
     "VertexProvider",
     "LocalLLMProvider",
+    "LiteLLMProvider",
     "MammouthProvider",
     "OpenRouterProvider",
     "ToolDefinition",
