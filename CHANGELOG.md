@@ -5,6 +5,29 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-06-14
+
+### Added
+
+- IONOS AI Model Hub provider (`get_provider("ionos")`): EU-hosted (Berlin/de-txl),
+  OpenAI-compatible inference gateway built on the existing `openai` SDK (no new dependency).
+  `base_url` defaults to the official IONOS endpoint; default model
+  `meta-llama/Llama-3.3-70B-Instruct`. Includes chat, streaming, tool calls and `list_models()`.
+- Curated IONOS pricing in `services/cost_service.py` (EUR/1M rates converted to USD/1K).
+- Unit tests (`tests/unit/test_ionos.py`) and live integration tests
+  (`tests/integration/test_ionos_live.py`, gated on `IONOS_API_KEY`).
+
+### Fixed
+
+- `litellm` was missing from the `conftest.py` test-report dictionaries; both `litellm`
+  and `ionos` are now wired into `_MODULE_GROUPS`, `_RESOLUTION_LABELS` and related maps.
+
+## [1.9.0] - 2026-06-14
+
+### Added
+
+- LiteLLM / OpenAI-compatible gateway provider (`get_provider("litellm")`) with TTS/STT support.
+
 ## [1.8.0] - 2026-06-05
 
 ### Added

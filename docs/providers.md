@@ -30,6 +30,7 @@ All providers implement the same `BaseLLMProvider` interface — `chat_completio
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ models via gateway |
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ models via unified API |
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Any OpenAI-compatible gateway (LiteLLM proxy, vLLM). **No default URL** — `base_url` is required. Also supports TTS/STT |
+| `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-hosted (Berlin/de-txl), OpenAI-compatible. `base_url` defaults to the official endpoint |
 | `local` | `LocalLLMProvider` | `base_url` | Custom OpenAI-compatible endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Defaults to `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Defaults to `localhost:11434/v1` |
@@ -163,6 +164,30 @@ text = provider.transcribe(("speech.wav", audio, "audio/wav"), model="whisper-la
 > **GDPR:** data residency depends entirely on the endpoint you configure. Verify the gateway's
 > hosting/residency before processing personal data in an EU-regulated context.
 
+### IONOS AI Model Hub setup
+
+The `ionos` provider talks to the [IONOS Cloud AI Model Hub](https://docs.ionos.com/cloud/ai/ai-model-hub),
+a German/EU-hosted (Berlin / `de-txl`), OpenAI-compatible inference gateway. Generate an API token in
+the IONOS DCD Token Manager; it is sent as `Authorization: Bearer <api_key>`. Unlike `litellm`, the
+`base_url` is **optional** — it defaults to the official IONOS endpoint.
+
+```python
+provider = get_provider(
+    "ionos",
+    api_key="YOUR_IONOS_TOKEN",
+    # base_url defaults to https://openai.inference.de-txl.ionos.com/v1
+    model="meta-llama/Llama-3.3-70B-Instruct",  # optional default (overridable per call)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
+```
+
+Available models include `meta-llama/Llama-3.3-70B-Instruct`, `meta-llama/Meta-Llama-3.1-8B-Instruct`,
+`mistralai/Mistral-Small-24B-Instruct`, `mistralai/Mistral-Nemo-Instruct-2407` and the German
+`openGPT-X/Teuken-7B-instruct-commercial`. Use `provider.list_models()` for the live catalogue.
+
+> **GDPR:** IONOS hosts in the EU (Germany), making it suitable for EU-regulated workloads.
+
 ### Temperature clamping
 
 Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
@@ -188,6 +213,7 @@ This is automatic — pass `temperature=0.7` and the library passes through what
 | OpenRouter | ✓ | ✓ | ✓ | ✓ |
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
 | LiteLLM (gateway) | model-dependent | ✓ | model-dependent | ✓ |
+| IONOS (EU) | model-dependent | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | model-dependent | ✓ | model-dependent | — |
 
 ### See also
@@ -228,6 +254,7 @@ Alle Provider implementieren das gleiche `BaseLLMProvider`-Interface — `chat_c
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ Modelle via Gateway |
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ Modelle via Unified API |
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Beliebiges OpenAI-kompatibles Gateway (LiteLLM-Proxy, vLLM). **Keine Default-URL** — `base_url` ist Pflicht. Unterstützt auch TTS/STT |
+| `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-gehostet (Berlin/de-txl), OpenAI-kompatibel. `base_url` hat einen Default |
 | `local` | `LocalLLMProvider` | `base_url` | Beliebiger OpenAI-kompatibler Endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Default `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Default `localhost:11434/v1` |
@@ -362,6 +389,30 @@ text = provider.transcribe(("speech.wav", audio, "audio/wav"), model="whisper-la
 > **DSGVO:** Die Daten-Residency hängt vollständig vom konfigurierten Endpunkt ab. Vor der
 > Verarbeitung personenbezogener Daten im EU-Kontext das Hosting/die Residency des Gateways prüfen.
 
+### IONOS AI Model Hub Setup
+
+Der `ionos`-Provider spricht den [IONOS Cloud AI Model Hub](https://docs.ionos.com/cloud/ai/ai-model-hub)
+an — ein deutsches/EU-gehostetes (Berlin / `de-txl`), OpenAI-kompatibles Inferenz-Gateway. Den API-Token
+im IONOS DCD Token Manager erzeugen; er wird als `Authorization: Bearer <api_key>` gesendet. Anders als
+`litellm` ist die `base_url` **optional** — sie hat einen Default auf den offiziellen IONOS-Endpunkt.
+
+```python
+provider = get_provider(
+    "ionos",
+    api_key="DEIN_IONOS_TOKEN",
+    # base_url default: https://openai.inference.de-txl.ionos.com/v1
+    model="meta-llama/Llama-3.3-70B-Instruct",  # optionales Default (pro Call überschreibbar)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
+```
+
+Verfügbare Modelle u. a. `meta-llama/Llama-3.3-70B-Instruct`, `meta-llama/Meta-Llama-3.1-8B-Instruct`,
+`mistralai/Mistral-Small-24B-Instruct`, `mistralai/Mistral-Nemo-Instruct-2407` sowie das deutsche
+`openGPT-X/Teuken-7B-instruct-commercial`. Den Live-Katalog liefert `provider.list_models()`.
+
+> **DSGVO:** IONOS hostet in der EU (Deutschland) und eignet sich damit für EU-regulierte Workloads.
+
 ### Temperature-Clamping
 
 Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clampt automatisch auf den akzeptierten Bereich pro Modell:
@@ -387,6 +438,7 @@ Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht d
 | OpenRouter | ✓ | ✓ | ✓ | ✓ |
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
 | LiteLLM (Gateway) | modellabhängig | ✓ | modellabhängig | ✓ |
+| IONOS (EU) | modellabhängig | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | modellabhängig | ✓ | modellabhängig | — |
 
 ### Siehe auch

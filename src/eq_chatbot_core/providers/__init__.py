@@ -34,11 +34,25 @@ Usage:
     # LiteLLM / any OpenAI-compatible gateway (base_url is REQUIRED, no default)
     provider = get_provider("litellm", api_key="...", base_url="https://api.ccsio.ai/v1")
     response = provider.chat_completion(messages=[...], model="qwen3.6-35b-a3b")
+
+    # IONOS AI Model Hub (EU-hosted, OpenAI-compatible; base_url has a default)
+    provider = get_provider("ionos", api_key="...")
+    response = provider.chat_completion(messages=[...], model="meta-llama/Llama-3.3-70B-Instruct")
 """
 
 from typing import TYPE_CHECKING, Any
 
-CLOUD_PROVIDERS: list[str] = ["openai", "anthropic", "langdock", "openrouter", "mammouth", "azure", "vertex", "litellm"]
+CLOUD_PROVIDERS: list[str] = [
+    "openai",
+    "anthropic",
+    "langdock",
+    "openrouter",
+    "mammouth",
+    "azure",
+    "vertex",
+    "litellm",
+    "ionos",
+]
 LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
 
 if TYPE_CHECKING:
@@ -94,6 +108,7 @@ def get_provider(
     """
     from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
     from eq_chatbot_core.providers.azure_provider import AzureProvider
+    from eq_chatbot_core.providers.ionos_provider import IonosProvider
     from eq_chatbot_core.providers.langdock_provider import LangDockProvider
     from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider
     from eq_chatbot_core.providers.local_provider import LocalLLMProvider
@@ -113,6 +128,7 @@ def get_provider(
         "vertex": VertexProvider,
         "local": LocalLLMProvider,
         "litellm": LiteLLMProvider,
+        "ionos": IonosProvider,
     }
 
     # Convenience aliases for local providers with default URLs
@@ -135,6 +151,7 @@ def get_provider(
         | type[VertexProvider]
         | type[LocalLLMProvider]
         | type[LiteLLMProvider]
+        | type[IonosProvider]
         | None
     ) = None
 
@@ -171,6 +188,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     StreamChunk,
     ToolDefinition,
 )
+from eq_chatbot_core.providers.ionos_provider import IonosProvider  # noqa: E402
 from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
@@ -192,6 +210,7 @@ __all__ = [
     "VertexProvider",
     "LocalLLMProvider",
     "LiteLLMProvider",
+    "IonosProvider",
     "MammouthProvider",
     "OpenRouterProvider",
     "ToolDefinition",

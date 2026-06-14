@@ -20,7 +20,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
+- **Multi-Provider Support** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Local (LM Studio/Ollama)
 - **Unified API** — same interface regardless of provider
 - **Temperature Safety** — automatic model-specific temperature clamping
 - **Security** — Fernet encryption, prompt-injection detection, file-upload validation, token-bucket rate limiting
@@ -183,7 +183,7 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, Local (LM Studio/Ollama)
+- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Local (LM Studio/Ollama)
 - **Einheitliche API** — gleiche Schnittstelle unabhängig vom Provider
 - **Temperature-Sicherheit** — automatisches modellspezifisches Temperature-Clamping
 - **Sicherheit** — Fernet-Verschlüsselung, Prompt-Injection-Erkennung, File-Upload-Validierung, Token-Bucket-Rate-Limiting
@@ -264,7 +264,7 @@ Weitere Härtungshinweise:
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.9.0 |
+| **Version** | 1.10.0 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |

@@ -86,6 +86,17 @@ class TestFactoryCloudProviders:
         assert provider.provider_name == "vertex"
         assert provider.api_key == "not-used"
 
+    def test_get_ionos_provider(self):
+        """Test creating IONOS provider — base_url defaults to the IONOS endpoint."""
+        from eq_chatbot_core.providers.ionos_provider import DEFAULT_BASE_URL, IonosProvider
+
+        provider = get_provider("ionos", api_key="ionos-test-key")
+
+        assert isinstance(provider, IonosProvider)
+        assert provider.api_key == "ionos-test-key"
+        assert provider.provider_name == "ionos"
+        assert provider.base_url == DEFAULT_BASE_URL
+
     def test_provider_name_case_insensitive(self):
         """Test that provider names are case insensitive."""
         provider1 = get_provider("OPENAI", api_key="test")

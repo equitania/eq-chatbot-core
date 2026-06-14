@@ -136,6 +136,15 @@ MODELS: dict[str, ModelChain] = {
         "LITELLM_TEST_MODEL. The resolver validates against the gateway's "
         "list_models(), so set this to a model your endpoint actually serves.",
     ),
+    "ionos": ModelChain(
+        primary="meta-llama/Meta-Llama-3.1-8B-Instruct",
+        fallbacks=("mistralai/Mistral-Nemo-Instruct-2407", "meta-llama/Llama-3.3-70B-Instruct"),
+        cost_hint="~$0.16 per 1M tok (EU-hosted, Berlin/de-txl)",
+        notes="IONOS AI Model Hub — OpenAI-compatible EU gateway. Primary is the "
+        "cheapest 8B chat model; override via IONOS_TEST_MODEL. The resolver "
+        "validates against the live /v1/models response. Requires IONOS_API_KEY "
+        "(base_url defaults to the official IONOS endpoint).",
+    ),
 }
 
 

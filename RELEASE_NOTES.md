@@ -1,5 +1,33 @@
 # Release Notes
 
+## Version 1.10.0 (14.06.2026)
+
+### Added
+
+- **[ADD] IONOS AI Model Hub provider** (`ionos_provider.py`, `get_provider("ionos")`): connects to the
+  IONOS Cloud AI Model Hub, a German/EU-hosted (Berlin / `de-txl`), OpenAI-compatible inference gateway.
+  Built on the existing `openai` SDK, so **no new dependency** is added. Key properties:
+  - **`base_url` has a default** (`https://openai.inference.de-txl.ionos.com/v1`) and is optional —
+    unlike the `litellm` provider, the official endpoint is used unless an override is passed.
+  - Stricter SSRF guard: `validate_url(allow_private_ranges=False)` — IONOS is a fixed public endpoint.
+  - API token sent as `Authorization: Bearer <api_key>` (generated in the IONOS DCD Token Manager).
+  - Configurable default model via the `model=` constructor arg (soft default
+    `meta-llama/Llama-3.3-70B-Instruct`). Catalogue includes Llama 3.x, Mistral Small/Nemo and the
+    German `openGPT-X/Teuken-7B-instruct-commercial`.
+  - Full chat contract: `chat_completion`, `stream_completion`, `list_models` (no name filtering),
+    tool calls, gateway-robust streaming with token usage on the authoritative final chunk.
+  - Error messages scrubbed via `utils.scrub_secrets`.
+- **Curated IONOS pricing** added to `services/cost_service.py` (real IONOS EUR/1M-token rates,
+  converted to USD/1K). Verify against current IONOS rates before relying on exact cost figures.
+- **Unit tests** (`tests/unit/test_ionos.py`, factory case in `tests/unit/test_factory.py`) + **live
+  integration tests** (`tests/integration/test_ionos_live.py`, gated on `IONOS_API_KEY`).
+- Report wiring fix: `litellm` was missing from the test report dictionaries in `conftest.py`
+  (`_MODULE_GROUPS`, `_RESOLUTION_LABELS`, etc.) — both `litellm` and `ionos` are now wired in.
+
+### Notes
+
+- DSGVO/GDPR: IONOS hosts in the EU (Germany), making it suitable for EU-regulated workloads.
+
 ## Version 1.9.0 (14.06.2026)
 
 ### Added

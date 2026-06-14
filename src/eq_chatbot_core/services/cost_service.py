@@ -77,6 +77,15 @@ PRICING: dict[str, ModelPricing] = {
     "mistral-large-latest": {"input": 0.002, "output": 0.006},
     "deepseek-chat": {"input": 0.00027, "output": 0.0011},
     "deepseek-reasoner": {"input": 0.00055, "output": 0.0022},
+    # IONOS AI Model Hub (EU-hosted). Source: IONOS published rates in EUR per 1M
+    # tokens, converted to USD per 1K tokens at EUR->USD ~1.08 (June 2026). IONOS
+    # bills per token and rates can be contract-specific — verify before relying
+    # on exact cost figures. Keys are provider-prefix-stripped (meta-llama/X -> X)
+    # to match get_model_pricing()'s strip_provider_prefix() lookup.
+    "Llama-3.3-70B-Instruct": {"input": 0.000702, "output": 0.000702},
+    "Meta-Llama-3.1-8B-Instruct": {"input": 0.000162, "output": 0.000162},
+    "Mistral-Small-24B-Instruct": {"input": 0.000108, "output": 0.000324},
+    "Mistral-Nemo-Instruct-2407": {"input": 0.000162, "output": 0.000162},
     # Embeddings
     "text-embedding-3-small": {"input": 0.00002, "output": 0.0},
     "text-embedding-3-large": {"input": 0.00013, "output": 0.0},

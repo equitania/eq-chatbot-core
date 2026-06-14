@@ -195,6 +195,9 @@ def test_config() -> dict[str, Any]:
         # LiteLLM / OpenAI-compatible gateway (base_url is required, no default)
         "litellm_api_key": os.getenv("LITELLM_API_KEY"),
         "litellm_base_url": os.getenv("LITELLM_BASE_URL"),
+        # IONOS AI Model Hub (EU-hosted; base_url defaults to the official endpoint)
+        "ionos_api_key": os.getenv("IONOS_API_KEY"),
+        "ionos_base_url": os.getenv("IONOS_BASE_URL"),
         # Vertex AI
         "vertex_project": os.getenv("VERTEX_PROJECT"),
         "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
@@ -260,6 +263,18 @@ def litellm_base_url(test_config) -> str | None:
 
 
 @pytest.fixture
+def ionos_api_key(test_config) -> str | None:
+    """IONOS AI Model Hub API token from environment."""
+    return test_config["ionos_api_key"]
+
+
+@pytest.fixture
+def ionos_base_url(test_config) -> str | None:
+    """IONOS base URL from environment (optional; defaults to official endpoint)."""
+    return test_config["ionos_base_url"]
+
+
+@pytest.fixture
 def skip_live_tests(test_config) -> bool:
     """Whether to skip live API tests."""
     return test_config["skip_live_tests"]
@@ -321,6 +336,14 @@ def skip_if_no_azure_key():
     return pytest.mark.skipif(
         not os.getenv("AZURE_API_KEY"),
         reason="AZURE_API_KEY not set",
+    )
+
+
+def skip_if_no_ionos_key():
+    """Skip test if IONOS_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("IONOS_API_KEY"),
+        reason="IONOS_API_KEY not set",
     )
 
 
@@ -535,6 +558,29 @@ def litellm_resolved_model(test_config, resolved_models) -> str:
 
         provider = get_provider("litellm", api_key=api_key, base_url=base_url)
         chain = _select_chain(cache_key, "LITELLM_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def ionos_resolved_model(test_config, resolved_models) -> str:
+    """Resolve IONOS AI Model Hub test model from registry against the live API.
+
+    Requires IONOS_API_KEY. IONOS_BASE_URL is optional — the provider defaults
+    to the official IONOS endpoint when it is not set.
+    """
+    api_key = test_config.get("ionos_api_key")
+    if not api_key:
+        pytest.skip("IONOS_API_KEY not set")
+    base_url = test_config.get("ionos_base_url")  # optional; default applies
+
+    cache_key = "ionos"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("ionos", api_key=api_key, base_url=base_url)
+        chain = _select_chain(cache_key, "IONOS_TEST_MODEL")
         resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
 
     return resolved_models[cache_key].actual
@@ -872,6 +918,14 @@ _MODULE_GROUPS = {
         "label": "Provider: Google Vertex AI",
         "modules": ["test_vertex", "test_vertex_live"],
     },
+    "LiteLLM": {
+        "label": "Provider: LiteLLM Gateway",
+        "modules": ["test_litellm", "test_litellm_live"],
+    },
+    "Ionos": {
+        "label": "Provider: IONOS AI Model Hub",
+        "modules": ["test_ionos", "test_ionos_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -911,6 +965,8 @@ _RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
     "mammouth": ("Mammouth AI", "MAMMOUTH_TEST_MODEL"),
     "azure": ("Azure AI", "AZURE_TEST_MODEL"),
     "vertex": ("Google Vertex AI", "VERTEX_TEST_MODEL"),
+    "litellm": ("LiteLLM Gateway", "LITELLM_TEST_MODEL"),
+    "ionos": ("IONOS AI Model Hub", "IONOS_TEST_MODEL"),
     "local": ("Local (LM Studio / Ollama)", "LOCAL_TEST_MODEL"),
 }
 
@@ -926,6 +982,8 @@ _RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
     "mammouth": ["MAMMOUTH_API_KEY"],
     "azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
     "vertex": ["VERTEX_PROJECT"],
+    "litellm": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
+    "ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "local": [],  # gated by SKIP_LOCAL_TESTS / server-availability
 }
 
@@ -941,6 +999,8 @@ _GROUP_TO_PRIMARY_RESOLVER: dict[str, str] = {
     "Mammouth": "mammouth",
     "Azure": "azure",
     "Vertex": "vertex",
+    "LiteLLM": "litellm",
+    "Ionos": "ionos",
     "Local": "local",
 }
 
@@ -956,6 +1016,8 @@ _GROUP_REQUIRED_ENV = {
     "Mammouth": ["MAMMOUTH_API_KEY"],
     "Azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
     "Vertex": ["VERTEX_PROJECT"],  # auth via gcloud ADC, project still required
+    "LiteLLM": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
+    "Ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "Local": [],  # no key — uses local servers
 }
 

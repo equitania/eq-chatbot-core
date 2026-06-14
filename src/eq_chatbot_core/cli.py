@@ -37,7 +37,7 @@ def main() -> None:
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure; local: local, lm_studio, ollama)",
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -142,7 +142,7 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure; local: local, lm_studio, ollama)",
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -576,6 +576,8 @@ def info() -> None:
     click.echo("    • mammouth   - 30+ AI models via unified API")
     click.echo("    • azure      - Azure AI Foundry (GPT, Claude, Mistral, Llama, DeepSeek)")
     click.echo("    • vertex     - Google Vertex AI (Gemini 2.5 Flash/Pro)")
+    click.echo("    • litellm    - LiteLLM / any OpenAI-compatible gateway (base_url required)")
+    click.echo("    • ionos      - IONOS AI Model Hub (EU-hosted, OpenAI-compatible)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")
