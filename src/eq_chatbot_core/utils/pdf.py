@@ -14,6 +14,13 @@ _logger = logging.getLogger(__name__)
 # Track if PyMuPDF is available
 _pymupdf_available: bool | None = None
 
+# Resource limits to bound memory/CPU when processing untrusted PDFs.
+# These cap the damage from decompression bombs (tiny file -> thousands of pages)
+# and extreme render requests (huge DPI -> hundreds of MB per page).
+MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB raw input
+MAX_PAGES_HARD = 50  # never render more pages than this, regardless of max_pages
+MAX_DPI = 600  # cap render resolution
+
 
 def is_pdf_conversion_available() -> bool:
     """Check if PDF conversion is available (PyMuPDF installed).
@@ -56,13 +63,24 @@ def pdf_to_images(
         Empty list if conversion fails or PyMuPDF not available
 
     Raises:
-        ValueError: If image_format is not 'png' or 'jpeg'
+        ValueError: If image_format is invalid or pdf_data exceeds MAX_PDF_BYTES
     """
     if not is_pdf_conversion_available():
         return []
 
     if image_format not in ("png", "jpeg"):
         raise ValueError(f"Unsupported image format: {image_format}. Use 'png' or 'jpeg'.")
+
+    # Reject oversized input before handing it to the PDF parser (DoS guard).
+    if len(pdf_data) > MAX_PDF_BYTES:
+        raise ValueError(
+            f"PDF too large: {len(pdf_data) / (1024 * 1024):.1f} MB (max: {MAX_PDF_BYTES / (1024 * 1024):.0f} MB)"
+        )
+
+    # Clamp render parameters to safe bounds (defends against decompression bombs
+    # and extreme DPI requests even when callers pass large values).
+    max_pages = max(1, min(max_pages, MAX_PAGES_HARD))
+    dpi = max(1, min(dpi, MAX_DPI))
 
     try:
         import fitz

@@ -15,7 +15,6 @@ References:
 """
 
 import asyncio
-import ipaddress
 import json
 import logging
 import os
@@ -29,6 +28,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from eq_chatbot_core.utils.url_validation import validate_url as _validate_url
 from eq_chatbot_core.version import __version__
 
 logger = logging.getLogger(__name__)
@@ -52,60 +52,6 @@ ALLOWED_STDIO_COMMANDS = frozenset(
 
 # Shell metacharacters that are not allowed in stdio args
 _SHELL_META_RE = re.compile(r"[;|&`$(){}!\n\r]")
-
-
-def _validate_url(url: str) -> frozenset[str]:
-    """Validate a URL for SSRF protection and return its currently-resolved IPs.
-
-    Blocks private/reserved IP ranges and non-HTTP(S) schemes.
-    Localhost (127.0.0.1, ::1, localhost) is explicitly allowed for local development.
-
-    The returned IP set is intended to be pinned by the caller and re-checked
-    on each subsequent request to mitigate DNS rebinding attacks. An empty
-    frozenset is returned when the hostname cannot be resolved at validation
-    time (callers may treat this as "no pinning available").
-
-    Args:
-        url: URL to validate
-
-    Returns:
-        Frozenset of resolved IP address strings (may be empty if unresolvable).
-
-    Raises:
-        ValueError: If the URL is invalid or targets a private network
-    """
-    parsed = urlparse(url)
-
-    # Only allow http/https schemes
-    if parsed.scheme not in ("http", "https"):
-        raise ValueError(f"URL scheme '{parsed.scheme}' not allowed. Use http or https.")
-
-    hostname = parsed.hostname
-    if not hostname:
-        raise ValueError("URL must contain a valid hostname")
-
-    # Resolve hostname to check for private IPs
-    try:
-        addr_infos = socket.getaddrinfo(hostname, None)
-    except socket.gaierror:
-        # Cannot resolve - allow it (may be a valid host not resolvable from here)
-        return frozenset()
-
-    resolved_ips: set[str] = set()
-    for addr_info in addr_infos:
-        ip_str = str(addr_info[4][0])
-        ip = ipaddress.ip_address(ip_str)
-        if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
-            # Allow localhost explicitly for local development
-            if hostname in ("localhost", "127.0.0.1", "::1"):
-                resolved_ips.add(ip_str)
-                continue
-            raise ValueError(
-                f"URL resolves to private/reserved IP {ip}. "
-                "Internal network access is not allowed for security reasons."
-            )
-        resolved_ips.add(ip_str)
-    return frozenset(resolved_ips)
 
 
 def _build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
@@ -154,6 +100,17 @@ def _build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threadi
 def _validate_stdio_command(command: str, args: list[str] | None = None) -> None:
     """Validate command and args for StdioMCPClient.
 
+    Both the literal command basename AND the PATH-resolved binary's basename are
+    checked against the whitelist, so a non-whitelisted alias cannot slip through
+    by resolving to an allowed name (or vice versa).
+
+    PATH trust model: this guard restricts *which runtime names* may be launched;
+    it does not pin absolute binary paths. If an attacker can place a malicious
+    binary named e.g. ``python3`` earlier in ``$PATH``, ``create_subprocess_exec``
+    will still resolve to it. Callers running untrusted MCP configs must therefore
+    control ``$PATH`` (and the contents of its directories) — this is a runtime
+    allowlist, not a sandbox.
+
     Args:
         command: Command binary name or path
         args: Command arguments
@@ -165,20 +122,22 @@ def _validate_stdio_command(command: str, args: list[str] | None = None) -> None
     cmd_basename = os.path.basename(command)
 
     if cmd_basename not in ALLOWED_STDIO_COMMANDS:
-        # Also check if the resolved path matches an allowed command
-        resolved = shutil.which(command)
-        if resolved:
-            resolved_basename = os.path.basename(resolved)
-            if resolved_basename not in ALLOWED_STDIO_COMMANDS:
-                raise ValueError(
-                    f"Command '{cmd_basename}' is not in the allowed list: "
-                    f"{sorted(ALLOWED_STDIO_COMMANDS)}. "
-                    "Only trusted runtimes are permitted for MCP subprocess execution."
-                )
-        else:
-            raise ValueError(
-                f"Command '{command}' not found or not in the allowed list: {sorted(ALLOWED_STDIO_COMMANDS)}"
-            )
+        raise ValueError(
+            f"Command '{cmd_basename}' is not in the allowed list: "
+            f"{sorted(ALLOWED_STDIO_COMMANDS)}. "
+            "Only trusted runtimes are permitted for MCP subprocess execution."
+        )
+
+    # Defense in depth: also verify the PATH-resolved binary resolves to an
+    # allowed runtime name. Does not defeat a same-named PATH-shadowing binary
+    # (see PATH trust model above), but rejects whitelisted aliases that resolve
+    # to an unexpected target.
+    resolved = shutil.which(command)
+    if resolved and os.path.basename(resolved) not in ALLOWED_STDIO_COMMANDS:
+        raise ValueError(
+            f"Command '{command}' resolves to '{resolved}', which is not an allowed "
+            f"runtime: {sorted(ALLOWED_STDIO_COMMANDS)}."
+        )
 
     # Validate args for shell metacharacters
     if args:

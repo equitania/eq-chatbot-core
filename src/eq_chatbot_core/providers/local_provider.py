@@ -76,13 +76,25 @@ class LocalLLMProvider(BaseLLMProvider):
             timeout: Request timeout in seconds (defaults to 120s for model loading)
             max_retries: Number of retries on transient failures
         """
+        # Initialize client attribute BEFORE validation so __del__ works even if
+        # construction fails on an invalid base_url.
+        self._client: httpx.Client | None = None
+
+        effective_base_url = base_url or self.LM_STUDIO_URL
+        # SSRF guard: local servers legitimately live on localhost/LAN, so private
+        # ranges are allowed — but reject non-HTTP schemes and cloud-metadata /
+        # link-local targets (e.g. 169.254.169.254) that a hostile base_url could aim at.
+        # Imported lazily to avoid a providers<->utils<->services import cycle.
+        from eq_chatbot_core.utils.url_validation import validate_url
+
+        validate_url(effective_base_url, allow_private_ranges=True)
+
         super().__init__(
             api_key=api_key,
-            base_url=base_url or self.LM_STUDIO_URL,
+            base_url=effective_base_url,
             timeout=timeout or self.DEFAULT_TIMEOUT,
             max_retries=max_retries,
         )
-        self._client: httpx.Client | None = None
 
     @property
     def provider_name(self) -> str:

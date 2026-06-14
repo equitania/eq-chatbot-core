@@ -45,6 +45,34 @@ jobs:
         run: uv run mypy src/
         continue-on-error: true
 
+  security:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Create venv
+        run: uv venv --python 3.12
+
+      - name: Install package and dev extras
+        run: uv pip install -e ".[dev,security,pdf,azure,vertex,server]"
+
+      # Scans installed dependencies against the PyPI Advisory DB.
+      # Advisory for now (continue-on-error) so a freshly disclosed CVE in a
+      # transitive dep does not hard-block unrelated PRs; findings are visible in
+      # the job log and should be triaged promptly.
+      - name: Run pip-audit
+        run: uv run pip-audit --strict
+        continue-on-error: true
+
   test:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

@@ -9,10 +9,13 @@ Provides multi-layer validation including:
 - Filename sanitization
 """
 
+import logging
 import os
 import re
 import unicodedata
 from dataclasses import dataclass
+
+_logger = logging.getLogger(__name__)
 
 # Try to import puremagic for MIME detection (pure Python, no libmagic needed)
 try:
@@ -31,6 +34,10 @@ class FileValidationResult:
     error_message: str | None = None
     detected_mime: str | None = None
     sanitized_filename: str | None = None
+    # False when MIME content verification was skipped (puremagic unavailable).
+    # A valid result with mime_verified=False means the file passed only
+    # extension/content/size checks, not magic-byte content inspection.
+    mime_verified: bool = True
 
 
 @dataclass
@@ -77,13 +84,25 @@ OFFICE_MACRO_PATTERNS = [
 class FileValidator:
     """Multi-layer file validation for secure uploads."""
 
-    def __init__(self, use_magic: bool = True):
+    def __init__(self, use_magic: bool = True, require_magic: bool = False):
         """Initialize the validator.
 
         Args:
             use_magic: Whether to use puremagic for MIME detection.
                        Falls back to extension-based detection if unavailable.
+            require_magic: If True, fail closed when puremagic is unavailable
+                           instead of silently degrading to extension-only
+                           validation. Strict callers handling untrusted uploads
+                           should set this to True.
+
+        Raises:
+            RuntimeError: If require_magic is True but puremagic is not installed.
         """
+        if require_magic and not MAGIC_AVAILABLE:
+            raise RuntimeError(
+                "FileValidator requires magic-byte MIME detection but 'puremagic' "
+                "is not installed. Install with: pip install eq_chatbot_core[security]"
+            )
         self.use_magic = use_magic and MAGIC_AVAILABLE
 
     def validate(
@@ -121,11 +140,13 @@ class FileValidator:
 
         # Layer 2: MIME type verification
         mime_result = self._validate_mime_type(content, file_config)
+        mime_verified = mime_result[3]
         if not mime_result[0]:
             return FileValidationResult(
                 is_valid=False,
                 error_message=mime_result[1],
                 detected_mime=mime_result[2],
+                mime_verified=mime_verified,
             )
 
         # Layer 3: Content scanning
@@ -152,6 +173,7 @@ class FileValidator:
             is_valid=True,
             detected_mime=file_config.mime_type,
             sanitized_filename=sanitized,
+            mime_verified=mime_verified,
         )
 
     def _validate_extension(
@@ -179,25 +201,35 @@ class FileValidator:
         self,
         content: bytes,
         config: FileTypeConfig,
-    ) -> tuple[bool, str | None, str | None]:
+    ) -> tuple[bool, str | None, str | None, bool]:
         """Verify actual MIME type matches expected.
 
         Returns:
-            Tuple of (is_valid, error_message, detected_mime)
+            Tuple of (is_valid, error_message, detected_mime, mime_verified).
+            mime_verified is False when content inspection was skipped because
+            puremagic is unavailable — the caller can then decide whether the
+            weaker extension-only guarantee is acceptable.
         """
         if not self.use_magic:
-            # Skip MIME verification if puremagic is not available
-            return True, None, config.mime_type
+            # puremagic unavailable: degrade to extension-only validation but
+            # surface the degradation instead of silently passing as "verified".
+            _logger.warning(
+                "MIME content verification skipped for type '%s' — 'puremagic' is "
+                "unavailable; falling back to extension-only validation. Install "
+                "eq_chatbot_core[security] for magic-byte inspection.",
+                config.mime_type,
+            )
+            return True, None, config.mime_type, False
 
         try:
             detected = puremagic.from_string(content, mime=True)
         except puremagic.PureError:
             # Cannot determine MIME type - treat as unknown
-            return False, "Could not determine MIME type of file", None
+            return False, "Could not determine MIME type of file", None, True
 
         # Allow some flexibility for related MIME types
         if detected == config.mime_type:
-            return True, None, detected
+            return True, None, detected, True
 
         # Handle common variations - only within the same type category
         # to prevent cross-type confusion attacks (e.g., HTML served as XML)
@@ -210,17 +242,18 @@ class FileValidator:
 
         expected = config.mime_type
         if expected in mime_aliases and detected in mime_aliases[expected]:
-            return True, None, detected
+            return True, None, detected, True
 
         # Reverse check - only within same-category aliases
         for primary, aliases in mime_aliases.items():
             if expected in aliases and detected == primary:
-                return True, None, detected
+                return True, None, detected, True
 
         return (
             False,
             f"MIME type mismatch: expected '{config.mime_type}', detected '{detected}'",
             detected,
+            True,
         )
 
     def _scan_content(
@@ -340,16 +373,18 @@ class FileValidator:
         return name
 
 
-def create_validator(use_magic: bool = True) -> FileValidator:
+def create_validator(use_magic: bool = True, require_magic: bool = False) -> FileValidator:
     """Factory function to create a FileValidator instance.
 
     Args:
         use_magic: Whether to use puremagic for MIME detection
+        require_magic: Fail closed if puremagic is unavailable (recommended for
+                       untrusted uploads)
 
     Returns:
         Configured FileValidator instance
     """
-    return FileValidator(use_magic=use_magic)
+    return FileValidator(use_magic=use_magic, require_magic=require_magic)
 
 
 def is_magic_available() -> bool:

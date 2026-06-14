@@ -135,6 +135,42 @@ model data persists in ElevenLabs infrastructure. If your use case requires voic
 cloning, assess whether that data qualifies as personal data under GDPR before
 deploying in an EU-regulated context.
 
+### Security: caller responsibilities
+
+The `eq_chatbot_core.security` module provides **caller-invoked primitives, not
+automatic guardrails**. Provider calls perform no implicit prompt-injection
+filtering or rate limiting — you must invoke these explicitly when handling
+untrusted input:
+
+```python
+from eq_chatbot_core.providers import get_provider
+from eq_chatbot_core.security import check_rate_limit, detect_injection
+
+# 1. Rate-limit per user BEFORE calling the provider
+result = check_rate_limit(user_id, config, storage, estimated_tokens=tokens)
+if not result.allowed:
+    raise RuntimeError(f"Rate limit exceeded, retry after {result.retry_after}s")
+
+# 2. Screen untrusted input for prompt injection
+if detect_injection(user_message):
+    raise ValueError("Potential prompt injection detected")
+
+provider = get_provider("openai", api_key="sk-...")
+response = provider.chat_completion([{"role": "user", "content": user_message}])
+```
+
+Additional hardening notes:
+
+- **File uploads:** `FileValidator` falls back to extension-only checks when the
+  `[security]` extra (puremagic) is not installed. For untrusted uploads, construct
+  it with `FileValidator(require_magic=True)` to fail closed, or inspect
+  `FileValidationResult.mime_verified`.
+- **Local provider `base_url`:** validated against non-HTTP schemes and
+  cloud-metadata / link-local targets; private LAN ranges remain allowed since
+  local model servers legitimately live there.
+- **API keys / secrets** are never logged by the library; upstream error bodies
+  surfaced in logs and exceptions are scrubbed via `utils.scrub_secrets`.
+
 ---
 
 ## Deutsch
@@ -203,6 +239,24 @@ Für mehr — Streaming, andere Provider, ADC für Vertex, Error-Handling — si
 | RAG-Pipeline (Chunking, Embedding, Retrieval) | [docs/rag.md](docs/rag.md#deutsch) |
 | Testing (Marker, Integration-Setup, Cost-Aware-Patterns) | [docs/testing.md](docs/testing.md) |
 
+### Sicherheit: Verantwortung des Aufrufers
+
+Das Modul `eq_chatbot_core.security` stellt **vom Aufrufer aktiv aufzurufende
+Primitive bereit, keine automatischen Schutzmechanismen**. Provider-Aufrufe
+filtern Eingaben weder auf Prompt-Injection noch erzwingen sie Rate-Limits — bei
+nicht vertrauenswürdigen Eingaben müssen `detect_injection` und
+`check_rate_limit` vor dem Provider-Call explizit aufgerufen werden (Beispiel
+siehe englische Sektion „Security: caller responsibilities" oben).
+
+Weitere Härtungshinweise:
+
+- **Datei-Uploads:** Für nicht vertrauenswürdige Uploads `FileValidator(require_magic=True)`
+  verwenden (fail-closed ohne `puremagic`) bzw. `FileValidationResult.mime_verified` prüfen.
+- **Local-Provider `base_url`:** gegen Nicht-HTTP-Schemes und Cloud-Metadata-/Link-Local-Ziele
+  validiert; private LAN-Ranges bleiben erlaubt.
+- **API-Keys/Secrets** werden nie geloggt; geleakte Upstream-Error-Bodies werden via
+  `utils.scrub_secrets` maskiert.
+
 ---
 
 ## Technical Information
@@ -210,7 +264,7 @@ Für mehr — Streaming, andere Provider, ADC für Vertex, Error-Handling — si
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.7.4 |
+| **Version** | 1.8.1 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |

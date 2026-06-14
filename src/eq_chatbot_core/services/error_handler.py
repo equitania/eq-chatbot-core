@@ -9,7 +9,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any
 
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+
 logger = logging.getLogger(__name__)
+
+# Upper bound for a provider-supplied retry-after value (seconds). A malformed or
+# hostile error body could otherwise advertise an enormous delay and turn a
+# caller-side sleep/UI lock into a self-inflicted denial of service.
+MAX_RETRY_AFTER = 3600
 
 
 class ErrorSeverity(Enum):
@@ -80,6 +87,12 @@ class ChatbotErrorHandler:
     - LLM provider errors (timeout, rate limit, auth)
     - Provider fallback chains
     - User-friendly error messages (configurable language)
+
+    Note:
+        This handler is **synchronous**. Its timeout retry path uses a blocking
+        ``time.sleep``; do not call ``handle_llm_error`` from within an asyncio
+        event loop, as it would block the loop. For async callers, perform the
+        wait yourself using ``retry_after`` from the returned ``ErrorResult``.
     """
 
     # Fallback chains by provider
@@ -161,6 +174,17 @@ class ChatbotErrorHandler:
             jitter = base_wait * 0.25 * (2 * random.random() - 1)
             wait_time = base_wait + jitter
             logger.warning(f"LLM timeout, retry {retry_count + 1}/2 after {wait_time:.1f}s")
+            # Guard: this synchronous sleep would stall a running event loop.
+            try:
+                import asyncio
+
+                asyncio.get_running_loop()
+                logger.warning(
+                    "ChatbotErrorHandler.handle_llm_error called inside an event loop; "
+                    "the blocking timeout retry will stall it. Handle retries asynchronously instead."
+                )
+            except RuntimeError:
+                pass  # no running loop — synchronous sleep is fine
             time.sleep(wait_time)
 
             context["retry_count"] = retry_count + 1
@@ -184,7 +208,7 @@ class ChatbotErrorHandler:
             success=False,
             error_type="timeout",
             user_message=self.messages["timeout"],
-            original_error=str(error),
+            original_error=scrub_secrets(str(error)),
         )
 
     def _handle_rate_limit(
@@ -209,7 +233,7 @@ class ChatbotErrorHandler:
             error_type="rate_limit",
             user_message=self.messages["rate_limit"].format(wait_time=wait_time),
             retry_after=wait_time,
-            original_error=str(error),
+            original_error=scrub_secrets(str(error)),
         )
 
     def _handle_auth_error(
@@ -231,7 +255,7 @@ class ChatbotErrorHandler:
             success=False,
             error_type="configuration",
             user_message=self.messages["auth_error"],
-            original_error=str(error),
+            original_error=scrub_secrets(str(error)),
         )
 
     def _handle_token_limit(self, error: Exception) -> ErrorResult:
@@ -240,7 +264,7 @@ class ChatbotErrorHandler:
             success=False,
             error_type="token_limit",
             user_message=self.messages["token_limit"],
-            original_error=str(error),
+            original_error=scrub_secrets(str(error)),
         )
 
     def _handle_generic_error(
@@ -260,7 +284,7 @@ class ChatbotErrorHandler:
             success=False,
             error_type="unknown",
             user_message=self.messages["generic_error"],
-            original_error=str(error),
+            original_error=scrub_secrets(str(error)),
         )
 
     def _try_fallback_provider(
@@ -300,14 +324,18 @@ class ChatbotErrorHandler:
         )
 
     def _extract_retry_after(self, error: Exception) -> int | None:
-        """Extract retry-after seconds from error response."""
+        """Extract retry-after seconds from error response.
+
+        The extracted value is clamped to ``[0, MAX_RETRY_AFTER]`` so a
+        manipulated provider response cannot force an unbounded caller-side wait.
+        """
         import re
 
         error_str = str(error)
         match = re.search(r"retry.after[:\s]+(\d+)", error_str, re.IGNORECASE)
 
         if match:
-            return int(match.group(1))
+            return max(0, min(int(match.group(1)), MAX_RETRY_AFTER))
 
         return None
 

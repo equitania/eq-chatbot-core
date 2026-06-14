@@ -102,7 +102,13 @@ def calculate_cost(
 
     Returns:
         Cost in USD (6 decimal places)
+
+    Raises:
+        ValueError: If token counts are negative.
     """
+    if input_tokens < 0 or output_tokens < 0:
+        raise ValueError(f"Token counts must be non-negative (got input={input_tokens}, output={output_tokens}).")
+
     pricing = get_model_pricing(model)
     cost = (input_tokens / 1000) * pricing["input"] + (output_tokens / 1000) * pricing["output"]
 

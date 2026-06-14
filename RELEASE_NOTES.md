@@ -1,5 +1,40 @@
 # Release Notes
 
+## Version 1.8.1 (14.06.2026)
+
+### Security
+
+Hardening pass from a structured security review (no remote-exploitable critical issues found;
+all changes are fail-safe / defense-in-depth).
+
+- **[FIX] FileValidator no longer fails open**: when the optional `puremagic` dependency
+  (`[security]` extra) is missing, `_validate_mime_type` previously returned the file as
+  *verified* while silently skipping magic-byte inspection, allowing content/extension spoofing
+  (e.g. a script uploaded as `x.pdf`). The validator now surfaces the degradation via a new
+  `FileValidationResult.mime_verified` flag and a `WARNING`, and a new `FileValidator(require_magic=True)`
+  fails closed when `puremagic` is unavailable.
+- **[ADD] Secret scrubbing for logs and error surfaces** (`utils.scrub_secrets`): API-key prefixes
+  (`sk-`, `sk-ant-`, `sk-or-`, `ld-`, `mm-`), `Bearer` tokens, and secret query parameters are masked.
+  LangDock upstream error bodies are now scrubbed + length-bounded before logging or being embedded
+  in raised `ProviderError` messages; `ChatbotErrorHandler.ErrorResult.original_error` is scrubbed too.
+- **[FIX] `retry-after` is now clamped** to `MAX_RETRY_AFTER` (3600s) in `ChatbotErrorHandler`,
+  preventing a manipulated provider response from forcing an unbounded caller-side wait (self-DoS).
+- **[ADD] SSRF validation for the local provider `base_url`** (`utils.validate_url`): non-HTTP schemes
+  and cloud-metadata / link-local targets (e.g. `169.254.169.254`) are rejected; private/LAN ranges
+  stay allowed since local model servers legitimately live there. The MCP SSE client now shares this
+  helper (strict mode, unchanged behavior).
+- **[ADD] PDF resource limits** (`utils.pdf`): `MAX_PDF_BYTES` (50 MB), `MAX_PAGES_HARD` (50), and
+  `MAX_DPI` (600) bound memory/CPU when rendering untrusted PDFs (decompression-bomb / huge-DPI DoS).
+- **[CHG] MCP stdio command validation hardened**: both the literal and PATH-resolved command basenames
+  are checked against the allowlist; the PATH trust model is now documented.
+- **[CHG] API key encapsulation**: `BaseLLMProvider.api_key` is now a read-only property backed by a
+  non-public attribute. Negative token counts in `calculate_cost` raise `ValueError`.
+- **[ADD] Supply-chain gate**: `pip-audit` added to CI and dev dependencies; vulnerable transitive
+  dependencies (cryptography, urllib3, starlette, requests, idna, protobuf, pygments, pytest) bumped
+  to patched versions in `uv.lock`; upper version bounds added to dev tooling.
+- Documented caller security responsibilities (injection / rate-limit primitives are not auto-enforced)
+  in the README and `security` package docstring.
+
 ## Version 1.7.6 (04.06.2026)
 
 ### Fixed

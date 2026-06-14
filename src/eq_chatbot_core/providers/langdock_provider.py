@@ -34,6 +34,26 @@ from eq_chatbot_core.providers.temperature_constraints import (
 
 _logger = logging.getLogger(__name__)
 
+# Max length of an upstream error body surfaced in logs / exceptions.
+_ERROR_DETAIL_MAX = 500
+
+
+def _scrub(text: str) -> str:
+    """Mask credential shapes in text (lazy import to avoid an import cycle)."""
+    from eq_chatbot_core.utils.secret_scrub import scrub_secrets as _ss
+
+    return _ss(text)
+
+
+def _safe_detail(text: str) -> str:
+    """Scrub credentials from an upstream error body and bound its length.
+
+    Provider error bodies may echo request headers (Authorization), API-key
+    query parameters, or other sensitive context. Always pass them through this
+    before logging or embedding in a raised exception.
+    """
+    return _scrub(text or "")[:_ERROR_DETAIL_MAX]
+
 
 class LangDockProvider(BaseLLMProvider):
     """
@@ -450,7 +470,8 @@ class LangDockProvider(BaseLLMProvider):
 
             _logger.info(f"Agent request to {agent_url}")
             _logger.info(f"Agent payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
-            _logger.debug(f"Full payload: {json.dumps(payload, default=str)}")
+            if _logger.isEnabledFor(logging.DEBUG):
+                _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
             response = httpx.post(
                 agent_url,
@@ -464,10 +485,10 @@ class LangDockProvider(BaseLLMProvider):
             )
 
             if response.status_code != 200:
-                error_text = response.text
-                _logger.error(f"Agent API error {response.status_code}: {error_text}")
+                detail = _safe_detail(response.text)
+                _logger.error(f"Agent API error {response.status_code}: {detail}")
                 raise ProviderError(
-                    f"Agent API error {response.status_code}: {error_text}",
+                    f"Agent API error {response.status_code}: {detail}",
                     provider="langdock",
                     status_code=response.status_code,
                 )
@@ -641,14 +662,15 @@ class LangDockProvider(BaseLLMProvider):
 
             # Make direct HTTP request to Gemini endpoint
             url = f"/models/{model}:generateContent"
-            _logger.debug(f"Google API request URL: {self._get_backend_url()}{url}")
-            _logger.debug(f"Google API payload: {json.dumps(payload, indent=2)}")
+            if _logger.isEnabledFor(logging.DEBUG):
+                _logger.debug(f"Google API request URL: {_scrub(self._get_backend_url() + url)}")
+                _logger.debug(f"Google API payload: {_scrub(json.dumps(payload, indent=2))}")
 
             response = self.http_client.post(url, json=payload)
 
             # Log error details before raising
             if response.status_code >= 400:
-                _logger.error(f"Google API error {response.status_code}: {response.text}")
+                _logger.error(f"Google API error {response.status_code}: {_safe_detail(response.text)}")
 
             response.raise_for_status()
 
@@ -713,13 +735,14 @@ class LangDockProvider(BaseLLMProvider):
             }
             payload.update(kwargs)
 
-            _logger.debug(f"Codestral FIM payload: {json.dumps(payload, indent=2)}")
+            if _logger.isEnabledFor(logging.DEBUG):
+                _logger.debug(f"Codestral FIM payload: {_scrub(json.dumps(payload, indent=2))}")
 
             response = self.http_client.post("/fim/completions", json=payload)
 
             # Log error details before raising
             if response.status_code >= 400:
-                _logger.error(f"Codestral FIM error {response.status_code}: {response.text}")
+                _logger.error(f"Codestral FIM error {response.status_code}: {_safe_detail(response.text)}")
 
             response.raise_for_status()
 
@@ -945,7 +968,8 @@ class LangDockProvider(BaseLLMProvider):
 
             _logger.info(f"Agent stream request to {agent_url}")
             _logger.info(f"Agent stream payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
-            _logger.debug(f"Full payload: {json.dumps(payload, default=str)}")
+            if _logger.isEnabledFor(logging.DEBUG):
+                _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
             response = httpx.post(
                 agent_url,
@@ -959,9 +983,10 @@ class LangDockProvider(BaseLLMProvider):
             )
 
             if response.status_code != 200:
-                _logger.error(f"Agent error {response.status_code}: {response.text}")
+                detail = _safe_detail(response.text)
+                _logger.error(f"Agent error {response.status_code}: {detail}")
                 raise ProviderError(
-                    f"Agent API error {response.status_code}: {response.text}",
+                    f"Agent API error {response.status_code}: {detail}",
                     provider="langdock",
                     status_code=response.status_code,
                 )
@@ -1249,14 +1274,15 @@ class LangDockProvider(BaseLLMProvider):
 
             # LangDock Google API uses standard streaming endpoint
             url = f"/models/{model}:streamGenerateContent"
-            _logger.debug(f"Google streaming URL: {self._get_backend_url()}{url}")
-            _logger.debug(f"Google streaming payload: {json.dumps(payload, indent=2)}")
+            if _logger.isEnabledFor(logging.DEBUG):
+                _logger.debug(f"Google streaming URL: {_scrub(self._get_backend_url() + url)}")
+                _logger.debug(f"Google streaming payload: {_scrub(json.dumps(payload, indent=2))}")
 
             with self.http_client.stream("POST", url, json=payload) as response:
                 # Log error details before raising
                 if response.status_code >= 400:
                     error_text = response.read().decode("utf-8", errors="replace")
-                    _logger.error(f"Google streaming error {response.status_code}: {error_text}")
+                    _logger.error(f"Google streaming error {response.status_code}: {_safe_detail(error_text)}")
                 response.raise_for_status()
 
                 total_input_tokens = 0
@@ -1707,10 +1733,10 @@ class LangDockAgentManager:
             )
 
             if response.status_code != 200:
-                error_text = response.text
-                _logger.error(f"Attachment upload failed {response.status_code}: {error_text}")
+                detail = _safe_detail(response.text)
+                _logger.error(f"Attachment upload failed {response.status_code}: {detail}")
                 raise ProviderError(
-                    f"Attachment upload failed: {error_text}",
+                    f"Attachment upload failed: {detail}",
                     provider="langdock",
                     status_code=response.status_code,
                 )

@@ -102,10 +102,19 @@ class BaseLLMProvider(ABC):
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
         """
-        self.api_key = api_key
+        self._api_key = api_key
         self.base_url = base_url
         self.timeout = timeout
         self.max_retries = max_retries
+
+    @property
+    def api_key(self) -> str:
+        """API key used for authentication.
+
+        Exposed read-only and stored as a non-public attribute to discourage
+        accidental mutation and to keep it out of naive attribute dumps.
+        """
+        return self._api_key
 
     @property
     @abstractmethod

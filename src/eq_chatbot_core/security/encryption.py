@@ -39,6 +39,8 @@ class FernetEncryption:
             key = key.encode()
 
         self._fernet = Fernet(key)
+        # Non-public (single underscore) — required by key_fingerprint(); never
+        # exposed via __repr__ or any public API.
         self._key = key
 
     @classmethod
