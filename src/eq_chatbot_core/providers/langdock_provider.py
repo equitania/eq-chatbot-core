@@ -1980,3 +1980,183 @@ class LangDockKnowledgeManager:
                 self._client.close()
             except (OSError, RuntimeError):
                 pass  # Ignore cleanup errors during interpreter shutdown
+
+
+# Usage-export reports exposed by LangDock (POST /export/{report}).
+EXPORT_REPORTS = ("users", "assistants", "agents", "api-keys", "projects", "models")
+
+
+def _map_status_error(status_code: int, detail: str) -> ProviderError:
+    """Map an HTTP status code + scrubbed detail onto a ProviderError subclass."""
+    if status_code in (401, 403):
+        return AuthenticationError(
+            f"LangDock authentication failed: {detail}",
+            provider="langdock",
+            status_code=status_code,
+        )
+    if status_code == 429:
+        return RateLimitError(
+            f"LangDock rate limit exceeded: {detail}",
+            provider="langdock",
+            status_code=status_code,
+        )
+    return ProviderError(
+        f"LangDock request failed ({status_code}): {detail}",
+        provider="langdock",
+        status_code=status_code,
+    )
+
+
+class LangDockExportManager:
+    """
+    Read-only manager for backing up LangDock agents and usage data.
+
+    Supports decentralised backups of agent definitions (including their system
+    prompt / ``instruction``) so they stay portable when LangDock is unavailable.
+
+    Endpoints used:
+      - ``GET  /agent/v1/get?agentId=`` — full agent definition (non-deprecated)
+      - ``POST /export/{report}``       — usage export, returns a signed CSV URL
+        (requires an admin API key with the ``USAGE_EXPORT_API`` scope)
+
+    Note: LangDock exposes no "list all agents" endpoint. Agent IDs are either
+    provided manually (from the UI URL) or discovered via ``/export/agents``.
+    """
+
+    BASE_URL = "https://api.langdock.com"
+
+    def __init__(self, api_key: str, timeout: float = 60.0):
+        """
+        Initialize Export Manager.
+
+        Args:
+            api_key: LangDock API key (Bearer token)
+            timeout: Request timeout in seconds
+        """
+        self.api_key = api_key
+        self.timeout = timeout
+        self._client: httpx.Client | None = None
+
+    @property
+    def client(self) -> httpx.Client:
+        """Get or create HTTP client."""
+        if self._client is None:
+            self._client = httpx.Client(
+                base_url=self.BASE_URL,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                timeout=self.timeout,
+            )
+        return self._client
+
+    def get_agent(self, agent_id: str) -> dict[str, Any]:
+        """
+        Fetch a single agent's full definition.
+
+        API: GET https://api.langdock.com/agent/v1/get?agentId={uuid}
+
+        Args:
+            agent_id: Agent UUID
+
+        Returns:
+            The agent definition dict (name, instruction, model, capabilities, ...).
+            The ``agent`` envelope is unwrapped if present.
+
+        Raises:
+            ProviderError (or subclass) on any non-2xx response.
+        """
+        try:
+            response = self.client.get("/agent/v1/get", params={"agentId": agent_id})
+        except httpx.RequestError as exc:
+            raise ProviderError(f"LangDock agent fetch failed: {exc}", provider="langdock") from exc
+
+        if response.status_code != 200:
+            raise _map_status_error(response.status_code, _safe_detail(response.text))
+
+        data = response.json()
+        # LangDock wraps the payload in an "agent" key; unwrap when present.
+        if isinstance(data, dict) and isinstance(data.get("agent"), dict):
+            return data["agent"]
+        return data
+
+    def export_report(
+        self,
+        report: str,
+        date_from: str,
+        date_to: str,
+        timezone: str = "UTC",
+    ) -> dict[str, Any]:
+        """
+        Request a usage export and return its metadata (incl. signed downloadUrl).
+
+        API: POST https://api.langdock.com/export/{report}
+
+        Args:
+            report: One of EXPORT_REPORTS (e.g. "agents")
+            date_from: ISO 8601 start timestamp (e.g. "2024-01-01T00:00:00.000Z")
+            date_to: ISO 8601 end timestamp
+            timezone: IANA timezone name (required by the API)
+
+        Returns:
+            The "data" object of the response (filePath, downloadUrl, recordCount, ...).
+
+        Raises:
+            ProviderError (or subclass) on any non-2xx response.
+        """
+        if report not in EXPORT_REPORTS:
+            raise ProviderError(
+                f"Unknown export report '{report}'. Valid: {', '.join(EXPORT_REPORTS)}",
+                provider="langdock",
+            )
+        body = {
+            "from": {"date": date_from, "timezone": timezone},
+            "to": {"date": date_to, "timezone": timezone},
+        }
+        try:
+            response = self.client.post(f"/export/{report}", json=body)
+        except httpx.RequestError as exc:
+            raise ProviderError(f"LangDock usage export failed: {exc}", provider="langdock") from exc
+
+        if response.status_code != 200:
+            raise _map_status_error(response.status_code, _safe_detail(response.text))
+
+        payload = response.json()
+        # Response shape: {"success": true, "data": {...}}
+        if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
+            return payload["data"]
+        return payload
+
+    def download_signed_csv(self, url: str) -> str:
+        """
+        Download a signed CSV URL returned by ``export_report``.
+
+        The signed URL points at external storage and must NOT carry the
+        Authorization header, so a bare client is used.
+
+        Args:
+            url: The ``downloadUrl`` from an export response
+
+        Returns:
+            The CSV file content as text.
+
+        Raises:
+            ProviderError on any non-2xx response or transport error.
+        """
+        try:
+            response = httpx.get(url, timeout=self.timeout, follow_redirects=True)
+        except httpx.RequestError as exc:
+            raise ProviderError(f"LangDock CSV download failed: {exc}", provider="langdock") from exc
+
+        if response.status_code != 200:
+            raise _map_status_error(response.status_code, _safe_detail(response.text))
+        return response.text
+
+    def __del__(self):
+        """Cleanup HTTP client."""
+        if self._client is not None:
+            try:
+                self._client.close()
+            except (OSError, RuntimeError):
+                pass  # Ignore cleanup errors during interpreter shutdown

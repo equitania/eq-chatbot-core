@@ -11,8 +11,9 @@ Topic-specific guides for `eq-chatbot-core`. Start with the [project README](../
 | Topic | Documentation |
 |-------|---------------|
 | Multi-provider integration (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, local) | [providers.md](providers.md#english) |
-| CLI commands (`info`, `test-provider`, `list-models`, `chat`, `serve`) | [cli.md](cli.md#english) |
+| CLI commands (`info`, `test-provider`, `list-models`, `chat`, `serve`, `langdock-export`) | [cli.md](cli.md#english) |
 | HTTP/SSE server mode (sidecar pattern, bearer auth, watchdog) | [server-mode.md](server-mode.md#english) |
+| LangDock agent & knowledge backup (`langdock-export`) | [langdock-export.md](langdock-export.md#english) |
 | Security (encryption, prompt-injection detection, rate limit, file validation) | [security.md](security.md#english) |
 | MCP client (HTTP/SSE + stdio, DNS pinning, env whitelist) | [mcp.md](mcp.md#english) |
 | RAG pipeline (chunking, embedding, Qdrant retrieval, context management) | [rag.md](rag.md#english) |
@@ -37,8 +38,9 @@ Topic-spezifische Anleitungen für `eq-chatbot-core`. Beginne mit dem [Projekt-R
 | Thema | Dokumentation |
 |-------|---------------|
 | Multi-Provider-Integration (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, lokal) | [providers.md](providers.md#deutsch) |
-| CLI-Befehle (`info`, `test-provider`, `list-models`, `chat`, `serve`) | [cli.md](cli.md#deutsch) |
+| CLI-Befehle (`info`, `test-provider`, `list-models`, `chat`, `serve`, `langdock-export`) | [cli.md](cli.md#deutsch) |
 | HTTP/SSE-Server-Mode (Sidecar-Pattern, Bearer-Auth, Watchdog) | [server-mode.md](server-mode.md#deutsch) |
+| LangDock Agent- & Knowledge-Backup (`langdock-export`) | [langdock-export.md](langdock-export.md#deutsch) |
 | Security (Verschlüsselung, Prompt-Injection-Erkennung, Rate-Limit, File-Validation) | [security.md](security.md#deutsch) |
 | MCP-Client (HTTP/SSE + stdio, DNS-Pinning, Env-Whitelist) | [mcp.md](mcp.md#deutsch) |
 | RAG-Pipeline (Chunking, Embedding, Qdrant-Retrieval, Context-Management) | [rag.md](rag.md#deutsch) |

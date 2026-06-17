@@ -556,6 +556,147 @@ def serve(
     )
 
 
+@main.command("langdock-export")
+@click.option(
+    "--api-key",
+    "-k",
+    envvar="LANGDOCK_API_KEY",
+    required=True,
+    help="LangDock API key (or set LANGDOCK_API_KEY environment variable).",
+)
+@click.option(
+    "--output-dir",
+    "-o",
+    default="./langdock-backup",
+    show_default=True,
+    type=click.Path(file_okay=False),
+    help="Directory to write the backup into.",
+)
+@click.option(
+    "--agent-id",
+    "agent_ids",
+    multiple=True,
+    help="Agent id or UI URL to back up. Repeatable. If omitted, --discover is used.",
+)
+@click.option(
+    "--discover/--no-discover",
+    default=None,
+    help="Discover all agent ids via the usage export API "
+    "(needs an admin key with the USAGE_EXPORT_API scope). "
+    "Defaults to on when no --agent-id is given.",
+)
+@click.option(
+    "--knowledge-folder-id",
+    "knowledge_folder_ids",
+    multiple=True,
+    help="Knowledge folder id to back up file metadata for. Repeatable. "
+    "Folder ids referenced by exported agents are added automatically.",
+)
+@click.option(
+    "--format",
+    "fmt",
+    default="both",
+    show_default=True,
+    type=click.Choice(["md", "json", "both"], case_sensitive=False),
+    help="Output format for agent definitions.",
+)
+def langdock_export(
+    api_key: str,
+    output_dir: str,
+    agent_ids: tuple[str, ...],
+    discover: bool | None,
+    knowledge_folder_ids: tuple[str, ...],
+    fmt: str,
+) -> None:
+    """Back up LangDock agents and knowledge metadata to local files.
+
+    Agent definitions (including their system prompt) are saved as portable
+    Markdown and raw JSON so they stay usable when LangDock is unavailable.
+
+    Note: knowledge-folder *content* cannot be downloaded via the API — only
+    file metadata is backed up.
+
+    Examples:
+
+        # Back up specific agents (no admin key required):
+        eq-chatbot langdock-export --agent-id https://app.langdock.com/assistant/<uuid>
+
+        # Discover and back up all agents (needs USAGE_EXPORT_API admin key):
+        LANGDOCK_API_KEY=... eq-chatbot langdock-export --discover
+    """
+    from eq_chatbot_core.providers.base import ProviderError
+    from eq_chatbot_core.providers.langdock_provider import (
+        LangDockExportManager,
+        LangDockKnowledgeManager,
+    )
+    from eq_chatbot_core.services.langdock_export import LangDockBackupExporter
+
+    # Default: discover when the user gave no explicit agent ids.
+    if discover is None:
+        discover = len(agent_ids) == 0
+
+    if not agent_ids and not discover and not knowledge_folder_ids:
+        raise click.ClickException(
+            "Nothing to do. Provide --agent-id, enable --discover, or pass --knowledge-folder-id."
+        )
+
+    export_manager = LangDockExportManager(api_key=api_key)
+    knowledge_manager = LangDockKnowledgeManager(api_key=api_key)
+    exporter = LangDockBackupExporter(export_manager, knowledge_manager)
+
+    resolved_ids: list[str] = list(agent_ids)
+    if discover:
+        click.echo("Discovering agents via usage export API ...")
+        try:
+            discovered = exporter.discover_agents()
+            resolved_ids.extend(d["id"] for d in discovered)
+            click.echo(f"  Discovered {len(discovered)} agent(s).")
+        except ProviderError as exc:
+            if getattr(exc, "status_code", None) in (401, 403):
+                click.echo(
+                    click.style(
+                        "  Discovery failed (key lacks USAGE_EXPORT_API scope). "
+                        "Pass agent ids manually with --agent-id instead.",
+                        fg="yellow",
+                    )
+                )
+            else:
+                click.echo(click.style(f"  Discovery failed: {exc}", fg="yellow"))
+
+    # Deduplicate while preserving order.
+    unique_ids = list(dict.fromkeys(resolved_ids))
+
+    summary: dict[str, object] = {}
+    if unique_ids:
+        click.echo(f"Backing up {len(unique_ids)} agent(s) ...")
+        agent_summary = exporter.backup_agents(unique_ids, output_dir, fmt=fmt.lower())
+        summary["agents"] = agent_summary
+        click.echo(f"  Agents: {agent_summary['agents_ok']} ok, {agent_summary['agents_failed']} failed.")
+        for err in agent_summary["errors"]:
+            click.echo(click.style(f"    ! {err['agent_id']}: {err['error']}", fg="yellow"))
+
+    # Knowledge folders: explicit ids + ids referenced by exported agents.
+    agents_summary = summary.get("agents")
+    referenced = agents_summary.get("knowledge_folder_ids", []) if isinstance(agents_summary, dict) else []
+    folder_ids: list[str] = list(knowledge_folder_ids) + list(referenced)
+    unique_folders = list(dict.fromkeys(folder_ids))
+
+    if unique_folders:
+        click.echo(f"Backing up metadata for {len(unique_folders)} knowledge folder(s) ...")
+        knowledge_summary = exporter.backup_knowledge_metadata(unique_folders, output_dir)
+        summary["knowledge"] = knowledge_summary
+        click.echo(
+            f"  Knowledge: {knowledge_summary['folders_ok']} ok, "
+            f"{knowledge_summary['folders_failed']} failed (metadata only)."
+        )
+        for err in knowledge_summary["errors"]:
+            click.echo(click.style(f"    ! {err['folder_id']}: {err['error']}", fg="yellow"))
+
+    manifest_path = exporter.write_manifest(output_dir, summary)
+    click.echo(click.style(f"Backup written to {output_dir}", fg="green"))
+    click.echo(f"Manifest: {manifest_path}")
+
+
 @main.command("info")
 def info() -> None:
     """Show package information.
@@ -592,6 +733,7 @@ def info() -> None:
     click.echo("  • MCP client (HTTP/SSE and stdio transports)")
     click.echo("  • Cost calculation service")
     click.echo("  • File upload validation")
+    click.echo("  • LangDock agent/knowledge backup (langdock-export)")
     click.echo()
 
     click.echo(click.style("Installation:", fg="blue"))

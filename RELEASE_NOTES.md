@@ -1,5 +1,33 @@
 # Release Notes
 
+## Version 1.11.0 (17.06.2026)
+
+### Added
+
+- **[ADD] LangDock backup/export tool** — decentralised backup of LangDock agents and
+  knowledge-folder metadata so they stay portable when LangDock is unavailable (and reusable in
+  other AI tools, e.g. as Claude Code subagent prompts).
+  - **HTTP layer** (`providers/langdock_provider.py::LangDockExportManager`): `get_agent()` via the
+    non-deprecated `GET /agent/v1/get`, `export_report()` via `POST /export/{report}`,
+    `download_signed_csv()`. Reuses the existing `_safe_detail()` credential scrubbing and maps
+    HTTP status onto `AuthenticationError`/`RateLimitError`/`ProviderError`.
+  - **Orchestration** (`services/langdock_export.py::LangDockBackupExporter`): agent discovery via
+    the `/export/agents` usage CSV, UI-URL/UUID normalisation, portable Markdown rendering
+    (YAML frontmatter + system prompt), per-agent `.md` + `.json` backup, knowledge-folder metadata
+    backup, and a run `manifest.json`. A single failed agent never aborts the run.
+  - **CLI**: new `eq-chatbot langdock-export` command (`--agent-id` / `--discover` / `--no-discover`
+    / `--knowledge-folder-id` / `--format md|json|both` / `--output-dir`, `LANGDOCK_API_KEY` env).
+  - **Tests**: 26 new unit tests (`tests/unit/test_langdock_export.py`) — httpx-mock + CliRunner.
+- **Agent capability card** (`usage/AGENT.md`): token-efficient, machine-skimmable CLI reference for
+  LLM/agent consumers, generated deterministically from the Click command tree.
+
+### Notes
+
+- **API limits (by design):** LangDock exposes no "list all agents" endpoint — ids come from the UI
+  URL or the `/export/agents` CSV (which needs an admin key with the `USAGE_EXPORT_API` scope).
+  Knowledge-folder *content* cannot be downloaded via the API — only file metadata is backed up.
+- No new runtime dependency: `httpx` and `click` are already core.
+
 ## Version 1.10.0 (14.06.2026)
 
 ### Added

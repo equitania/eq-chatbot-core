@@ -28,6 +28,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **MCP Client** — HTTP/SSE and stdio transports, hardened against DNS rebinding and SSRF
 - **CLI Tool** — provider testing, model discovery, programmatic JSON I/O chat
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
+- **LangDock Backup** (v1.11.0) — `eq-chatbot langdock-export` backs up LangDock agents (system prompt + config) as portable `.md`/`.json` and knowledge-folder metadata
 
 ### Installation
 
@@ -71,6 +72,7 @@ For more — streaming, other providers, ADC for Vertex, error handling — see 
 | Multi-provider integration | [docs/providers.md](docs/providers.md#english) |
 | CLI commands | [docs/cli.md](docs/cli.md#english) |
 | HTTP/SSE server mode | [docs/server-mode.md](docs/server-mode.md#english) |
+| LangDock agent & knowledge backup | [docs/langdock-export.md](docs/langdock-export.md#english) |
 | Security (encryption, injection, files, rate limit) | [docs/security.md](docs/security.md#english) |
 | MCP client (HTTP/SSE + stdio) | [docs/mcp.md](docs/mcp.md#english) |
 | RAG pipeline (chunking, embedding, retrieval) | [docs/rag.md](docs/rag.md#english) |
@@ -191,6 +193,7 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **MCP-Client** — HTTP/SSE und stdio Transports, gehärtet gegen DNS-Rebinding und SSRF
 - **CLI-Tool** — Provider-Tests, Modell-Discovery, programmatische JSON-I/O-Chat-Calls
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
+- **LangDock-Backup** (v1.11.0) — `eq-chatbot langdock-export` sichert LangDock-Agenten (System-Prompt + Konfig) als portables `.md`/`.json` und Knowledge-Folder-Metadaten
 
 ### Installation
 
@@ -234,6 +237,7 @@ Für mehr — Streaming, andere Provider, ADC für Vertex, Error-Handling — si
 | Multi-Provider-Integration | [docs/providers.md](docs/providers.md#deutsch) |
 | CLI-Befehle | [docs/cli.md](docs/cli.md#deutsch) |
 | HTTP/SSE-Server-Mode | [docs/server-mode.md](docs/server-mode.md#deutsch) |
+| LangDock Agent- & Knowledge-Backup | [docs/langdock-export.md](docs/langdock-export.md#deutsch) |
 | Security (Verschlüsselung, Injection, Files, Rate-Limit) | [docs/security.md](docs/security.md#deutsch) |
 | MCP-Client (HTTP/SSE + stdio) | [docs/mcp.md](docs/mcp.md#deutsch) |
 | RAG-Pipeline (Chunking, Embedding, Retrieval) | [docs/rag.md](docs/rag.md#deutsch) |
