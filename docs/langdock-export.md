@@ -59,8 +59,19 @@ Knowledge-folder ids referenced by exported agents are backed up automatically.
 - **Discovery** (`--discover`) calls `POST /export/agents` and needs an **admin key with the
   `USAGE_EXPORT_API` scope**. A normal key returns HTTP 403 — the run continues and falls back to a
   hint to pass `--agent-id`.
-- **Knowledge content cannot be downloaded** via the API — only file *metadata* is available, and
-  only for folders explicitly shared with the key (`KNOWLEDGE_FOLDER_API` scope).
+- **Document content cannot be backed up — IDs/metadata only.** An agent's knowledge lives in one
+  of two places, and the API exposes the bytes of neither:
+  - **Knowledge Folders** (referenced via the agent's `knowledgeFolderIds`) — only file *metadata*
+    (a listing) and semantic *search* are available, and only for folders explicitly shared with the
+    key (`KNOWLEDGE_FOLDER_API` scope). There is **no raw document download**.
+  - **Attachments** (the agent's `attachments` array) — there is **no download endpoint at all**
+    (every attempt returns HTTP 404). The backup captures the attachment **IDs** in the agent
+    `.json` (so you know which files were attached), but **not** their content.
+  - Note: an agent can show `knowledgeFolderIds: []` while its documents are stored as
+    **attachments** — in the LangDock UI this still looks like a "knowledge folder".
+  - **Recommendation:** keep the source documents outside LangDock (you authored them), or download
+    them from the LangDock UI. `langdock-export` backs up the agent definition + system prompt +
+    attachment IDs, not the document bytes.
 
 Create / scope API keys at `https://app.langdock.com/settings/workspace/products/api`.
 
@@ -141,8 +152,19 @@ Von exportierten Agenten referenzierte Knowledge-Folder-IDs werden automatisch m
 - **Discovery** (`--discover`) ruft `POST /export/agents` auf und braucht einen **Admin-Key mit
   `USAGE_EXPORT_API`-Scope**. Ein normaler Key liefert HTTP 403 — der Lauf bricht nicht ab und
   weist auf den manuellen `--agent-id`-Weg hin.
-- **Knowledge-Inhalte sind nicht herunterladbar** — nur Datei-*Metadaten*, und nur für Folder, die
-  dem Key explizit freigegeben sind (`KNOWLEDGE_FOLDER_API`-Scope).
+- **Dokument-Inhalte sind nicht sicherbar — nur IDs/Metadaten.** Das Wissen eines Agenten liegt an
+  einer von zwei Stellen, und die API liefert von keiner die Datei-Bytes:
+  - **Knowledge Folders** (über `knowledgeFolderIds` des Agenten referenziert) — verfügbar sind nur
+    Datei-*Metadaten* (eine Liste) und die semantische *Suche*, und das nur für Folder, die dem Key
+    explizit freigegeben sind (`KNOWLEDGE_FOLDER_API`-Scope). **Kein Roh-Download.**
+  - **Attachments** (das `attachments`-Array des Agenten) — **kein Download-Endpunkt** (jeder Versuch
+    liefert HTTP 404). Das Backup sichert die Attachment-**IDs** in der Agenten-`.json` (man weiß,
+    welche Dateien angehängt sind), aber **nicht** deren Inhalt.
+  - Hinweis: Ein Agent kann `knowledgeFolderIds: []` zeigen, während seine Dokumente als
+    **Attachments** liegen — in der LangDock-UI sieht das trotzdem wie ein „Wissensordner" aus.
+  - **Empfehlung:** Quelldokumente außerhalb LangDock vorhalten (du hast sie erstellt) oder aus der
+    LangDock-UI herunterladen. `langdock-export` sichert Agenten-Definition + System-Prompt +
+    Attachment-IDs, nicht die Datei-Bytes.
 
 API-Keys erstellen/scopen unter `https://app.langdock.com/settings/workspace/products/api`.
 

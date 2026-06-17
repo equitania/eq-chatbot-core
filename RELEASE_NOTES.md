@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.11.2 (17.06.2026)
+
+### Changed
+
+- **[CHG] Docs:** clarified the document-content limitation in `docs/langdock-export.md` (EN+DE) and
+  `usage/AGENT.md` after live export of a real agent. An agent's knowledge lives either in a
+  **Knowledge Folder** (metadata + semantic search only — no raw download) or as **attachments**
+  (no download endpoint at all — HTTP 404, only the IDs are captured in the agent `.json`). An agent
+  can show `knowledgeFolderIds: []` while its documents live as attachments. `langdock-export` backs
+  up the agent definition + system prompt + attachment IDs, never the document bytes.
+
 ## Version 1.11.1 (17.06.2026)
 
 ### Changed
