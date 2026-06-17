@@ -1,5 +1,23 @@
 # Release Notes
 
+## Version 1.11.1 (17.06.2026)
+
+### Changed
+
+- **[CHG] `langdock-export` UX after live testing against the real LangDock API:**
+  - When agent retrieval fails with access errors, the CLI now collapses the per-agent error flood
+    (shows the first 3, then a count) and prints a clear hint that **each agent must be shared with
+    the API key** in LangDock — the `AGENT_API` scope alone grants no per-agent access. (Discovery
+    can list e.g. 58 workspace agents while the key can retrieve 0 until they are shared.)
+  - Documented the per-agent sharing prerequisite in `docs/langdock-export.md` (EN+DE) and
+    `usage/AGENT.md`.
+
+### Verified
+
+- End-to-end live validation: a shared agent is correctly exported — `.md` carries the real system
+  prompt (verified, 4 KB instruction) and `.json` the full raw definition; empty `knowledgeFolderIds`
+  are omitted defensively.
+
 ## Version 1.11.0 (17.06.2026)
 
 ### Added

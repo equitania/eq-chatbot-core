@@ -49,8 +49,13 @@ Knowledge-folder ids referenced by exported agents are backed up automatically.
 
 ### API scopes & limits
 
-- **Single-agent retrieval** (`--agent-id`) uses `GET /agent/v1/get` and works with a **standard
-  key**. Agent ids live in the LangDock UI URL when you open an agent.
+- **Each agent must be shared with the API key** — the `AGENT_API` scope (the "Agent API"
+  permission checkbox) is only the *capability*; it grants **no** per-agent access. In the LangDock
+  UI: open the agent → **Share** (top right) → search the API key's name → add it. Repeat per agent
+  (no bulk option, admin only). Without this, every retrieval returns HTTP 404 "Agent not found or
+  API key does not have access".
+- **Single-agent retrieval** (`--agent-id`) uses `GET /agent/v1/get`. Agent ids live in the LangDock
+  UI URL when you open an agent (e.g. `…/chat?a=<uuid>`).
 - **Discovery** (`--discover`) calls `POST /export/agents` and needs an **admin key with the
   `USAGE_EXPORT_API` scope**. A normal key returns HTTP 403 — the run continues and falls back to a
   hint to pass `--agent-id`.
@@ -126,8 +131,13 @@ Von exportierten Agenten referenzierte Knowledge-Folder-IDs werden automatisch m
 
 ### API-Scopes & Grenzen
 
-- **Einzel-Agent-Abruf** (`--agent-id`) nutzt `GET /agent/v1/get` und funktioniert mit einem
-  **Standard-Key**. Die Agent-ID steht in der LangDock-UI-URL, wenn du einen Agenten öffnest.
+- **Jeder Agent muss mit dem API-Key geteilt werden** — der `AGENT_API`-Scope (das Häkchen
+  „Agenten API") ist nur die *Capability* und gewährt **keinen** Zugriff auf einzelne Agenten. In
+  der LangDock-UI: Agent öffnen → **Share** (oben rechts) → Key-Namen suchen → hinzufügen. Pro Agent
+  wiederholen (kein Bulk, nur Admin). Ohne das liefert jeder Abruf HTTP 404 „Agent not found or API
+  key does not have access".
+- **Einzel-Agent-Abruf** (`--agent-id`) nutzt `GET /agent/v1/get`. Die Agent-ID steht in der
+  LangDock-UI-URL, wenn du einen Agenten öffnest (z.B. `…/chat?a=<uuid>`).
 - **Discovery** (`--discover`) ruft `POST /export/agents` auf und braucht einen **Admin-Key mit
   `USAGE_EXPORT_API`-Scope**. Ein normaler Key liefert HTTP 403 — der Lauf bricht nicht ab und
   weist auf den manuellen `--agent-id`-Weg hin.

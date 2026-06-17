@@ -328,3 +328,31 @@ class TestCLI:
         # Discovery fails softly; run still completes and writes a manifest.
         assert result.exit_code == 0, result.output
         assert "USAGE_EXPORT_API" in result.output
+
+    def test_access_denied_prints_sharing_hint(self, tmp_path):
+        runner = CliRunner()
+        with (
+            patch("eq_chatbot_core.providers.langdock_provider.LangDockExportManager") as mock_export_cls,
+            patch("eq_chatbot_core.providers.langdock_provider.LangDockKnowledgeManager"),
+        ):
+            mock_mgr = MagicMock()
+            mock_mgr.get_agent.side_effect = ProviderError(
+                "LangDock request failed (404): does not have access to this agent",
+                provider="langdock",
+                status_code=404,
+            )
+            mock_export_cls.return_value = mock_mgr
+
+            ids = []
+            for n in range(5):
+                ids += ["--agent-id", f"0000000{n}-0000-0000-0000-000000000000"]
+            result = runner.invoke(
+                main,
+                ["langdock-export", "-k", "test", "--no-discover", "-o", str(tmp_path), *ids],
+            )
+
+        assert result.exit_code == 0, result.output
+        # All 5 fail; errors are collapsed and the sharing hint is shown.
+        assert "0 ok, 5 failed" in result.output
+        assert "and 2 more error(s)" in result.output
+        assert "must be shared with this API key" in result.output

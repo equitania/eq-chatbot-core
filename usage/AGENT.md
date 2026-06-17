@@ -86,6 +86,7 @@ Writes `agents/<slug>-<id8>.md` (YAML frontmatter + system prompt) and `.json` (
 ## Guardrails & gotchas
 - **Two different key env vars:** `LLM_API_KEY` for chat/test/list; `LANGDOCK_API_KEY` for `langdock-export`. Don't cross them.
 - **`langdock-export --discover` needs admin scope** `USAGE_EXPORT_API` — a normal chat key returns HTTP 403. Without it, supply ids via `--agent-id`. Default is `--discover` ON only when no `--agent-id` is given; otherwise pass `--no-discover` explicitly to skip it.
+- **Each LangDock agent must be shared with the API key** — the `AGENT_API` scope is only the capability, not per-agent access. Unshared agents return HTTP 404 "does not have access". Share in the UI: open the agent → Share → add the key (per agent, admin only). So `--discover` may list 58 agents yet back up 0 until they are shared.
 - **LangDock knowledge content is NOT downloadable** — `langdock-export` saves folder *metadata* only (API limitation). Each folder must be shared with the key (`KNOWLEDGE_FOLDER_API` scope).
 - **`chat` blocks on stdin** — it always reads a JSON payload from stdin; never invoke it without piping input or it will hang. Payload cap is 1 MB.
 - **`serve` requires `[server]` extra** — missing → a clear ClickException telling you to install it. Token passed via `--auth-token` is visible in `argv`/`ps`; prefer `--auth-token-fd`.

@@ -672,8 +672,23 @@ def langdock_export(
         agent_summary = exporter.backup_agents(unique_ids, output_dir, fmt=fmt.lower())
         summary["agents"] = agent_summary
         click.echo(f"  Agents: {agent_summary['agents_ok']} ok, {agent_summary['agents_failed']} failed.")
-        for err in agent_summary["errors"]:
+        errors = agent_summary["errors"]
+        # Collapse the noise: show a few, then a count. A flood of identical
+        # 404/no-access errors means the key was not shared with the agents.
+        for err in errors[:3]:
             click.echo(click.style(f"    ! {err['agent_id']}: {err['error']}", fg="yellow"))
+        if len(errors) > 3:
+            click.echo(click.style(f"    ! ... and {len(errors) - 3} more error(s).", fg="yellow"))
+        access_denied = [e for e in errors if "access" in e["error"].lower() or "(404)" in e["error"]]
+        if access_denied:
+            click.echo(
+                click.style(
+                    "  Hint: each agent must be shared with this API key in LangDock "
+                    "(open the agent -> Share -> add the key). The AGENT_API scope alone "
+                    "grants no per-agent access.",
+                    fg="cyan",
+                )
+            )
 
     # Knowledge folders: explicit ids + ids referenced by exported agents.
     agents_summary = summary.get("agents")
