@@ -5,6 +5,38 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-06-21
+
+### Security
+
+- **LangDock** (`providers/langdock_provider.py`): both `httpx.HTTPError` branches now scrub the
+  error text before logging/raising, closing a Bearer-token leak in `Authorization` headers.
+- **SSRF / DNS rebinding** (`utils/url_validation.py`): in strict mode an unresolvable hostname is
+  now rejected (`ValueError`) instead of silently passing with IP-pinning disabled. LAN mode still
+  allows it (no pin) but emits a warning.
+- **MCP stdio** (`mcp/client.py`): caller-supplied env is rejected when it contains loader/startup
+  code-injection keys (`LD_PRELOAD`, `DYLD_INSERT_LIBRARIES`, `PYTHONSTARTUP`, `BASH_ENV`, …);
+  `PYTHONPATH` stays the documented escape hatch.
+- **Path traversal** (`utils/image.py`): `save_png()` gains an optional `base_dir` that confines the
+  write; the `listing-assets` CLI uses it so an untrusted asset `out` name cannot escape `--dest`.
+- **Knowledge export** (`services/knowledge_service.py`): export filenames are `os.path.basename`-d
+  before joining the temp dir (defense-in-depth against separators in a model name).
+- **Local provider** (`providers/local_provider.py`): connection/timeout error messages scrub
+  `base_url` and the underlying exception text.
+
+### Added
+
+- `enforce_rate_limit()` and the optional `AtomicRateLimitStorage` protocol
+  (`security/rate_limit.py`) — a race-free check-and-record entry point that prefers an atomic
+  backend and documents the TOCTOU window of the non-atomic `check_rate_limit` + `record_usage` path.
+- `scan_external_content()` and `wrap_external_content()` (`security/injection.py`) — indirect
+  prompt-injection primitives for MCP tool results and retrieved RAG passages.
+
+### Changed
+
+- Dependency bounds: `cryptography` upper bound raised to `<50.0.0`; `azure` and `vertex` extras
+  pinned with upper bounds (`azure-ai-inference<2.0.0`, `azure-core<2.0.0`, `google-genai<2.0.0`).
+
 ## [1.14.0] - 2026-06-21
 
 ### Added

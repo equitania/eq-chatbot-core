@@ -13,10 +13,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from eq_chatbot_core.security.rate_limit import (
+    AtomicRateLimitStorage,
     RateLimitConfig,
     RateLimitResult,
     UsageRecord,
     check_rate_limit,
+    enforce_rate_limit,
     estimate_tokens,
 )
 
@@ -870,3 +872,92 @@ def _import_raiser(blocked_module):
         return original_import(name, *args, **kwargs)
 
     return _custom_import
+
+
+# =============================================================================
+# enforce_rate_limit: atomic vs. non-atomic check+record
+# =============================================================================
+
+
+class _AtomicStorage:
+    """Storage satisfying AtomicRateLimitStorage — records the atomic call."""
+
+    def __init__(self, result):
+        self._result = result
+        self.calls = []
+
+    def get_minute_usage(self, user_id, since):  # pragma: no cover - unused
+        return 0
+
+    def get_hourly_usage(self, user_id, since):  # pragma: no cover - unused
+        return 0
+
+    def get_daily_tokens(self, user_id, since):  # pragma: no cover - unused
+        return 0
+
+    def record_usage(self, user_id, company_id, tokens):  # pragma: no cover - unused
+        raise AssertionError("atomic path must not call record_usage separately")
+
+    def check_and_record(self, user_id, company_id, config, estimated_tokens):
+        self.calls.append((user_id, company_id, estimated_tokens))
+        return self._result
+
+
+@pytest.mark.unit
+class TestEnforceRateLimit:
+    """Test the atomic-preferring enforce_rate_limit entry point."""
+
+    def test_atomic_storage_is_recognized_by_protocol(self):
+        storage = _AtomicStorage(RateLimitResult(allowed=True))
+        assert isinstance(storage, AtomicRateLimitStorage)
+
+    def test_plain_storage_without_method_is_not_atomic(self):
+        class _PlainStorage:
+            def get_minute_usage(self, user_id, since):
+                return 0
+
+            def get_hourly_usage(self, user_id, since):
+                return 0
+
+            def get_daily_tokens(self, user_id, since):
+                return 0
+
+            def record_usage(self, user_id, company_id, tokens):
+                pass
+
+        assert not isinstance(_PlainStorage(), AtomicRateLimitStorage)
+
+    def test_prefers_atomic_check_and_record(self):
+        expected = RateLimitResult(allowed=True, current_usage=3, limit=100)
+        storage = _AtomicStorage(expected)
+
+        result = enforce_rate_limit(
+            user_id=7, company_id=2, config=RateLimitConfig(), storage=storage, estimated_tokens=42
+        )
+
+        assert result is expected
+        assert storage.calls == [(7, 2, 42)]
+
+    def test_non_atomic_records_usage_when_allowed(self):
+        storage = _make_storage()
+        # Plain MagicMock would auto-create check_and_record; remove it so the
+        # storage does NOT satisfy the atomic protocol.
+        del storage.check_and_record
+
+        result = enforce_rate_limit(
+            user_id=1, company_id=1, config=RateLimitConfig(), storage=storage, estimated_tokens=10
+        )
+
+        assert result.allowed is True
+        storage.record_usage.assert_called_once_with(1, 1, 10)
+
+    def test_non_atomic_does_not_record_when_denied(self):
+        storage = _make_storage(minute_usage=999)
+        del storage.check_and_record
+
+        result = enforce_rate_limit(
+            user_id=1, company_id=1, config=RateLimitConfig(max_requests_per_minute=5), storage=storage
+        )
+
+        assert result.allowed is False
+        storage.record_usage.assert_not_called()

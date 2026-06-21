@@ -7,8 +7,11 @@ on-prem model servers, but cloud-metadata and non-HTTP targets stay blocked).
 """
 
 import ipaddress
+import logging
 import socket
 from urllib.parse import urlparse
+
+_logger = logging.getLogger(__name__)
 
 _LOCALHOST_NAMES = ("localhost", "127.0.0.1", "::1")
 
@@ -17,9 +20,11 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
     """Validate a URL for SSRF protection and return its currently-resolved IPs.
 
     The returned IP set can be pinned by the caller and re-checked on each
-    subsequent request to mitigate DNS rebinding. An empty frozenset is returned
-    when the hostname cannot be resolved at validation time (callers may treat
-    this as "no pinning available").
+    subsequent request to mitigate DNS rebinding. In LAN mode
+    (``allow_private_ranges=True``) an empty frozenset is returned when the
+    hostname cannot be resolved at validation time (callers may treat this as
+    "no pinning available"). In strict mode an unresolvable hostname is rejected,
+    because allowing it would disable the rebinding protection.
 
     Args:
         url: URL to validate.
@@ -48,8 +53,19 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
 
     try:
         addr_infos = socket.getaddrinfo(hostname, None)
-    except socket.gaierror:
-        # Cannot resolve - allow it (may be a valid host not resolvable from here)
+    except socket.gaierror as e:
+        # Strict / cloud-facing mode: an unresolvable hostname disables IP
+        # pinning, which would otherwise re-open the DNS-rebinding hole the
+        # pinning is meant to close. Refuse it rather than silently allowing.
+        if not allow_private_ranges:
+            raise ValueError(f"URL hostname '{hostname}' could not be resolved; refusing in strict mode.") from e
+        # LAN mode: a local model server may legitimately be unresolvable from
+        # here (e.g. a hostname only known to the on-prem resolver). Allow it,
+        # but signal that no rebinding pin is available for this URL.
+        _logger.warning(
+            "URL hostname '%s' could not be resolved; allowing without IP pinning (LAN mode).",
+            hostname,
+        )
         return frozenset()
 
     is_localhost_name = hostname in _LOCALHOST_NAMES

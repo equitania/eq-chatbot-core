@@ -665,7 +665,9 @@ class KnowledgeExporter:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             for filename, content in files.items():
-                file_path = os.path.join(temp_dir, filename)
+                # Defense-in-depth: strip any path components so a model name
+                # carrying separators cannot redirect the write outside temp_dir.
+                file_path = os.path.join(temp_dir, os.path.basename(filename))
                 with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
 

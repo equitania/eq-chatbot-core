@@ -53,6 +53,47 @@ ALLOWED_STDIO_COMMANDS = frozenset(
 # Shell metacharacters that are not allowed in stdio args
 _SHELL_META_RE = re.compile(r"[;|&`$(){}!\n\r]")
 
+# Environment variables that allow code injection into the subprocess regardless
+# of the validated command/args: dynamic-linker preload/search-path hijacking and
+# Python interpreter-startup hooks. These are refused even when supplied via the
+# caller's explicit env contract, because there is no legitimate reason to inject
+# them into an MCP runtime (custom module paths go through PYTHONPATH, which is
+# deliberately not on this list).
+_DANGEROUS_ENV_KEYS = frozenset(
+    {
+        "LD_PRELOAD",
+        "LD_LIBRARY_PATH",
+        "LD_AUDIT",
+        "DYLD_INSERT_LIBRARIES",
+        "DYLD_LIBRARY_PATH",
+        "DYLD_FORCE_FLAT_NAMESPACE",
+        "PYTHONSTARTUP",
+        "PYTHONINSPECT",
+        "BASH_ENV",
+        "ENV",
+    }
+)
+
+
+def _validate_stdio_env(env: dict[str, str] | None) -> None:
+    """Reject caller-supplied env vars that enable subprocess code injection.
+
+    Args:
+        env: Additional environment variables for the subprocess.
+
+    Raises:
+        ValueError: If a dangerous loader/startup-hook variable is present.
+    """
+    if not env:
+        return
+    for key in env:
+        if key.upper() in _DANGEROUS_ENV_KEYS:
+            raise ValueError(
+                f"Environment variable '{key}' is not allowed for MCP subprocess "
+                "execution: it permits code injection independent of the command "
+                f"allowlist. Disallowed keys: {sorted(_DANGEROUS_ENV_KEYS)}."
+            )
+
 
 def _build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
     """Build an httpx HTTPTransport that re-checks DNS resolution against pinned IPs.
@@ -637,9 +678,11 @@ class StdioMCPClient:
             timeout: Request timeout in seconds
 
         Raises:
-            ValueError: If the command is not in the whitelist or args contain shell metacharacters
+            ValueError: If the command is not in the whitelist, args contain shell
+                metacharacters, or env contains a code-injection variable.
         """
         _validate_stdio_command(command, args)
+        _validate_stdio_env(env)
         self.command = command
         self.args = args or []
         self.env = env or {}

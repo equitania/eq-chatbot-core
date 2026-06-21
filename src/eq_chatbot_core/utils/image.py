@@ -35,7 +35,7 @@ def parse_size(s: str) -> tuple[int, int]:
     return w, h
 
 
-def save_png(data: bytes, path: str | Path) -> Path:
+def save_png(data: bytes, path: str | Path, base_dir: str | Path | None = None) -> Path:
     """Write raw image bytes to a file.
 
     Does not require Pillow — writes bytes directly.
@@ -43,14 +43,29 @@ def save_png(data: bytes, path: str | Path) -> Path:
     Args:
         data: Raw image bytes (PNG or other format)
         path: Destination file path
+        base_dir: Optional containing directory. When given, ``path`` must resolve
+            to a location inside ``base_dir``; otherwise a ``ValueError`` is raised.
+            Pass this whenever the filename portion of ``path`` originates from
+            untrusted input (e.g. a model response or an asset spec) to prevent
+            path traversal / absolute-path escapes.
 
     Returns:
         Resolved Path of the written file
+
+    Raises:
+        ValueError: If ``base_dir`` is given and the resolved destination falls
+            outside it.
     """
-    dest = Path(path)
+    dest = Path(path).resolve()
+
+    if base_dir is not None:
+        base = Path(base_dir).resolve()
+        if base != dest and base not in dest.parents:
+            raise ValueError(f"Refusing to write outside the base directory: '{dest}' is not within '{base}'.")
+
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_bytes(data)
-    return dest.resolve()
+    return dest
 
 
 def _require_pillow():

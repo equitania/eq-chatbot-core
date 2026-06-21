@@ -1062,8 +1062,10 @@ def listing_assets(
                 fit_w, fit_h = parse_size(size_part)
                 image_data = fit_to(image_data, fit_w, fit_h, mode=fit_mode)
 
+            # out_name comes from the asset spec (untrusted); constrain the write
+            # to dest_dir so a "../" or absolute name cannot escape it.
             out_path = dest_dir / out_name
-            save_png(image_data, out_path)
+            out_path = save_png(image_data, out_path, base_dir=dest_dir)
             generated.append(str(out_path))
             click.echo(click.style(f"    -> {out_path}", fg="green"))
 

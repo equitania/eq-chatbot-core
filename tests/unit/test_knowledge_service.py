@@ -358,6 +358,37 @@ class TestKnowledgeExporter:
         assert "search_instructions.md" in files
         assert "res_partner_001.md" in files
 
+    def test_export_to_langdock_filenames_cannot_escape_temp_dir(self):
+        """A model_name carrying path separators must not redirect the write
+        outside the temp dir — each uploaded path is basename-confined."""
+        import os
+        from unittest.mock import MagicMock
+
+        configs = [
+            ModelConfig(
+                model_name="evil/../../etc/passwd",
+                model_label="Evil",
+                fields=[FieldConfig(name="name", label="Name", field_type="char")],
+            ),
+        ]
+        exporter = KnowledgeExporter(configs)
+        records_by_model = {"evil/../../etc/passwd": [{"id": 1, "values": {"name": "x"}}]}
+
+        uploaded_paths = []
+        manager = MagicMock()
+        manager.list_files.return_value = []
+        manager.upload_file.side_effect = lambda folder_id, path: uploaded_paths.append(path)
+
+        exporter.export_to_langdock(manager, folder_id="f1", records_by_model=records_by_model)
+
+        assert uploaded_paths, "expected at least one uploaded file"
+        # Every file lands directly in the single temp dir, and no path separator
+        # survives in the filename component — so the write cannot escape.
+        parents = {os.path.dirname(p) for p in uploaded_paths}
+        assert len(parents) == 1
+        for p in uploaded_paths:
+            assert os.sep not in os.path.basename(p)
+
     def test_empty_records(self, sample_configs):
         """Test handling empty records."""
         exporter = KnowledgeExporter(sample_configs)

@@ -10,9 +10,12 @@ IMPORTANT — these are caller-invoked primitives, NOT automatic guardrails.
 The library does not call ``detect_injection`` or ``check_rate_limit`` for you;
 provider calls (``chat_completion`` / ``stream_completion``) run no implicit
 input filtering or rate limiting. Integrators handling untrusted input must
-invoke these explicitly before dispatching to a provider. See the
-"Security: caller responsibilities" section in the README for the expected
-call pattern.
+invoke these explicitly before dispatching to a provider. Apply
+``detect_injection`` / ``sanitize_input`` to user input, and
+``scan_external_content`` / ``wrap_external_content`` to indirect channels (MCP
+tool results, retrieved RAG passages, fetched pages) before placing them in the
+LLM context. See the "Security: caller responsibilities" section in the README
+for the expected call pattern.
 """
 
 from eq_chatbot_core.security.encryption import FernetEncryption
@@ -28,13 +31,17 @@ from eq_chatbot_core.security.injection import (
     detect_injection,
     get_injection_risk_score,
     sanitize_input,
+    scan_external_content,
+    wrap_external_content,
 )
 from eq_chatbot_core.security.rate_limit import (
+    AtomicRateLimitStorage,
     RateLimitConfig,
     RateLimitResult,
     RateLimitStorage,
     UsageRecord,
     check_rate_limit,
+    enforce_rate_limit,
     estimate_tokens,
 )
 
@@ -44,14 +51,18 @@ __all__ = [
     # Injection protection
     "detect_injection",
     "sanitize_input",
+    "scan_external_content",
+    "wrap_external_content",
     "build_safe_system_prompt",
     "get_injection_risk_score",
     # Rate limiting
     "RateLimitConfig",
     "RateLimitResult",
     "RateLimitStorage",
+    "AtomicRateLimitStorage",
     "UsageRecord",
     "check_rate_limit",
+    "enforce_rate_limit",
     "estimate_tokens",
     # File validation
     "FileValidator",

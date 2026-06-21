@@ -5,9 +5,12 @@ This module provides the logic for rate limiting.
 The actual storage is handled by Odoo models.
 """
 
+import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Protocol
+from typing import Protocol, runtime_checkable
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -40,6 +43,16 @@ class RateLimitStorage(Protocol):
     Protocol for rate limit storage backends.
 
     Implemented by Odoo models (chatbot.rate.limit).
+
+    Atomicity (IMPORTANT): :func:`check_rate_limit` reads usage counters but does
+    NOT record usage — the caller invokes :meth:`record_usage` afterwards. These
+    two steps are not atomic, so under concurrent requests for the same user every
+    request can read the same pre-increment counter, all pass the check, and all
+    record separately, overshooting the limit. Backends that must enforce the
+    limit strictly should serialize check+record per user (e.g. a
+    ``SELECT ... FOR UPDATE`` row lock) and/or implement the atomic
+    :class:`AtomicRateLimitStorage` protocol, which :func:`enforce_rate_limit`
+    uses when available.
     """
 
     def get_hourly_usage(self, user_id: int, since: datetime) -> int:
@@ -56,6 +69,28 @@ class RateLimitStorage(Protocol):
 
     def record_usage(self, user_id: int, company_id: int, tokens: int) -> None:
         """Record a new request with token count."""
+        ...
+
+
+@runtime_checkable
+class AtomicRateLimitStorage(Protocol):
+    """Optional storage protocol for race-free rate limiting.
+
+    A backend implementing ``check_and_record`` performs the limit check and the
+    usage write in a single atomic operation (e.g. inside one locked DB
+    transaction), closing the TOCTOU window described on
+    :class:`RateLimitStorage`. :func:`enforce_rate_limit` prefers this path when
+    the supplied storage satisfies it.
+    """
+
+    def check_and_record(
+        self,
+        user_id: int,
+        company_id: int,
+        config: "RateLimitConfig",
+        estimated_tokens: int,
+    ) -> "RateLimitResult":
+        """Atomically check limits and, if allowed, record the usage."""
         ...
 
 
@@ -147,6 +182,48 @@ def check_rate_limit(
         current_usage=hourly_usage,
         limit=config.max_requests_per_hour,
     )
+
+
+def enforce_rate_limit(
+    user_id: int,
+    company_id: int,
+    config: RateLimitConfig,
+    storage: RateLimitStorage,
+    estimated_tokens: int = 0,
+) -> RateLimitResult:
+    """Check the rate limit and record usage if allowed, in one call.
+
+    Prefers an atomic backend: if ``storage`` implements
+    :class:`AtomicRateLimitStorage`, the check and the usage write happen
+    race-free inside the backend. Otherwise it falls back to a non-atomic
+    ``check`` followed by ``record_usage`` and logs that the TOCTOU window
+    applies — concurrent requests for the same user may overshoot the limit
+    unless the backend serializes them itself (see :class:`RateLimitStorage`).
+
+    Args:
+        user_id: The user making the request.
+        company_id: The user's company (recorded with the usage).
+        config: Rate limit configuration.
+        storage: Storage backend for usage data.
+        estimated_tokens: Estimated tokens for this request.
+
+    Returns:
+        RateLimitResult with allowed status and details. Usage is recorded only
+        when ``allowed`` is True.
+    """
+    if isinstance(storage, AtomicRateLimitStorage):
+        return storage.check_and_record(user_id, company_id, config, estimated_tokens)
+
+    _logger.debug(
+        "Rate limit enforced via non-atomic check+record for user %s; "
+        "concurrent requests may overshoot the limit. Implement "
+        "AtomicRateLimitStorage for strict enforcement.",
+        user_id,
+    )
+    result = check_rate_limit(user_id, config, storage, estimated_tokens)
+    if result.allowed:
+        storage.record_usage(user_id, company_id, estimated_tokens)
+    return result
 
 
 def estimate_tokens(text: str, model: str = "gpt-4") -> int:

@@ -1,5 +1,50 @@
 # Release Notes
 
+## Version 1.15.0 (21.06.2026)
+
+Security hardening release — resolves all findings from the project security audit
+(2 HIGH-priority, 4 further MEDIUM, 2 LOW), plus additive security primitives.
+
+### Security
+
+- **[FIX] LangDock Bearer-token leak** (`providers/langdock_provider.py`) — both `httpx.HTTPError`
+  branches now run the error through `scrub_secrets()` before logging/raising, so an
+  `Authorization: Bearer <token>` header echoed in an HTTP error is masked.
+- **[FIX] SSRF / DNS-rebinding bypass** (`utils/url_validation.py`) — in strict mode an unresolvable
+  hostname is rejected (`ValueError`) instead of silently passing with IP pinning disabled. LAN mode
+  still allows it without a pin but logs a warning.
+- **[FIX] MCP stdio env injection** (`mcp/client.py`) — caller-supplied environment variables are
+  refused when they carry loader/startup code-injection keys (`LD_PRELOAD`, `LD_LIBRARY_PATH`,
+  `DYLD_INSERT_LIBRARIES`, `PYTHONSTARTUP`, `PYTHONINSPECT`, `BASH_ENV`, …). `PYTHONPATH` remains the
+  documented escape hatch for custom module paths.
+- **[FIX] Image path traversal** (`utils/image.py`) — `save_png()` accepts an optional `base_dir`
+  and refuses to write outside it; the `listing-assets` CLI passes `base_dir=dest_dir` so an
+  untrusted asset `out` name (absolute path or `../`) cannot escape `--dest`.
+- **[FIX] Knowledge-export filename hardening** (`services/knowledge_service.py`) — export filenames
+  are `os.path.basename`-d before joining the temp directory.
+- **[FIX] Local-provider error scrubbing** (`providers/local_provider.py`) — connection and timeout
+  error messages scrub both `base_url` and the underlying exception text.
+
+### Added
+
+- **[ADD] Race-free rate limiting** (`security/rate_limit.py`) — `enforce_rate_limit()` plus the
+  optional `AtomicRateLimitStorage` protocol. Prefers a backend that performs check-and-record
+  atomically; the non-atomic fallback documents and logs the TOCTOU window.
+- **[ADD] Indirect prompt-injection primitives** (`security/injection.py`) —
+  `scan_external_content()` (detection) and `wrap_external_content()` (data-fencing without
+  HTML-escaping) for MCP tool results and retrieved RAG passages.
+
+### Changed
+
+- **[CHG] Dependency bounds** — `cryptography` upper bound raised to `<50.0.0`; `azure` and `vertex`
+  extras pinned with upper bounds (`azure-ai-inference<2.0.0`, `azure-core<2.0.0`,
+  `google-genai<2.0.0`).
+
+### Tests
+
+- New unit tests covering the env denylist, base-dir confinement, atomic/non-atomic rate-limit
+  paths, external-content scan/wrap, strict-vs-LAN URL resolution, and error scrubbing.
+
 ## Version 1.14.0 (21.06.2026)
 
 ### Added

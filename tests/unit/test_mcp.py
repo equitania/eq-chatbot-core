@@ -594,6 +594,24 @@ class TestStdioMCPClientInitialization:
 
         assert client.timeout == 60.0
 
+    @pytest.mark.parametrize(
+        "dangerous_key",
+        ["LD_PRELOAD", "DYLD_INSERT_LIBRARIES", "PYTHONSTARTUP", "ld_preload", "BASH_ENV"],
+    )
+    def test_init_rejects_code_injection_env(self, dangerous_key):
+        """Caller-supplied loader/startup-hook env vars are refused."""
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        with pytest.raises(ValueError, match="not allowed"):
+            StdioMCPClient(command="python", env={dangerous_key: "/evil.so"})
+
+    def test_init_allows_pythonpath_env(self):
+        """PYTHONPATH stays the documented escape hatch for custom module paths."""
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        client = StdioMCPClient(command="python", env={"PYTHONPATH": "/opt/app"})
+        assert client.env == {"PYTHONPATH": "/opt/app"}
+
 
 @pytest.mark.unit
 class TestStdioMCPClientProcessManagement:
@@ -1079,10 +1097,17 @@ class TestURLValidation:
         _validate_url("http://localhost:8000")
 
     def test_valid_https_url(self, mock_httpx):
-        """Test that https URLs are accepted."""
+        """Test that https URLs resolving to a public IP are accepted."""
+        import socket
+
         from eq_chatbot_core.mcp.client import _validate_url
 
-        _validate_url("https://mcp.example.com")
+        # Pin DNS to a public IP so the test is deterministic and offline-safe;
+        # mcp.example.com (RFC 2606) does not resolve in CI/sandbox.
+        public_addrinfo = [(2, 1, 6, "", ("93.184.216.34", 0))]
+        with patch.object(socket, "getaddrinfo", return_value=public_addrinfo):
+            ips = _validate_url("https://mcp.example.com")
+        assert ips == frozenset({"93.184.216.34"})
 
     def test_invalid_scheme_ftp(self, mock_httpx):
         """Test that ftp scheme is rejected."""
@@ -1302,13 +1327,26 @@ class TestDNSRebindingProtection:
         # localhost typically resolves to at least one of these
         assert ips & {"127.0.0.1", "::1"}, f"localhost should resolve to a loopback IP, got {ips}"
 
-    def test_validate_url_returns_empty_set_for_unresolvable(self):
+    def test_validate_url_rejects_unresolvable_in_strict_mode(self):
+        """Strict mode (the MCP client default) must refuse an unresolvable
+        hostname: allowing it would disable DNS-rebinding pinning entirely."""
         import socket
 
         from eq_chatbot_core.mcp.client import _validate_url
 
         with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("unresolvable")):
-            ips = _validate_url("http://does-not-resolve.invalid.example")
+            with pytest.raises(ValueError, match="could not be resolved"):
+                _validate_url("http://does-not-resolve.invalid.example")
+
+    def test_validate_url_allows_unresolvable_in_lan_mode(self):
+        """LAN mode allows an unresolvable host (only known to the on-prem
+        resolver) but returns no pin, signalling pinning is unavailable."""
+        import socket
+
+        from eq_chatbot_core.utils.url_validation import validate_url
+
+        with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("unresolvable")):
+            ips = validate_url("http://on-prem.invalid.example", allow_private_ranges=True)
             assert ips == frozenset()
 
     def test_pinned_transport_rejects_rebinding(self):

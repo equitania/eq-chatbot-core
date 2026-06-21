@@ -25,6 +25,7 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 logger = logging.getLogger(__name__)
 
@@ -270,14 +271,14 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {self.base_url}. "
-                f"Ensure the server is running. Error: {e}",
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
         except httpx.TimeoutException as e:
             raise ProviderError(
                 message=f"Request timed out after {self.timeout}s. "
-                f"Local model may be loading or server is slow. Error: {e}",
+                f"Local model may be loading or server is slow. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
         except ProviderError:
@@ -436,13 +437,13 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {self.base_url}. "
-                f"Ensure the server is running. Error: {e}",
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
         except httpx.TimeoutException as e:
             raise ProviderError(
-                message=f"Stream timed out after {self.timeout}s. Error: {e}",
+                message=f"Stream timed out after {self.timeout}s. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
         except ProviderError:
@@ -490,8 +491,8 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {self.base_url}. "
-                f"Ensure the server is running. Error: {e}",
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
         except ProviderError:

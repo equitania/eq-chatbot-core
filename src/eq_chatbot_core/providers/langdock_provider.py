@@ -523,8 +523,9 @@ class LangDockProvider(BaseLLMProvider):
             )
 
         except httpx.HTTPError as e:
-            _logger.error(f"Agent HTTP error: {e}")
-            raise ProviderError(f"Agent HTTP error: {e}", provider="langdock") from e
+            safe = _scrub(str(e))
+            _logger.error(f"Agent HTTP error: {safe}")
+            raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -1020,8 +1021,9 @@ class LangDockProvider(BaseLLMProvider):
                 _logger.warning(f"Agent stream: No content found. Keys: {list(data.keys())}")
 
         except httpx.HTTPError as e:
-            _logger.error(f"Agent stream HTTP error: {e}")
-            raise ProviderError(f"Agent HTTP error: {e}", provider="langdock") from e
+            safe = _scrub(str(e))
+            _logger.error(f"Agent stream HTTP error: {safe}")
+            raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
         except Exception as e:
             raise self._handle_error(e) from e
 

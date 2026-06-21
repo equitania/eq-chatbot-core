@@ -101,6 +101,29 @@ class TestSavePng:
         out = save_png(data, str(tmp_path / "str.png"))
         assert Path(out).exists()
 
+    def test_base_dir_allows_path_inside(self, tmp_path):
+        data = b"\x89PNG"
+        out = save_png(data, tmp_path / "sub" / "img.png", base_dir=tmp_path)
+        assert out.exists()
+
+    def test_base_dir_rejects_parent_traversal(self, tmp_path):
+        data = b"\x89PNG"
+        base = tmp_path / "assets"
+        base.mkdir()
+        with pytest.raises(ValueError, match="outside the base directory"):
+            save_png(data, base / ".." / "escaped.png", base_dir=base)
+        assert not (tmp_path / "escaped.png").exists()
+
+    def test_base_dir_rejects_absolute_escape(self, tmp_path):
+        data = b"\x89PNG"
+        base = tmp_path / "assets"
+        base.mkdir()
+        # An absolute out_name overrides the base when joined: base / "/etc/x".
+        outside = tmp_path / "outside.png"
+        with pytest.raises(ValueError, match="outside the base directory"):
+            save_png(data, base / str(outside), base_dir=base)
+        assert not outside.exists()
+
 
 # ---------------------------------------------------------------------------
 # fit_to — cover mode

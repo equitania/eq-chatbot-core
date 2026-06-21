@@ -325,6 +325,25 @@ class TestLocalLLMProviderErrors:
 
             assert "Cannot connect to local LLM server" in str(exc_info.value)
 
+    def test_connection_error_scrubs_token_in_base_url_and_message(self):
+        """A token leaking via base_url or the httpx error text is masked."""
+        mock_client = MagicMock()
+        mock_client.post.side_effect = httpx.ConnectError("refused for token sk-ant-secret123456")
+
+        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+            provider = LocalLLMProvider(
+                api_key="not-used",
+                base_url="http://localhost:1234/v1?api_key=sk-leak-abcdef123456",
+            )
+
+            with pytest.raises(ProviderError) as exc_info:
+                provider.chat_completion(messages=[{"role": "user", "content": "Hello!"}])
+
+            msg = str(exc_info.value)
+            assert "sk-ant-secret123456" not in msg
+            assert "sk-leak-abcdef123456" not in msg
+            assert "***" in msg
+
     def test_timeout_error(self):
         """Test handling of timeout errors."""
         mock_client = MagicMock()
