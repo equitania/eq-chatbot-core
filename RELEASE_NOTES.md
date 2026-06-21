@@ -1,5 +1,26 @@
 # Release Notes
 
+## Version 1.14.0 (21.06.2026)
+
+### Added
+
+- **[ADD] Text-to-image generation** in the provider layer — new `ImageResult` dataclass +
+  `supports_image_generation` flag + a non-abstract `generate_image()` on `BaseLLMProvider`
+  (`providers/base.py`). Implemented for **OpenAI** (`gpt-image-1` via the `/images` endpoint,
+  base64 decode) and **OpenRouter** (image models such as `google/gemini-2.5-flash-image` via
+  `chat/completions` with `modalities`, data-URL parsing). Providers without support raise a clear
+  `ProviderError`.
+- **[ADD] `eq-chatbot image`** CLI command — generate a single PNG from a text prompt
+  (`-p openai|openrouter`, `--prompt`/`--prompt-file`, `--model`, `--size`, `--fit WxH:mode`, `-o`).
+- **[ADD] `eq-chatbot listing-assets`** CLI command — batch-generate images from a recipe JSON
+  (schema `eq-listing-assets/v1`): per-asset prompt/size/fit, writes each PNG to `--dest`; supports
+  `--only`, `--dry-run` and provider/model overrides. Built for App-Store listing assets
+  (icon/banner/eyecatchers).
+- **[ADD] `utils/image.py`** — `save_png()`, `fit_to()` (cover/contain/stretch crop+resize) and
+  `parse_size()`, backed by **Pillow** (new optional extra `[image]`, `Pillow>=10.0,<12.0`).
+- Unit tests for the image stack (`test_cli_image.py`, `test_cli_listing_assets.py`,
+  `test_openai_image.py`, `test_openrouter_image.py`, `test_utils_image.py` — 76 tests).
+
 ## Version 1.13.0 (21.06.2026)
 
 ### Added

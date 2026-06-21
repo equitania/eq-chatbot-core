@@ -16,6 +16,7 @@ from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
     ContextLengthError,
+    ImageResult,
     LLMResponse,
     ProviderError,
     RateLimitError,
@@ -50,6 +51,12 @@ class OpenRouterProvider(BaseLLMProvider):
     """
 
     DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+
+    # Image generation is supported via chat/completions with image modality.
+    supports_image_generation: bool = True
+
+    # Default model for image generation via OpenRouter.
+    DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
 
     # Reasoning models that don't support temperature
     REASONING_MODEL_PREFIXES = (
@@ -367,6 +374,87 @@ class OpenRouterProvider(BaseLLMProvider):
 
         except httpx.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
+        except Exception as e:
+            raise self._handle_error(e) from e
+
+    def generate_image(
+        self,
+        prompt: str,
+        *,
+        model: str | None = None,
+        size: str = "1024x1024",
+        **kwargs: Any,
+    ) -> ImageResult:
+        """
+        Generate an image via OpenRouter's chat/completions endpoint with image modality.
+
+        OpenRouter does not expose a dedicated /images endpoint. Instead, image-capable
+        models are invoked via chat/completions with ``"modalities": ["image", "text"]``.
+        The image is returned as a data URL in ``choices[0].message.images``.
+
+        Args:
+            prompt: Text description of the image to generate
+            model: Model to use (defaults to 'google/gemini-2.5-flash-image')
+            size: Not controllable via OpenRouter; stored in ImageResult.size as-is.
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            ImageResult with PNG bytes and metadata
+
+        Raises:
+            ProviderError: If no image is returned or on HTTP/API errors
+        """
+        import base64
+
+        model = model or self.DEFAULT_IMAGE_MODEL
+
+        try:
+            payload: dict[str, Any] = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "modalities": ["image", "text"],
+            }
+            payload.update(kwargs)
+
+            response = self.client.post("/chat/completions", json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+            # Image data is in choices[0].message.images as a list of image_url dicts.
+            images = (data.get("choices") or [{}])[0].get("message", {}).get("images") or []
+            if not images:
+                raise ProviderError(
+                    "No image returned by OpenRouter model. Ensure the model supports image output modality.",
+                    provider=self.provider_name,
+                )
+
+            # Parse data URL: "data:<mime>;base64,<data>"
+            image_url_entry = images[0]
+            url = image_url_entry.get("image_url", {}).get("url", "")
+            if not url.startswith("data:"):
+                raise ProviderError(
+                    f"Unexpected image URL format from OpenRouter: {url[:80]}",
+                    provider=self.provider_name,
+                )
+
+            # Extract mime and base64 payload
+            # Format: data:<mime>;base64,<b64data>
+            meta, _, b64_data = url.partition(",")
+            mime = meta.split(";")[0].replace("data:", "") or "image/png"
+            image_bytes = base64.b64decode(b64_data)
+
+            return ImageResult(
+                data=image_bytes,
+                model=model,
+                provider=self.provider_name,
+                size=None,  # OpenRouter does not expose size control
+                mime=mime,
+            )
+
+        except httpx.HTTPStatusError as e:
+            raise self._handle_http_error(e) from e
+        except ProviderError:
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 

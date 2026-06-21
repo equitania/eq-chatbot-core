@@ -40,6 +40,26 @@ class LLMResponse:
 
 
 @dataclass
+class ImageResult:
+    """Result from an image generation request."""
+
+    data: bytes
+    """Raw image bytes."""
+
+    model: str
+    """The model used for generation."""
+
+    provider: str
+    """Provider name (openai, openrouter, etc.)."""
+
+    size: str | None = None
+    """Image dimensions (e.g. '1024x1024'), if known."""
+
+    mime: str = "image/png"
+    """MIME type of the image data."""
+
+
+@dataclass
 class StreamChunk:
     """A single chunk from a streaming response."""
 
@@ -203,6 +223,37 @@ class BaseLLMProvider(ABC):
         """
         ...
 
+    # Class-level flag — subclasses override to True when they support image generation.
+    supports_image_generation: bool = False
+
+    def generate_image(
+        self,
+        prompt: str,
+        *,
+        model: str | None = None,
+        size: str = "1024x1024",
+        **kwargs: Any,
+    ) -> "ImageResult":
+        """
+        Generate an image from a text prompt.
+
+        Args:
+            prompt: Text description of the image to generate
+            model: Model to use (defaults to provider's image default)
+            size: Image dimensions (e.g. '1024x1024')
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            ImageResult with image bytes and metadata
+
+        Raises:
+            ProviderError: If the provider does not support image generation or on API error
+        """
+        raise ProviderError(
+            f"{self.provider_name} does not support image generation",
+            provider=self.provider_name,
+        )
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(provider={self.provider_name})"
 
@@ -275,6 +326,7 @@ class OverloadedError(ProviderError):
 
 __all__ = [
     "LLMResponse",
+    "ImageResult",
     "StreamChunk",
     "ToolDefinition",
     "ModelInfo",

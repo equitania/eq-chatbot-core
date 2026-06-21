@@ -9,6 +9,7 @@ from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
     ContextLengthError,
+    ImageResult,
     LLMResponse,
     ProviderError,
     RateLimitError,
@@ -29,9 +30,16 @@ class OpenAIProvider(BaseLLMProvider):
     - GPT-4o (gpt-4o, gpt-4o-mini)
     - GPT-5 series (gpt-5, gpt-5.2)
     - O1/O3 series (o1, o1-mini, o1-preview, o3)
+    - Image generation via gpt-image-1 (DALL-E 3 / DALL-E 2 also supported)
     """
 
     DEFAULT_BASE_URL = "https://api.openai.com/v1"
+
+    # Image generation is supported via the /images/generations endpoint.
+    supports_image_generation: bool = True
+
+    # Default model for image generation.
+    DEFAULT_IMAGE_MODEL = "gpt-image-1"
 
     # Models that require max_completion_tokens instead of max_tokens
     # All GPT-4o, GPT-5.x, O1, and O3 models use the new API
@@ -375,6 +383,69 @@ class OpenAIProvider(BaseLLMProvider):
             # Sort by model ID for consistent ordering
             chat_models.sort(key=lambda m: m["id"])
             return chat_models
+
+        except Exception as e:
+            raise self._handle_error(e) from e
+
+    def generate_image(
+        self,
+        prompt: str,
+        *,
+        model: str | None = None,
+        size: str = "1024x1024",
+        **kwargs: Any,
+    ) -> ImageResult:
+        """
+        Generate an image using OpenAI's image generation API.
+
+        Args:
+            prompt: Text description of the image to generate
+            model: Model to use (defaults to 'gpt-image-1')
+            size: Image dimensions. Valid for gpt-image-1: 1024x1024, 1024x1536,
+                  1536x1024, auto. DALL-E 3: 1024x1024, 1792x1024, 1024x1792.
+                  Unknown sizes are passed through to the API.
+            **kwargs: Additional provider-specific parameters
+
+        Returns:
+            ImageResult with PNG bytes and metadata
+
+        Raises:
+            ProviderError: On API errors (mapped to AuthenticationError, RateLimitError, etc.)
+        """
+        import base64
+
+        model = model or self.DEFAULT_IMAGE_MODEL
+
+        try:
+            params: dict[str, Any] = {
+                "model": model,
+                "prompt": prompt,
+                "n": 1,
+            }
+
+            # gpt-image-1 always returns b64_json implicitly — adding response_format
+            # causes a parameter error. Only set it explicitly for dall-e-* models.
+            model_lower = model.lower()
+            if model_lower.startswith("dall-e"):
+                params["response_format"] = "b64_json"
+
+            if size != "1024x1024":
+                params["size"] = size
+            else:
+                params["size"] = size
+
+            params.update(kwargs)
+
+            resp = self.client.images.generate(**params)
+            image_bytes = base64.b64decode(resp.data[0].b64_json)
+
+            return ImageResult(
+                data=image_bytes,
+                model=model,
+                provider=self.provider_name,
+                size=size,
+                mime="image/png",
+            )
 
         except Exception as e:
             raise self._handle_error(e) from e

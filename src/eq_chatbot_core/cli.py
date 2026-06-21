@@ -712,6 +712,383 @@ def langdock_export(
     click.echo(f"Manifest: {manifest_path}")
 
 
+# Providers that support image generation
+IMAGE_PROVIDERS = ["openai", "openrouter"]
+
+
+@main.command("image")
+@click.option(
+    "--provider",
+    "-p",
+    type=click.Choice(IMAGE_PROVIDERS, case_sensitive=False),
+    required=True,
+    help="LLM provider to use for image generation (openai, openrouter)",
+)
+@click.option(
+    "--api-key",
+    "-k",
+    envvar="LLM_API_KEY",
+    help="API key (or set LLM_API_KEY environment variable)",
+)
+@click.option(
+    "--model",
+    "-m",
+    default=None,
+    help="Model to use (uses provider default if not specified)",
+)
+@click.option(
+    "--prompt",
+    default=None,
+    help="Text prompt describing the image to generate",
+)
+@click.option(
+    "--prompt-file",
+    default=None,
+    type=click.Path(exists=True, readable=True),
+    help="Read prompt from a file instead of --prompt",
+)
+@click.option(
+    "--size",
+    default="1024x1024",
+    show_default=True,
+    help="Image dimensions (e.g. 1024x1024, 1024x1536, auto)",
+)
+@click.option(
+    "--fit",
+    default=None,
+    help="Resize output image: WxH[:mode] where mode is cover/contain/stretch (e.g. '512x512' or '512x512:contain'). Requires [image] extra.",
+)
+@click.option(
+    "--output",
+    "-o",
+    default="output.png",
+    show_default=True,
+    help="Output file path for the generated image",
+)
+@click.option(
+    "--base-url",
+    "-u",
+    default=None,
+    help="Custom base URL for the provider",
+)
+def image(
+    provider: str,
+    api_key: str | None,
+    model: str | None,
+    prompt: str | None,
+    prompt_file: str | None,
+    size: str,
+    fit: str | None,
+    output: str,
+    base_url: str | None,
+) -> None:
+    """Generate an image from a text prompt.
+
+    Saves the generated image to a file (PNG by default).
+    Supported providers: openai (gpt-image-1), openrouter (gemini-2.5-flash-image).
+
+    Examples:
+
+        eq-chatbot image -p openai -k sk-... --prompt "A sunset over the ocean"
+
+        eq-chatbot image -p openrouter -k sk-or-... --prompt "A cat in space" -o cat.png
+
+        eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cover
+    """
+    if not prompt and not prompt_file:
+        click.echo(click.style("Error: ", fg="red") + "Provide --prompt or --prompt-file.", err=True)
+        sys.exit(1)
+    if prompt and prompt_file:
+        click.echo(click.style("Error: ", fg="red") + "Use either --prompt or --prompt-file, not both.", err=True)
+        sys.exit(1)
+
+    if not api_key:
+        click.echo(
+            click.style("Error: ", fg="red")
+            + "API key required. Use --api-key or set LLM_API_KEY environment variable.",
+            err=True,
+        )
+        sys.exit(1)
+
+    if prompt_file:
+        import pathlib
+
+        prompt = pathlib.Path(prompt_file).read_text(encoding="utf-8").strip()
+
+    from eq_chatbot_core.providers import ProviderError, get_provider
+
+    try:
+        provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
+
+        click.echo(f"Generating image via {click.style(provider, fg='cyan', bold=True)}...")
+
+        result = provider_instance.generate_image(
+            prompt or "",
+            model=model,
+            size=size,
+        )
+
+        image_data = result.data
+
+        # Optional resize via Pillow
+        if fit:
+            from eq_chatbot_core.utils.image import fit_to, parse_size
+
+            # Parse WxH or WxH:mode
+            if ":" in fit:
+                size_part, fit_mode = fit.rsplit(":", 1)
+            else:
+                size_part, fit_mode = fit, "cover"
+
+            fit_w, fit_h = parse_size(size_part)
+            image_data = fit_to(image_data, fit_w, fit_h, mode=fit_mode)
+
+        from eq_chatbot_core.utils.image import save_png
+
+        out_path = save_png(image_data, output)
+        size_kb = len(image_data) / 1024
+
+        click.echo(click.style("Image saved:", fg="green") + f" {out_path} ({size_kb:.1f} KB)")
+
+    except ProviderError as e:
+        click.echo(click.style(f"Provider error: {e}", fg="red"), err=True)
+        sys.exit(1)
+    except ImportError as e:
+        click.echo(click.style(f"Missing dependency: {e}", fg="red"), err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(click.style(f"Error: {e}", fg="red"), err=True)
+        sys.exit(1)
+
+
+def _parse_fit(fit: str | None) -> tuple[int, int, str] | None:
+    """Parse fit string 'WxH' or 'WxH:mode' into (width, height, mode).
+
+    Returns None when fit is None or empty.
+    """
+    if not fit:
+        return None
+    if ":" in fit:
+        size_part, mode = fit.rsplit(":", 1)
+    else:
+        size_part, mode = fit, "cover"
+    from eq_chatbot_core.utils.image import parse_size
+
+    w, h = parse_size(size_part)
+    return w, h, mode
+
+
+def _load_recipe(recipe_path: str) -> dict:
+    """Load and validate a recipe JSON file.
+
+    Raises click.ClickException with a clear message on any validation error.
+    """
+    import json
+    from pathlib import Path
+
+    path = Path(recipe_path)
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise click.ClickException(f"Cannot read recipe file: {exc}") from exc
+
+    try:
+        recipe = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise click.ClickException(f"Recipe is not valid JSON: {exc}") from exc
+
+    schema = recipe.get("schema", "")
+    if not isinstance(schema, str) or not schema.startswith("eq-listing-assets/"):
+        raise click.ClickException(f"Invalid recipe schema '{schema}'. Must start with 'eq-listing-assets/'.")
+
+    assets = recipe.get("assets")
+    if not assets:
+        raise click.ClickException("Recipe must contain a non-empty 'assets' list.")
+    if not isinstance(assets, list):
+        raise click.ClickException("'assets' must be a JSON array.")
+
+    for i, asset in enumerate(assets):
+        for required_key in ("id", "out", "prompt"):
+            if required_key not in asset:
+                raise click.ClickException(f"Asset #{i} is missing required field '{required_key}'.")
+
+    return recipe
+
+
+@main.command("listing-assets")
+@click.option(
+    "--recipe",
+    "recipe_file",
+    required=True,
+    type=click.Path(exists=True, readable=True),
+    help="Path to the recipe JSON file (eq-listing-assets/v1 schema).",
+)
+@click.option(
+    "--provider",
+    "-p",
+    type=click.Choice(IMAGE_PROVIDERS, case_sensitive=False),
+    default=None,
+    help="Override provider from recipe defaults (openai, openrouter).",
+)
+@click.option(
+    "--model",
+    "-m",
+    default=None,
+    help="Override model from recipe defaults.",
+)
+@click.option(
+    "--api-key",
+    "-k",
+    envvar="LLM_API_KEY",
+    help="API key (or set LLM_API_KEY environment variable).",
+)
+@click.option(
+    "--base-url",
+    "-u",
+    default=None,
+    help="Custom base URL for the provider.",
+)
+@click.option(
+    "--dest",
+    default=None,
+    type=click.Path(file_okay=False),
+    help="Destination directory for generated images (default: recipe file directory).",
+)
+@click.option(
+    "--only",
+    default=None,
+    help="Comma-separated list of asset IDs to generate (filter).",
+)
+@click.option(
+    "--dry-run",
+    is_flag=True,
+    help="List what would be generated without making any API calls.",
+)
+def listing_assets(
+    recipe_file: str,
+    provider: str | None,
+    model: str | None,
+    api_key: str | None,
+    base_url: str | None,
+    dest: str | None,
+    only: str | None,
+    dry_run: bool,
+) -> None:
+    """Generate a batch of images from a recipe JSON file.
+
+    The recipe defines a list of assets (icon, banner, eyecatchers, ...) with
+    prompts, sizes, and optional fit parameters. Provider and model can be set
+    globally via 'defaults' in the recipe or overridden with CLI flags.
+
+    Schema: eq-listing-assets/v1
+
+    Examples:
+
+        eq-chatbot listing-assets --recipe listing.json -k sk-...
+
+        eq-chatbot listing-assets --recipe listing.json --dry-run
+
+        eq-chatbot listing-assets --recipe listing.json --only icon,banner -k sk-...
+    """
+    import pathlib
+
+    recipe = _load_recipe(recipe_file)
+    defaults = recipe.get("defaults", {})
+
+    # Resolve provider and model: CLI > recipe defaults > hard default
+    resolved_provider = provider or defaults.get("provider") or "openai"
+    resolved_model = model or defaults.get("model") or None
+
+    # Resolve destination directory
+    recipe_dir = pathlib.Path(recipe_file).parent
+    dest_dir = pathlib.Path(dest) if dest else recipe_dir
+    dest_dir.mkdir(parents=True, exist_ok=True)
+
+    assets: list[dict] = recipe["assets"]
+
+    # Apply --only filter
+    if only:
+        filter_ids = {s.strip() for s in only.split(",") if s.strip()}
+        assets = [a for a in assets if a["id"] in filter_ids]
+        if not assets:
+            raise click.ClickException(f"No assets matched the --only filter: {only}")
+
+    if dry_run:
+        click.echo(click.style("Dry run — no API calls will be made.", fg="yellow"))
+        click.echo()
+        for asset in assets:
+            size = asset.get("size", "1024x1024")
+            fit = asset.get("fit", "")
+            fit_info = f"  fit={fit}" if fit else ""
+            click.echo(f"  [{asset['id']}]  {asset['out']}  size={size}{fit_info}")
+        click.echo()
+        click.echo(f"{len(assets)} asset(s) would be generated.")
+        return
+
+    if not api_key:
+        raise click.ClickException("API key required. Use --api-key or set LLM_API_KEY environment variable.")
+
+    from eq_chatbot_core.providers import get_provider
+    from eq_chatbot_core.utils.image import fit_to, parse_size, save_png
+
+    provider_instance = get_provider(resolved_provider, api_key=api_key, base_url=base_url)
+
+    generated: list[str] = []
+    failed: list[tuple[str, str]] = []
+
+    for asset in assets:
+        asset_id = asset["id"]
+        out_name = asset["out"]
+        prompt_text = asset["prompt"]
+        size = asset.get("size", "1024x1024")
+        fit = asset.get("fit")
+
+        try:
+            click.echo(f"  Generating [{asset_id}]  {out_name}  ({size}) ...")
+
+            result = provider_instance.generate_image(
+                prompt_text,
+                model=resolved_model,
+                size=size,
+            )
+
+            image_data = result.data
+
+            if fit:
+                if ":" in fit:
+                    size_part, fit_mode = fit.rsplit(":", 1)
+                else:
+                    size_part, fit_mode = fit, "cover"
+                fit_w, fit_h = parse_size(size_part)
+                image_data = fit_to(image_data, fit_w, fit_h, mode=fit_mode)
+
+            out_path = dest_dir / out_name
+            save_png(image_data, out_path)
+            generated.append(str(out_path))
+            click.echo(click.style(f"    -> {out_path}", fg="green"))
+
+        except Exception as exc:
+            failed.append((asset_id, str(exc)))
+            click.echo(
+                click.style(f"    ! [{asset_id}] failed: {exc}", fg="red"),
+                err=True,
+            )
+
+    click.echo()
+    click.echo(f"Generated: {len(generated)}/{len(assets)}")
+    for p in generated:
+        click.echo(f"  {p}")
+
+    if failed:
+        click.echo()
+        click.echo(click.style("Failed:", fg="red"))
+        for asset_id, err_msg in failed:
+            click.echo(click.style(f"  [{asset_id}] {err_msg}", fg="red"))
+        import sys
+
+        sys.exit(1)
+
+
 @main.command("info")
 def info() -> None:
     """Show package information.
