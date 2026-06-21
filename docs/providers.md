@@ -31,6 +31,7 @@ All providers implement the same `BaseLLMProvider` interface — `chat_completio
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ models via unified API |
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Any OpenAI-compatible gateway (LiteLLM proxy, vLLM). **No default URL** — `base_url` is required. Also supports TTS/STT |
 | `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-hosted (Berlin/de-txl), OpenAI-compatible. `base_url` defaults to the official endpoint |
+| `melious` | `MeliousProvider` | `api_key` | Melious.ai — sovereign EU-hosted, OpenAI-compatible (60+ open-weight models). `base_url` defaults to the official endpoint |
 | `local` | `LocalLLMProvider` | `base_url` | Custom OpenAI-compatible endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Defaults to `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Defaults to `localhost:11434/v1` |
@@ -188,6 +189,33 @@ Available models include `meta-llama/Llama-3.3-70B-Instruct`, `meta-llama/Meta-L
 
 > **GDPR:** IONOS hosts in the EU (Germany), making it suitable for EU-regulated workloads.
 
+### Melious.ai setup
+
+The `melious` provider talks to [Melious.ai](https://melious.ai), a sovereign, EU-hosted,
+OpenAI-compatible inference gateway (GDPR-compliant, green hosting, 60+ open-weight models).
+Generate an API key (prefix `sk-mel-`) in the Melious account dashboard; it is sent as
+`Authorization: Bearer <api_key>`. Like `ionos`, the `base_url` is **optional** — it defaults to
+the official Melious endpoint.
+
+```python
+provider = get_provider(
+    "melious",
+    api_key="sk-mel-YOUR_KEY",
+    # base_url defaults to https://api.melious.ai/v1
+    model="minimax-428b-m3",  # optional default (overridable per call)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
+```
+
+Melious serves 60+ open-weight models (e.g. MiniMax, DeepSeek, Llama, Mistral, Qwen, GLM,
+`gpt-oss-120b`). Model ids are resolved dynamically — use `provider.list_models()` for the live
+catalogue. Melious-specific extras (`preset`, the `:flavor` model suffix) and response metadata
+(`environment_impact`, `billing_cost`) pass through transparently via `**kwargs`.
+
+> **GDPR:** Melious runs on sovereign European infrastructure (GDPR, ISO 27001 in progress, green
+> hosting), making it suitable for EU-regulated workloads.
+
 ### Temperature clamping
 
 Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
@@ -214,6 +242,7 @@ This is automatic — pass `temperature=0.7` and the library passes through what
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
 | LiteLLM (gateway) | model-dependent | ✓ | model-dependent | ✓ |
 | IONOS (EU) | model-dependent | ✓ | ✓ | ✓ |
+| Melious (EU) | model-dependent | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | model-dependent | ✓ | model-dependent | — |
 
 ### See also
@@ -255,6 +284,7 @@ Alle Provider implementieren das gleiche `BaseLLMProvider`-Interface — `chat_c
 | `mammouth` | `MammouthProvider` | `api_key` | 30+ Modelle via Unified API |
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Beliebiges OpenAI-kompatibles Gateway (LiteLLM-Proxy, vLLM). **Keine Default-URL** — `base_url` ist Pflicht. Unterstützt auch TTS/STT |
 | `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-gehostet (Berlin/de-txl), OpenAI-kompatibel. `base_url` hat einen Default |
+| `melious` | `MeliousProvider` | `api_key` | Melious.ai — souverän EU-gehostet, OpenAI-kompatibel (60+ Open-Weight-Modelle). `base_url` hat einen Default |
 | `local` | `LocalLLMProvider` | `base_url` | Beliebiger OpenAI-kompatibler Endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Default `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Default `localhost:11434/v1` |
@@ -413,6 +443,33 @@ Verfügbare Modelle u. a. `meta-llama/Llama-3.3-70B-Instruct`, `meta-llama/Meta-
 
 > **DSGVO:** IONOS hostet in der EU (Deutschland) und eignet sich damit für EU-regulierte Workloads.
 
+### Melious.ai Setup
+
+Der `melious`-Provider spricht [Melious.ai](https://melious.ai) an — ein souveränes, EU-gehostetes,
+OpenAI-kompatibles Inferenz-Gateway (DSGVO-konform, Green Hosting, 60+ Open-Weight-Modelle). Den
+API-Key (Präfix `sk-mel-`) im Melious-Account-Dashboard erzeugen; er wird als
+`Authorization: Bearer <api_key>` gesendet. Wie bei `ionos` ist die `base_url` **optional** — sie hat
+einen Default auf den offiziellen Melious-Endpunkt.
+
+```python
+provider = get_provider(
+    "melious",
+    api_key="sk-mel-DEIN_KEY",
+    # base_url default: https://api.melious.ai/v1
+    model="minimax-428b-m3",  # optionales Default (pro Call überschreibbar)
+)
+
+response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
+```
+
+Melious bietet 60+ Open-Weight-Modelle (u. a. MiniMax, DeepSeek, Llama, Mistral, Qwen, GLM,
+`gpt-oss-120b`). Modell-IDs werden dynamisch aufgelöst — den Live-Katalog liefert
+`provider.list_models()`. Melious-spezifische Extras (`preset`, `:flavor`-Suffix am Modellnamen) und
+Antwort-Metadaten (`environment_impact`, `billing_cost`) werden transparent über `**kwargs` durchgereicht.
+
+> **DSGVO:** Melious läuft auf souveräner europäischer Infrastruktur (DSGVO, ISO 27001 in Arbeit,
+> Green Hosting) und eignet sich damit für EU-regulierte Workloads.
+
 ### Temperature-Clamping
 
 Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clampt automatisch auf den akzeptierten Bereich pro Modell:
@@ -439,6 +496,7 @@ Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht d
 | Mammouth | ✓ | ✓ | ✓ | ✓ |
 | LiteLLM (Gateway) | modellabhängig | ✓ | modellabhängig | ✓ |
 | IONOS (EU) | modellabhängig | ✓ | ✓ | ✓ |
+| Melious (EU) | modellabhängig | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | modellabhängig | ✓ | modellabhängig | — |
 
 ### Siehe auch

@@ -1,5 +1,20 @@
 # Release Notes
 
+## Version 1.12.0 (21.06.2026)
+
+### Added
+
+- **[ADD] Melious.ai provider** — sovereign, EU-hosted, OpenAI-compatible inference gateway
+  (GDPR-compliant, green hosting, 60+ open-weight models). Fixed public endpoint
+  `https://api.melious.ai/v1`; `base_url` is optional. Default model `minimax-428b-m3`.
+  - `get_provider("melious", api_key="sk-mel-...")` — chat completion, streaming, tool calls,
+    and dynamic model listing via the OpenAI-compatible Chat Completions / Models API.
+  - Built on the existing `openai` SDK (no new dependency); SSRF-guarded `base_url`, shared
+    temperature clamping, secret-scrubbed error mapping — mirrors the IONOS provider.
+  - Pricing for the default model added to `cost_service.py`; remaining per-model rates are
+    filled once the live `/v1/models` ids are confirmed.
+  - 28 unit tests + factory test + live integration suite (`test_melious_live.py`).
+
 ## Version 1.11.2 (17.06.2026)
 
 ### Changed

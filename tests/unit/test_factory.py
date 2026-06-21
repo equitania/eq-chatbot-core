@@ -97,6 +97,17 @@ class TestFactoryCloudProviders:
         assert provider.provider_name == "ionos"
         assert provider.base_url == DEFAULT_BASE_URL
 
+    def test_get_melious_provider(self):
+        """Test creating Melious provider — base_url defaults to the Melious endpoint."""
+        from eq_chatbot_core.providers.melious_provider import DEFAULT_BASE_URL, MeliousProvider
+
+        provider = get_provider("melious", api_key="sk-mel-test-key")
+
+        assert isinstance(provider, MeliousProvider)
+        assert provider.api_key == "sk-mel-test-key"
+        assert provider.provider_name == "melious"
+        assert provider.base_url == DEFAULT_BASE_URL
+
     def test_provider_name_case_insensitive(self):
         """Test that provider names are case insensitive."""
         provider1 = get_provider("OPENAI", api_key="test")

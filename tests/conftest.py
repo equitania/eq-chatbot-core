@@ -198,6 +198,9 @@ def test_config() -> dict[str, Any]:
         # IONOS AI Model Hub (EU-hosted; base_url defaults to the official endpoint)
         "ionos_api_key": os.getenv("IONOS_API_KEY"),
         "ionos_base_url": os.getenv("IONOS_BASE_URL"),
+        # Melious.ai (sovereign EU-hosted; base_url defaults to the official endpoint)
+        "melious_api_key": os.getenv("MELIOUS_API_KEY"),
+        "melious_base_url": os.getenv("MELIOUS_BASE_URL"),
         # Vertex AI
         "vertex_project": os.getenv("VERTEX_PROJECT"),
         "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
@@ -275,6 +278,18 @@ def ionos_base_url(test_config) -> str | None:
 
 
 @pytest.fixture
+def melious_api_key(test_config) -> str | None:
+    """Melious.ai API key from environment."""
+    return test_config["melious_api_key"]
+
+
+@pytest.fixture
+def melious_base_url(test_config) -> str | None:
+    """Melious base URL from environment (optional; defaults to official endpoint)."""
+    return test_config["melious_base_url"]
+
+
+@pytest.fixture
 def skip_live_tests(test_config) -> bool:
     """Whether to skip live API tests."""
     return test_config["skip_live_tests"]
@@ -344,6 +359,14 @@ def skip_if_no_ionos_key():
     return pytest.mark.skipif(
         not os.getenv("IONOS_API_KEY"),
         reason="IONOS_API_KEY not set",
+    )
+
+
+def skip_if_no_melious_key():
+    """Skip test if MELIOUS_API_KEY is not set."""
+    return pytest.mark.skipif(
+        not os.getenv("MELIOUS_API_KEY"),
+        reason="MELIOUS_API_KEY not set",
     )
 
 
@@ -581,6 +604,29 @@ def ionos_resolved_model(test_config, resolved_models) -> str:
 
         provider = get_provider("ionos", api_key=api_key, base_url=base_url)
         chain = _select_chain(cache_key, "IONOS_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
+def melious_resolved_model(test_config, resolved_models) -> str:
+    """Resolve Melious.ai test model from registry against the live API.
+
+    Requires MELIOUS_API_KEY. MELIOUS_BASE_URL is optional — the provider
+    defaults to the official Melious endpoint when it is not set.
+    """
+    api_key = test_config.get("melious_api_key")
+    if not api_key:
+        pytest.skip("MELIOUS_API_KEY not set")
+    base_url = test_config.get("melious_base_url")  # optional; default applies
+
+    cache_key = "melious"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("melious", api_key=api_key, base_url=base_url)
+        chain = _select_chain(cache_key, "MELIOUS_TEST_MODEL")
         resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
 
     return resolved_models[cache_key].actual
@@ -926,6 +972,10 @@ _MODULE_GROUPS = {
         "label": "Provider: IONOS AI Model Hub",
         "modules": ["test_ionos", "test_ionos_live"],
     },
+    "Melious": {
+        "label": "Provider: Melious.ai (sovereign EU)",
+        "modules": ["test_melious", "test_melious_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -967,6 +1017,7 @@ _RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
     "vertex": ("Google Vertex AI", "VERTEX_TEST_MODEL"),
     "litellm": ("LiteLLM Gateway", "LITELLM_TEST_MODEL"),
     "ionos": ("IONOS AI Model Hub", "IONOS_TEST_MODEL"),
+    "melious": ("Melious.ai", "MELIOUS_TEST_MODEL"),
     "local": ("Local (LM Studio / Ollama)", "LOCAL_TEST_MODEL"),
 }
 
@@ -984,6 +1035,7 @@ _RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
     "vertex": ["VERTEX_PROJECT"],
     "litellm": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
+    "melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint
     "local": [],  # gated by SKIP_LOCAL_TESTS / server-availability
 }
 
@@ -1001,6 +1053,7 @@ _GROUP_TO_PRIMARY_RESOLVER: dict[str, str] = {
     "Vertex": "vertex",
     "LiteLLM": "litellm",
     "Ionos": "ionos",
+    "Melious": "melious",
     "Local": "local",
 }
 
@@ -1018,6 +1071,7 @@ _GROUP_REQUIRED_ENV = {
     "Vertex": ["VERTEX_PROJECT"],  # auth via gcloud ADC, project still required
     "LiteLLM": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "Ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
+    "Melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint
     "Local": [],  # no key — uses local servers
 }
 

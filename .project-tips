@@ -1,4 +1,4 @@
-# eq-chatbot-core v1.7.0 Quick Reference
+# eq-chatbot-core v1.12.0 Quick Reference
 # PyPI: https://pypi.org/project/eq-chatbot-core/
 # GitHub: https://github.com/equitania/eq-chatbot-core
 
@@ -31,6 +31,7 @@ eq-chatbot info
 eq-chatbot test-provider -p openai -k $OPENAI_API_KEY
 eq-chatbot list-models -p openai -k $OPENAI_API_KEY --json
 eq-chatbot chat -p openai -k $OPENAI_API_KEY                    # JSON I/O (v1.5.0)
+eq-chatbot list-models -p melious -k $MELIOUS_API_KEY          # Melious.ai EU provider (v1.12.0)
 
 ## Server (v1.7.0)
 echo "$TOKEN" | eq-chatbot serve --port 0 --auth-token-fd 0 --parent-pid $fish_pid

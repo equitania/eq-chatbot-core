@@ -72,6 +72,7 @@ provider = get_provider("mammouth", api_key="mm-...")
 provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/models")
 provider = get_provider("litellm", api_key="...", base_url="https://gateway/v1")  # OpenAI-compatible gateway
 provider = get_provider("ionos", api_key="...")  # IONOS AI Model Hub (EU-hosted, base_url has a default)
+provider = get_provider("melious", api_key="sk-mel-...")  # Melious.ai (sovereign EU-hosted, base_url has a default)
 
 # Local providers (LM Studio, Ollama)
 provider = get_provider("lm_studio")  # defaults to localhost:1234
@@ -122,6 +123,7 @@ src/eq_chatbot_core/
 │   ├── openrouter_provider.py # OpenRouter (400+ models)
 │   ├── litellm_provider.py  # LiteLLM / any OpenAI-compatible gateway
 │   ├── ionos_provider.py    # IONOS AI Model Hub (EU-hosted, OpenAI-compatible)
+│   ├── melious_provider.py  # Melious.ai (sovereign EU-hosted, OpenAI-compatible)
 │   └── local_provider.py   # LM Studio, Ollama (OpenAI-compatible)
 ├── security/
 │   ├── encryption.py       # FernetEncryption for API key storage

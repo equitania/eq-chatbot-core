@@ -38,6 +38,10 @@ Usage:
     # IONOS AI Model Hub (EU-hosted, OpenAI-compatible; base_url has a default)
     provider = get_provider("ionos", api_key="...")
     response = provider.chat_completion(messages=[...], model="meta-llama/Llama-3.3-70B-Instruct")
+
+    # Melious.ai (sovereign EU-hosted, OpenAI-compatible; base_url has a default)
+    provider = get_provider("melious", api_key="sk-mel-...")
+    response = provider.chat_completion(messages=[...], model="minimax-428b-m3")
 """
 
 from typing import TYPE_CHECKING, Any
@@ -52,6 +56,7 @@ CLOUD_PROVIDERS: list[str] = [
     "vertex",
     "litellm",
     "ionos",
+    "melious",
 ]
 LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
 
@@ -113,6 +118,7 @@ def get_provider(
     from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider
     from eq_chatbot_core.providers.local_provider import LocalLLMProvider
     from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+    from eq_chatbot_core.providers.melious_provider import MeliousProvider
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
     from eq_chatbot_core.providers.vertex_provider import VertexProvider
@@ -129,6 +135,7 @@ def get_provider(
         "local": LocalLLMProvider,
         "litellm": LiteLLMProvider,
         "ionos": IonosProvider,
+        "melious": MeliousProvider,
     }
 
     # Convenience aliases for local providers with default URLs
@@ -152,6 +159,7 @@ def get_provider(
         | type[LocalLLMProvider]
         | type[LiteLLMProvider]
         | type[IonosProvider]
+        | type[MeliousProvider]
         | None
     ) = None
 
@@ -192,6 +200,7 @@ from eq_chatbot_core.providers.ionos_provider import IonosProvider  # noqa: E402
 from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E402
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
+from eq_chatbot_core.providers.melious_provider import MeliousProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
 from eq_chatbot_core.providers.vertex_provider import VertexProvider  # noqa: E402
 
@@ -211,6 +220,7 @@ __all__ = [
     "LocalLLMProvider",
     "LiteLLMProvider",
     "IonosProvider",
+    "MeliousProvider",
     "MammouthProvider",
     "OpenRouterProvider",
     "ToolDefinition",

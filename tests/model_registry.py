@@ -145,6 +145,17 @@ MODELS: dict[str, ModelChain] = {
         "validates against the live /v1/models response. Requires IONOS_API_KEY "
         "(base_url defaults to the official IONOS endpoint).",
     ),
+    "melious": ModelChain(
+        primary="minimax-428b-m3",
+        fallbacks=("gpt-oss-120b", "deepseek-v3.1"),
+        cost_hint="~EUR 0.4 in / 2.0 out per 1M tok (sovereign EU, MiniMax M3)",
+        notes="Melious.ai — OpenAI-compatible sovereign EU gateway (60+ open-weight "
+        "models). Primary is the captain-chosen default 'minimax-428b-m3'; override "
+        "via MELIOUS_TEST_MODEL. The resolver validates against the live /v1/models "
+        "response and walks the fallback chain if the primary is unavailable. "
+        "Primary + fallback ids verified live against /v1/models (71-model catalog). "
+        "Requires MELIOUS_API_KEY (base_url defaults to the official Melious endpoint).",
+    ),
 }
 
 
