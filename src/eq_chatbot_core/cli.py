@@ -23,10 +23,11 @@ ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 @click.group()
 @click.version_option(version=__version__, prog_name="eq-chatbot")
 def main() -> None:
-    """eq-chatbot - LLM Provider Testing & Management CLI.
+    """eq-chatbot - Multi-provider LLM CLI.
 
-    A command-line tool for testing LLM provider connections,
-    listing available models, and managing chatbot configurations.
+    Test provider connections and list models, run single-turn JSON chat,
+    generate images (image / listing-assets), back up LangDock agents
+    (langdock-export), and run a localhost HTTP/SSE gateway (serve).
     """
     pass
 
@@ -37,7 +38,7 @@ def main() -> None:
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos; local: local, lm_studio, ollama)",
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -142,7 +143,7 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     required=True,
-    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos; local: local, lm_studio, ollama)",
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama)",
 )
 @click.option(
     "--api-key",
@@ -1113,6 +1114,7 @@ def info() -> None:
     click.echo("    • vertex     - Google Vertex AI (Gemini 2.5 Flash/Pro)")
     click.echo("    • litellm    - LiteLLM / any OpenAI-compatible gateway (base_url required)")
     click.echo("    • ionos      - IONOS AI Model Hub (EU-hosted, OpenAI-compatible)")
+    click.echo("    • melious    - Melious.ai (sovereign EU-hosted, OpenAI-compatible)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")
@@ -1121,8 +1123,11 @@ def info() -> None:
 
     click.echo(click.style("Features:", fg="blue"))
     click.echo("  • Multi-provider LLM integration with unified API")
+    click.echo("  • Text-to-image generation (image, listing-assets)")
+    click.echo("  • Realtime voice providers (ElevenLabs, OpenAI, Gemini Live)")
+    click.echo("  • Localhost HTTP/SSE server mode (serve)")
     click.echo("  • Fernet encryption for API key storage")
-    click.echo("  • Prompt injection protection")
+    click.echo("  • Prompt injection protection (direct + indirect tool/RAG content)")
     click.echo("  • RAG pipeline (chunking, embedding, retrieval)")
     click.echo("  • MCP client (HTTP/SSE and stdio transports)")
     click.echo("  • Cost calculation service")
@@ -1132,8 +1137,14 @@ def info() -> None:
 
     click.echo(click.style("Installation:", fg="blue"))
     click.echo("  pip install eq-chatbot-core")
-    click.echo("  pip install eq-chatbot-core[pdf]      # PDF support")
-    click.echo("  pip install eq-chatbot-core[security] # File validation")
+    click.echo("  pip install eq-chatbot-core[pdf]      # PDF→image conversion (vision)")
+    click.echo("  pip install eq-chatbot-core[security] # MIME-type file validation")
+    click.echo("  pip install eq-chatbot-core[image]    # Text-to-image generation")
+    click.echo("  pip install eq-chatbot-core[server]   # HTTP/SSE sidecar")
+    click.echo("  pip install eq-chatbot-core[realtime] # Realtime voice providers")
+    click.echo("  pip install eq-chatbot-core[azure]    # Azure AI Foundry")
+    click.echo("  pip install eq-chatbot-core[vertex]   # Google Vertex AI")
+    click.echo("  pip install eq-chatbot-core[local]    # Local sentence-transformers")
     click.echo()
 
     click.echo(click.style("Author:", fg="blue") + " Equitania Software GmbH")

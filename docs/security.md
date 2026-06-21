@@ -38,11 +38,14 @@ from eq_chatbot_core.security.injection import (
     sanitize_input,
     build_safe_system_prompt,
     get_injection_risk_score,
+    scan_external_content,
+    wrap_external_content,
 )
 
-# Quick yes/no check
-if detect_injection(user_text):
-    raise UserError("input rejected")
+# Quick check — detect_injection returns a (is_suspicious, matched) tuple
+is_suspicious, matched = detect_injection(user_text)
+if is_suspicious:
+    raise UserError(f"input rejected: {matched!r}")
 
 # Sanitize for downstream use
 clean = sanitize_input(user_text)
@@ -53,33 +56,40 @@ score = get_injection_risk_score(user_text)
 # Wrap user input in a system prompt with isolation markers
 system = build_safe_system_prompt(
     base_prompt="You are a helpful assistant.",
-    user_context=user_text,
+    context=user_text,
 )
+
+# Indirect channels (MCP tool results, retrieved RAG passages): detect_injection
+# covers user input only by convention — screen external content separately.
+tool_suspicious, _ = scan_external_content(tool_result, source="tool:get_orders")
+safe_passage = wrap_external_content(rag_passage, source="rag")  # data-fenced
 ```
 
 ### Rate limiting (`security.rate_limit`)
 
-Token-bucket rate limiter with pluggable storage. The default storage is in-memory and **per-process**; pass a custom `RateLimitStorage` implementation for distributed setups.
+Rate-limiting logic with pluggable storage. `RateLimitStorage` is a **Protocol** — you provide the backing store (e.g. an Odoo model or a Redis-backed class); the library ships no concrete storage. `check_rate_limit` only reads counters, so the caller records usage afterwards. For race-free enforcement use `enforce_rate_limit`, which prefers an atomic `AtomicRateLimitStorage` backend and otherwise falls back to check + record.
 
 ```python
 from eq_chatbot_core.security.rate_limit import (
     RateLimitConfig,
-    RateLimitStorage,
-    check_rate_limit,
+    enforce_rate_limit,
     estimate_tokens,
 )
 
 config = RateLimitConfig(
-    requests_per_minute=60,
-    tokens_per_minute=100_000,
+    max_requests_per_minute=10,
+    max_requests_per_hour=100,
+    max_tokens_per_day=100_000,
 )
-storage = RateLimitStorage()
+storage = MyRateLimitStorage()  # your RateLimitStorage / AtomicRateLimitStorage impl
 
-result = check_rate_limit(
+# Checks the limit and records usage in one call (atomic when the backend supports it).
+result = enforce_rate_limit(
     user_id="user-42",
-    estimated_tokens=estimate_tokens(prompt_text),
+    company_id=1,
     config=config,
     storage=storage,
+    estimated_tokens=estimate_tokens(prompt_text),
 )
 if not result.allowed:
     raise RateLimitedError(retry_after=result.retry_after)
@@ -162,11 +172,14 @@ from eq_chatbot_core.security.injection import (
     sanitize_input,
     build_safe_system_prompt,
     get_injection_risk_score,
+    scan_external_content,
+    wrap_external_content,
 )
 
-# Schneller Ja/Nein-Check
-if detect_injection(user_text):
-    raise UserError("input rejected")
+# Schneller Check — detect_injection liefert ein (is_suspicious, matched) Tuple
+is_suspicious, matched = detect_injection(user_text)
+if is_suspicious:
+    raise UserError(f"input rejected: {matched!r}")
 
 # Sanitisieren für downstream
 clean = sanitize_input(user_text)
@@ -177,33 +190,40 @@ score = get_injection_risk_score(user_text)
 # User-Input in System-Prompt mit Isolations-Markern wrappen
 system = build_safe_system_prompt(
     base_prompt="Du bist ein hilfreicher Assistent.",
-    user_context=user_text,
+    context=user_text,
 )
+
+# Indirekte Kanäle (MCP-Tool-Ergebnisse, abgerufene RAG-Passagen): detect_injection
+# deckt konventionsgemäß nur Nutzereingaben ab — externe Inhalte separat prüfen.
+tool_suspicious, _ = scan_external_content(tool_result, source="tool:get_orders")
+safe_passage = wrap_external_content(rag_passage, source="rag")  # als Daten gefenced
 ```
 
 ### Rate-Limiting (`security.rate_limit`)
 
-Token-Bucket-Rate-Limiter mit pluggable Storage. Default-Storage ist In-Memory und **per-Prozess**; eigene `RateLimitStorage`-Implementierung für verteilte Setups.
+Rate-Limiting-Logik mit pluggable Storage. `RateLimitStorage` ist ein **Protocol** — den Speicher stellst du selbst bereit (z.B. ein Odoo-Modell oder eine Redis-gestützte Klasse); die Bibliothek liefert keinen konkreten Storage. `check_rate_limit` liest nur Zähler, der Aufrufer schreibt die Nutzung danach. Für race-freie Durchsetzung `enforce_rate_limit` verwenden — bevorzugt ein atomares `AtomicRateLimitStorage`-Backend, sonst Fallback auf check + record.
 
 ```python
 from eq_chatbot_core.security.rate_limit import (
     RateLimitConfig,
-    RateLimitStorage,
-    check_rate_limit,
+    enforce_rate_limit,
     estimate_tokens,
 )
 
 config = RateLimitConfig(
-    requests_per_minute=60,
-    tokens_per_minute=100_000,
+    max_requests_per_minute=10,
+    max_requests_per_hour=100,
+    max_tokens_per_day=100_000,
 )
-storage = RateLimitStorage()
+storage = MyRateLimitStorage()  # eigene RateLimitStorage-/AtomicRateLimitStorage-Impl.
 
-result = check_rate_limit(
+# Prüft das Limit und schreibt die Nutzung in einem Aufruf (atomar, wenn das Backend es unterstützt).
+result = enforce_rate_limit(
     user_id="user-42",
-    estimated_tokens=estimate_tokens(prompt_text),
+    company_id=1,
     config=config,
     storage=storage,
+    estimated_tokens=estimate_tokens(prompt_text),
 )
 if not result.allowed:
     raise RateLimitedError(retry_after=result.retry_after)
