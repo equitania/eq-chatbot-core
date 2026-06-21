@@ -5,6 +5,69 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-06-21
+
+### Added
+
+- Text-to-image generation in the provider layer: `ImageResult` dataclass,
+  `supports_image_generation` flag and a non-abstract `generate_image()` on `BaseLLMProvider`.
+  Implemented for OpenAI (`gpt-image-1` via `/images`, base64 decode) and OpenRouter (image models
+  such as `google/gemini-2.5-flash-image` via `chat/completions` with `modalities`). Unsupported
+  providers raise `ProviderError`.
+- `eq-chatbot image` CLI command — generate a single PNG from a text prompt
+  (`-p openai|openrouter`, `--prompt`/`--prompt-file`, `--model`, `--size`, `--fit WxH:mode`, `-o`).
+- `eq-chatbot listing-assets` CLI command — batch-generate images from an `eq-listing-assets/v1`
+  recipe JSON (`--dest`, `--only`, `--dry-run`, provider/model overrides); built for App-Store
+  listing assets (icon/banner/eyecatchers).
+- `utils/image.py` (`save_png`, `fit_to` cover/contain/stretch, `parse_size`), backed by Pillow —
+  new optional extra `[image]` (`Pillow>=10.0,<12.0`).
+- 76 unit tests for the image stack.
+
+## [1.13.0] - 2026-06-21
+
+### Added
+
+- `MeliousEmbedder` (`rag/embedder.py`) — RAG embedding adapter for the Melious.ai sovereign EU
+  gateway (OpenAI-compatible). Dynamic model ids/dimensions via `/v1/models`, explicit vector
+  `dimensions` (default 1536); `base_url` defaults to `https://api.melious.ai/v1`. Enables Melious
+  as an embedding provider for the `eq_chatbot_rag` Odoo add-on.
+
+## [1.12.0] - 2026-06-21
+
+### Added
+
+- Melious.ai provider (`get_provider("melious")`) — sovereign, EU-hosted, OpenAI-compatible
+  inference gateway (GDPR-compliant, 60+ open-weight models). Fixed endpoint
+  `https://api.melious.ai/v1`, optional `base_url`, default model `minimax-428b-m3`. Chat,
+  streaming, tool calls and dynamic model listing; built on the existing `openai` SDK (no new
+  dependency). SSRF-guarded `base_url`, shared temperature clamping. 28 unit tests + live suite.
+
+## [1.11.2] - 2026-06-17
+
+### Changed
+
+- Docs: clarified the LangDock document-content limitation (`docs/langdock-export.md` EN+DE,
+  `usage/AGENT.md`) — an agent's knowledge lives in a Knowledge Folder (metadata + search only) or
+  as attachments (no download endpoint); `langdock-export` backs up the agent definition, system
+  prompt and attachment IDs, never the document bytes.
+
+## [1.11.1] - 2026-06-17
+
+### Changed
+
+- `langdock-export` UX: collapse per-agent access-error floods (first 3 + count) and surface a clear
+  hint that each agent must be shared with the API key (the `AGENT_API` scope alone grants no
+  per-agent access). Documented the sharing prerequisite (EN+DE).
+
+## [1.11.0] - 2026-06-17
+
+### Added
+
+- LangDock backup/export tool — decentralised backup of LangDock agents and knowledge-folder
+  metadata. HTTP layer (`LangDockExportManager`) + orchestration (`LangDockBackupExporter`), new
+  `eq-chatbot langdock-export` CLI command, agent capability card (`usage/AGENT.md`), 26 unit tests.
+  No new runtime dependency (`httpx`/`click` are core).
+
 ## [1.10.0] - 2026-06-14
 
 ### Added
