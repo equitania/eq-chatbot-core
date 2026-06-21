@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 1.13.0 (21.06.2026)
+
+### Added
+
+- **[ADD] `MeliousEmbedder`** (`rag/embedder.py`) — RAG embedding adapter for the Melious.ai
+  sovereign EU gateway (OpenAI-compatible). Mirrors `LangDockEmbedder` but, because Melious'
+  embedding model ids/dimensions are advertised dynamically via `/v1/models` (no fixed catalog),
+  it skips the static `MODELS` validation and takes the vector `dimensions` explicitly
+  (default 1536, overridable to match the chosen model). `base_url` defaults to
+  `https://api.melious.ai/v1`. Enables Melious as an embedding provider for the `eq_chatbot_rag`
+  Odoo add-on alongside OpenAI and LangDock.
+
 ## Version 1.12.0 (21.06.2026)
 
 ### Added

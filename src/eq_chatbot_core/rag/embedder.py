@@ -119,3 +119,52 @@ class LangDockEmbedder(OpenAIEmbedder):
         base_url = self.BASE_URLS.get(region, self.BASE_URLS["eu"])
         super().__init__(api_key, model, base_url)
         self.region = region
+
+
+class MeliousEmbedder(OpenAIEmbedder):
+    """Melious.ai embedding API (OpenAI-compatible, sovereign EU-hosted).
+
+    Melious exposes embeddings through the same OpenAI-compatible gateway as its
+    chat API (GDPR-compliant, green hosting). Unlike OpenAI/LangDock, the live
+    embedding model ids and their vector dimensions are not a fixed catalog —
+    they are advertised dynamically via ``/v1/models``. Therefore this embedder
+    does NOT validate ``model`` against a static ``MODELS`` map, and the vector
+    ``dimensions`` are supplied explicitly (defaulting to 1536, the common
+    sentence-embedding size). Override ``dimensions`` to match the chosen model.
+    """
+
+    DEFAULT_BASE_URL = "https://api.melious.ai/v1"
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str,
+        base_url: str | None = None,
+        dimensions: int = 1536,
+    ):
+        """
+        Initialize the Melious embedder.
+
+        Args:
+            api_key: Melious API key (sent as a Bearer token).
+            model: Embedding model id as advertised by Melious ``/v1/models``.
+            base_url: OpenAI-compatible endpoint. Defaults to the official
+                Melious URL; override only to route through a proxy.
+            dimensions: Vector dimensions produced by the chosen model
+                (must match the Qdrant collection's vector size).
+
+        Note:
+            ``OpenAIEmbedder.__init__`` is intentionally bypassed because it
+            validates ``model`` against a static catalog that does not cover
+            Melious' dynamic model ids.
+        """
+        # Set attributes directly (skip the OpenAIEmbedder MODELS validation).
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url or self.DEFAULT_BASE_URL
+        self._client: Any = None
+        self._dimensions = dimensions
+
+    @property
+    def dimensions(self) -> int:
+        return self._dimensions
