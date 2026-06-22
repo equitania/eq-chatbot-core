@@ -63,8 +63,10 @@ class TestChatCommand:
             call_kwargs = mock_provider.chat_completion.call_args
             assert call_kwargs.kwargs.get("model") or call_kwargs[1].get("model") == "gpt-4o"
 
-    def test_missing_api_key(self, runner, valid_input):
+    def test_missing_api_key(self, runner, valid_input, monkeypatch):
         """Cloud provider without API key returns JSON error."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
         result = runner.invoke(main, ["chat", "-p", "openai"], input=valid_input)
 
         assert result.exit_code != 0

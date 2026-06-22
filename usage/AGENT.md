@@ -36,7 +36,7 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 | `eq-chatbot serve` | Run a localhost HTTP/SSE server exposing the LLM provider gateway. | --host TEXT, --port INTEGER, --auth-token TEXT, --auth-token-fd INTEGER, --parent-pid INTEGER, --log-level debug\|info\|warning\|error |
 | `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
 
-**Key env vars:** `LLM_API_KEY` is the fallback for `--api-key` on `chat`/`test-provider`/`list-models`/`image`/`listing-assets`. `langdock-export` reads `LANGDOCK_API_KEY`. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `vertex` (ADC) need no key.
+**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY`. Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY` (a key for one provider never satisfies another). `langdock-export` reads `LANGDOCK_API_KEY`. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `vertex` (ADC) need no key.
 
 ## Recipes
 
@@ -102,7 +102,7 @@ LANGDOCK_API_KEY="$ADMIN_KEY" eq-chatbot langdock-export --discover
 Writes `agents/<slug>-<id8>.md` (YAML frontmatter + system prompt) and `.json` (raw definition), `knowledge/<folder_id>.json` (metadata only), plus `manifest.json`. `--format md|json|both` (default `both`). Knowledge-folder ids referenced by exported agents are backed up automatically.
 
 ## Guardrails & gotchas
-- **Two different key env vars:** `LLM_API_KEY` for chat/test/list/image/listing-assets; `LANGDOCK_API_KEY` for `langdock-export`; `EQ_CHATBOT_AUTH_TOKEN` for `serve`. Don't cross them.
+- **Key env vars:** chat/test/list/image/listing-assets resolve `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY`; `langdock-export` uses `LANGDOCK_API_KEY`; `serve` uses `EQ_CHATBOT_AUTH_TOKEN`. Don't cross them.
 - **`image`/`listing-assets` providers are limited to `openai|openrouter`** — not the full provider list. `--fit` resizing needs the `[image]` extra (Pillow); generation without resizing does not.
 - **`langdock-export --discover` needs admin scope** `USAGE_EXPORT_API` — a normal chat key returns HTTP 403. Without it, supply ids via `--agent-id`. Default is `--discover` ON only when no `--agent-id` is given; otherwise pass `--no-discover` explicitly to skip it.
 - **Each LangDock agent must be shared with the API key** — the `AGENT_API` scope is only the capability, not per-agent access. Unshared agents return HTTP 404 "does not have access". Share in the UI: open the agent → Share → add the key (per agent, admin only). So `--discover` may list 58 agents yet back up 0 until they are shared.

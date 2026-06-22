@@ -1,5 +1,19 @@
 # Release Notes
 
+## Version 1.16.0 (22.06.2026)
+
+### Added
+
+- **[ADD] Provider-specific API-key env vars** (`cli.py`) — the CLI now resolves the API key in the
+  order `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY`. Each cloud provider has its own variable
+  (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`,
+  `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`), so multiple provider keys
+  can be stored on the host at once and no call needs `-k`. A key set for one provider never satisfies
+  another. Applies to `chat`, `test-provider`, `list-models`, `image`, and `listing-assets`;
+  `langdock-export` (own `LANGDOCK_API_KEY`) and local/Vertex providers are unchanged. New helper
+  `resolve_api_key()` plus the `PROVIDER_API_KEY_ENV` mapping; the generic `LLM_API_KEY` fallback is
+  preserved.
+
 ## Version 1.15.0 (21.06.2026)
 
 Security hardening release — resolves all findings from the project security audit

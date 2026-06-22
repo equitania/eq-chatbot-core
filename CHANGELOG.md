@@ -5,6 +5,19 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-06-22
+
+### Added
+
+- **CLI provider-specific API-key env vars** (`cli.py`): API key resolution is now
+  `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY`. Each cloud provider reads its own variable
+  (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`,
+  `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`), letting users store all
+  provider keys on the host and drop `-k`. Cross-provider isolation: a key for one provider never
+  satisfies another. New `resolve_api_key()` helper and `PROVIDER_API_KEY_ENV` mapping; generic
+  `LLM_API_KEY` fallback preserved. Affects `chat`, `test-provider`, `list-models`, `image`,
+  `listing-assets`.
+
 ## [1.15.0] - 2026-06-21
 
 ### Security

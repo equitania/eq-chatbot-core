@@ -100,8 +100,10 @@ class TestImageCommand:
         result = runner.invoke(main, ["image", "-p", "openai", "-k", "sk-test"])
         assert result.exit_code != 0
 
-    def test_missing_api_key_exits_nonzero(self, runner):
+    def test_missing_api_key_exits_nonzero(self, runner, monkeypatch):
         """Missing API key causes non-zero exit."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
         result = runner.invoke(main, ["image", "-p", "openai", "--prompt", "Test"])
         assert result.exit_code != 0
 

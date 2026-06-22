@@ -181,9 +181,30 @@ The API key may also be set via the `LANGDOCK_API_KEY` env var.
 
 ### Environment variables
 
+The API key for `chat`, `test-provider`, `list-models`, `image`, and `listing-assets`
+is resolved in this order (highest priority first):
+
+1. `-k` / `--api-key` flag
+2. `<PROVIDER>_API_KEY` — provider-specific variable (e.g. `OPENROUTER_API_KEY`)
+3. `LLM_API_KEY` — generic fallback
+
+This lets you store one key per provider on the host and never pass `-k` again:
+
+```fish
+# ~/.config/fish/config.fish
+set -gx OPENAI_API_KEY     sk-...
+set -gx OPENROUTER_API_KEY sk-or-...
+set -gx MELIOUS_API_KEY    sk-mel-...
+```
+
+Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
+`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
+`IONOS_API_KEY`, `MELIOUS_API_KEY`. A key set for one provider never satisfies another.
+
 | Variable | Purpose | Used by |
 |----------|---------|---------|
-| `LLM_API_KEY` | Fallback API key when `-k`/`--api-key` is not given | `chat`, `image`, `listing-assets` |
+| `<PROVIDER>_API_KEY` | Per-provider key (e.g. `OPENAI_API_KEY`); checked before `LLM_API_KEY` | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
+| `LLM_API_KEY` | Generic fallback API key when no flag or provider-specific var is set | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LANGDOCK_API_KEY` | Fallback API key when `-k`/`--api-key` is not given | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback bearer token when no `--auth-token*` flag is given | `serve` |
 
@@ -375,9 +396,30 @@ Der API-Key kann auch über die `LANGDOCK_API_KEY`-Env gesetzt werden.
 
 ### Umgebungsvariablen
 
+Der API-Key für `chat`, `test-provider`, `list-models`, `image` und `listing-assets`
+wird in dieser Reihenfolge aufgelöst (höchste Priorität zuerst):
+
+1. `-k` / `--api-key`-Flag
+2. `<PROVIDER>_API_KEY` — provider-spezifische Variable (z.B. `OPENROUTER_API_KEY`)
+3. `LLM_API_KEY` — generischer Fallback
+
+So lässt sich pro Provider ein Key auf dem Host hinterlegen, ohne je wieder `-k` zu übergeben:
+
+```fish
+# ~/.config/fish/config.fish
+set -gx OPENAI_API_KEY     sk-...
+set -gx OPENROUTER_API_KEY sk-or-...
+set -gx MELIOUS_API_KEY    sk-mel-...
+```
+
+Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
+`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
+`IONOS_API_KEY`, `MELIOUS_API_KEY`. Ein Key für einen Provider erfüllt nie einen anderen.
+
 | Variable | Zweck | Genutzt von |
 |----------|-------|-------------|
-| `LLM_API_KEY` | Fallback-API-Key wenn `-k`/`--api-key` fehlt | `chat`, `image`, `listing-assets` |
+| `<PROVIDER>_API_KEY` | Key pro Provider (z.B. `OPENAI_API_KEY`); vor `LLM_API_KEY` geprüft | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
+| `LLM_API_KEY` | Generischer Fallback-API-Key wenn weder Flag noch provider-spezifische Variable gesetzt | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LANGDOCK_API_KEY` | Fallback-API-Key wenn `-k`/`--api-key` fehlt | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback-Bearer-Token wenn kein `--auth-token*`-Flag | `serve` |
 

@@ -523,8 +523,10 @@ class TestListingAssetsCommand:
     # No API key
     # ─────────────────────────────────────────────
 
-    def test_missing_api_key_exits_nonzero(self, runner, tmp_path):
+    def test_missing_api_key_exits_nonzero(self, runner, tmp_path, monkeypatch):
         """Missing API key (not dry-run) causes non-zero exit."""
+        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("LLM_API_KEY", raising=False)
         recipe_path = _make_recipe(tmp_path)
 
         result = runner.invoke(

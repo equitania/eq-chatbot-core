@@ -19,6 +19,38 @@ from eq_chatbot_core.version import __version__
 
 ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
 
+# Provider -> preferred env variable (in addition to the generic LLM_API_KEY fallback).
+# Lets users store one key per provider on the host instead of swapping LLM_API_KEY.
+PROVIDER_API_KEY_ENV: dict[str, str] = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "langdock": "LANGDOCK_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+    "mammouth": "MAMMOUTH_API_KEY",
+    "azure": "AZURE_API_KEY",
+    "litellm": "LITELLM_API_KEY",
+    "ionos": "IONOS_API_KEY",
+    "melious": "MELIOUS_API_KEY",
+}
+
+
+def resolve_api_key(provider: str | None, explicit_key: str | None) -> str | None:
+    """Resolve the API key for a provider.
+
+    Precedence (highest first):
+        1. explicit_key (--api-key / -k flag)
+        2. <PROVIDER>_API_KEY env var (e.g. OPENROUTER_API_KEY)
+        3. LLM_API_KEY env var (generic fallback)
+        4. None (caller decides; local providers and Vertex need no key)
+    """
+    if explicit_key:
+        return explicit_key
+    if provider:
+        env_name = PROVIDER_API_KEY_ENV.get(provider.lower())
+        if env_name and (key := os.environ.get(env_name)):
+            return key
+    return os.environ.get("LLM_API_KEY")
+
 
 @click.group()
 @click.version_option(version=__version__, prog_name="eq-chatbot")
@@ -43,8 +75,8 @@ def main() -> None:
 @click.option(
     "--api-key",
     "-k",
-    envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable). Not required for local providers.",
+    default=None,
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var. Not required for local providers.",
 )
 @click.option(
     "--model",
@@ -86,12 +118,13 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
         eq-chatbot test-provider -p local -u http://localhost:1234/v1
     """
     # Check API key requirement (not needed for local providers or Vertex)
+    api_key = resolve_api_key(provider, api_key)
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
             err=True,
         )
         sys.exit(1)
@@ -148,8 +181,8 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
 @click.option(
     "--api-key",
     "-k",
-    envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable). Not required for local providers.",
+    default=None,
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var. Not required for local providers.",
 )
 @click.option(
     "--base-url",
@@ -191,12 +224,13 @@ def list_models(provider: str, api_key: str | None, base_url: str | None, as_jso
         eq-chatbot list-models -p local -u http://localhost:1234/v1
     """
     # Check API key requirement (not needed for local providers or Vertex)
+    api_key = resolve_api_key(provider, api_key)
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required for cloud providers. Use --api-key or set LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
             err=True,
         )
         sys.exit(1)
@@ -288,8 +322,8 @@ def _validate_messages(messages: list) -> list[dict]:
 @click.option(
     "--api-key",
     "-k",
-    envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable)",
+    default=None,
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var.",
 )
 @click.option(
     "--model",
@@ -346,10 +380,13 @@ def chat(
         LLM_API_KEY=sk-... eq-chatbot chat -p openai -m gpt-4o-mini
     """
     # Check API key requirement
+    api_key = resolve_api_key(provider, api_key)
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
-        error_response = {"error": "API key required. Use --api-key or set LLM_API_KEY environment variable."}
+        error_response = {
+            "error": "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable."
+        }
         click.echo(json.dumps(error_response), err=True)
         sys.exit(1)
 
@@ -728,8 +765,8 @@ IMAGE_PROVIDERS = ["openai", "openrouter"]
 @click.option(
     "--api-key",
     "-k",
-    envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable)",
+    default=None,
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var.",
 )
 @click.option(
     "--model",
@@ -803,10 +840,11 @@ def image(
         click.echo(click.style("Error: ", fg="red") + "Use either --prompt or --prompt-file, not both.", err=True)
         sys.exit(1)
 
+    api_key = resolve_api_key(provider, api_key)
     if not api_key:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required. Use --api-key or set LLM_API_KEY environment variable.",
+            + "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
             err=True,
         )
         sys.exit(1)
@@ -940,8 +978,8 @@ def _load_recipe(recipe_path: str) -> dict:
 @click.option(
     "--api-key",
     "-k",
-    envvar="LLM_API_KEY",
-    help="API key (or set LLM_API_KEY environment variable).",
+    default=None,
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var.",
 )
 @click.option(
     "--base-url",
@@ -1026,8 +1064,11 @@ def listing_assets(
         click.echo(f"{len(assets)} asset(s) would be generated.")
         return
 
+    api_key = resolve_api_key(resolved_provider, api_key)
     if not api_key:
-        raise click.ClickException("API key required. Use --api-key or set LLM_API_KEY environment variable.")
+        raise click.ClickException(
+            "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable."
+        )
 
     from eq_chatbot_core.providers import get_provider
     from eq_chatbot_core.utils.image import fit_to, parse_size, save_png
