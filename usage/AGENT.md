@@ -28,6 +28,7 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 | Command | Purpose | Args / Flags |
 |---|---|---|
 | `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
+| `eq-chatbot config init\|show\|path` | Manage the user config file (~/.config/eq-chatbot/config.toml). | init [--force], show, path |
 | `eq-chatbot image` | Generate an image from a text prompt. | --provider/-p openai\|openrouter, --api-key/-k TEXT, --model/-m TEXT, --prompt TEXT, --prompt-file PATH, --size TEXT, --fit TEXT, --output/-o TEXT, --base-url/-u TEXT |
 | `eq-chatbot info` | Show package information. | — |
 | `eq-chatbot langdock-export` | Back up LangDock agents and knowledge metadata to local files. | --api-key/-k TEXT, --output-dir/-o DIRECTORY, --agent-id TEXT, --discover/--no-discover, --knowledge-folder-id TEXT, --format md\|json\|both |
@@ -36,7 +37,7 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 | `eq-chatbot serve` | Run a localhost HTTP/SSE server exposing the LLM provider gateway. | --host TEXT, --port INTEGER, --auth-token TEXT, --auth-token-fd INTEGER, --parent-pid INTEGER, --log-level debug\|info\|warning\|error |
 | `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
 
-**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY`. Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY` (a key for one provider never satisfies another). `langdock-export` reads `LANGDOCK_API_KEY`. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `vertex` (ADC) need no key.
+**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `langdock-export` reads `LANGDOCK_API_KEY`. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `vertex` (ADC) need no key.
 
 ## Recipes
 

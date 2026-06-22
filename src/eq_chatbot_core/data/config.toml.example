@@ -1,0 +1,95 @@
+# eq-chatbot configuration file
+#
+# Location (first match wins):
+#   1. $EQ_CHATBOT_CONFIG
+#   2. $XDG_CONFIG_HOME/eq-chatbot/config.toml
+#   3. ~/.config/eq-chatbot/config.toml
+#
+# Create it with:  eq-chatbot config init
+# Inspect it with: eq-chatbot config show   (keys are masked)
+#
+# SECURITY: this file holds API keys in plain text. Keep it private:
+#   chmod 600 ~/.config/eq-chatbot/config.toml
+# eq-chatbot warns if the file is readable by others.
+#
+# Value precedence the CLI applies (highest first):
+#   api_key   : --api-key  >  <PROVIDER>_API_KEY env  >  LLM_API_KEY env  >  this file
+#   base_url  : --base-url  >  this file  >  provider built-in default
+#   model     : --model     >  this file  >  provider default model
+#   provider  : --provider  >  default_provider below
+# Remove or comment out anything you do not need — every field is optional.
+
+# Provider used when --provider is omitted (optional).
+# One of: openai, anthropic, langdock, openrouter, mammouth, azure, vertex,
+#         litellm, ionos, melious, local, lm_studio, ollama
+# default_provider = "melious"
+
+# Global chat defaults (optional); used by `eq-chatbot chat` when the flags are omitted.
+[defaults]
+# temperature = 0.7
+# max_tokens  = 4096
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Per-provider settings. For each provider: api_key (required for cloud providers),
+# optional base_url (override the built-in endpoint), optional model (default model).
+# ─────────────────────────────────────────────────────────────────────────────
+
+[providers.openai]
+# api_key  = "sk-..."
+# model    = "gpt-4o"
+# base_url = "https://api.openai.com/v1"
+
+[providers.anthropic]
+# api_key  = "sk-ant-..."
+# model    = "claude-sonnet-4-20250514"
+# base_url = "https://api.anthropic.com"
+
+[providers.langdock]
+# api_key  = "..."
+# model    = "gpt-4o"
+# base_url = "https://api.langdock.com"
+
+[providers.openrouter]
+# api_key  = "sk-or-..."
+# model    = "openai/gpt-4o"
+# base_url = "https://openrouter.ai/api/v1"
+
+[providers.mammouth]
+# api_key  = "mm-..."
+# model    = "gpt-4o"
+# base_url = "https://api.mammouth.ai/v1"
+
+[providers.azure]
+# api_key  = "..."
+# model    = "gpt-4o"
+# base_url = "https://your-resource.services.ai.azure.com/models"   # required for Azure
+
+[providers.vertex]
+# Vertex uses Google Application Default Credentials — no api_key needed.
+# model = "gemini-2.5-flash"
+
+[providers.litellm]
+# api_key  = "..."
+# model    = "qwen3.6-35b-a3b"
+# base_url = "https://your-gateway/v1"   # required for LiteLLM
+
+[providers.ionos]
+# IONOS AI Model Hub (EU-hosted).
+# api_key  = "..."
+# model    = "meta-llama/Llama-3.3-70B-Instruct"
+# base_url = "https://openai.inference.de-txl.ionos.com/v1"
+
+[providers.melious]
+# Melious.ai (sovereign EU-hosted).
+# api_key  = "sk-mel-..."
+# model    = "minimax-428b-m3"
+# base_url = "https://api.melious.ai/v1"
+
+# Local providers need no api_key; set base_url only if you changed the default port.
+[providers.lm_studio]
+# model    = "local-model"
+# base_url = "http://localhost:1234/v1"
+
+[providers.ollama]
+# model    = "local-model"
+# base_url = "http://localhost:11434/v1"

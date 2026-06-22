@@ -1,5 +1,22 @@
 # Release Notes
 
+## Version 1.17.0 (22.06.2026)
+
+### Added
+
+- **[ADD] User config file** (`utils/config.py`, `cli.py`) — the CLI now reads a TOML config
+  from `~/.config/eq-chatbot/config.toml` (XDG-aware; override with `EQ_CHATBOT_CONFIG`). Per
+  provider you can store `api_key`, `base_url` and `model`; globally a `default_provider` and chat
+  `[defaults]` (temperature, max_tokens). Resolution order: flag > `<PROVIDER>_API_KEY` env >
+  `LLM_API_KEY` env > config (for api_key); flag > config > built-in default (for base_url, model,
+  provider, chat defaults). With `default_provider` set, `--provider` becomes optional.
+- **[ADD] `eq-chatbot config` command** — `config init` writes a commented template (mode 0600,
+  refuses to overwrite without `--force`), `config show` prints the path/permissions and a
+  key-masked view, `config path` prints the resolved path. The template ships as a package resource
+  (`data/config.toml.example`).
+- Keys are stored in plain text; the loader warns when the file is group/other-readable. New
+  dependency `tomli` for Python < 3.11 (stdlib `tomllib` is used on 3.11+).
+
 ## Version 1.16.0 (22.06.2026)
 
 ### Added

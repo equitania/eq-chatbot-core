@@ -45,6 +45,24 @@ if _env_file.exists():
                     os.environ.setdefault(key.strip(), value.strip())
 
 
+@pytest.fixture(autouse=True)
+def _isolate_user_config(monkeypatch, tmp_path_factory):
+    """Neutralize the user config file for every test.
+
+    Points EQ_CHATBOT_CONFIG at a non-existent path so a real
+    ~/.config/eq-chatbot/config.toml on the host never leaks into tests, and
+    clears the config module cache. Tests that need a config override
+    EQ_CHATBOT_CONFIG themselves (a later setenv wins).
+    """
+    from eq_chatbot_core.utils import config as _config
+
+    nonexistent = tmp_path_factory.mktemp("eqbot-noconfig") / "config.toml"
+    monkeypatch.setenv("EQ_CHATBOT_CONFIG", str(nonexistent))
+    _config.reset_cache()
+    yield
+    _config.reset_cache()
+
+
 # =============================================================================
 # Model Resolution
 # =============================================================================

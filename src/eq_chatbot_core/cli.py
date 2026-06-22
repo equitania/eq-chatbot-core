@@ -15,6 +15,14 @@ import sys
 import click
 
 from eq_chatbot_core.providers import CLOUD_PROVIDERS, LOCAL_PROVIDERS
+from eq_chatbot_core.utils.config import (
+    config_api_key,
+    config_base_url,
+    config_default_provider,
+    config_max_tokens,
+    config_model,
+    config_temperature,
+)
 from eq_chatbot_core.version import __version__
 
 ALL_PROVIDERS = CLOUD_PROVIDERS + LOCAL_PROVIDERS
@@ -41,7 +49,8 @@ def resolve_api_key(provider: str | None, explicit_key: str | None) -> str | Non
         1. explicit_key (--api-key / -k flag)
         2. <PROVIDER>_API_KEY env var (e.g. OPENROUTER_API_KEY)
         3. LLM_API_KEY env var (generic fallback)
-        4. None (caller decides; local providers and Vertex need no key)
+        4. config file ([providers.<name>].api_key)
+        5. None (caller decides; local providers and Vertex need no key)
     """
     if explicit_key:
         return explicit_key
@@ -49,7 +58,47 @@ def resolve_api_key(provider: str | None, explicit_key: str | None) -> str | Non
         env_name = PROVIDER_API_KEY_ENV.get(provider.lower())
         if env_name and (key := os.environ.get(env_name)):
             return key
-    return os.environ.get("LLM_API_KEY")
+    generic = os.environ.get("LLM_API_KEY")
+    if generic:
+        return generic
+    return config_api_key(provider)
+
+
+def resolve_base_url(provider: str | None, explicit_url: str | None) -> str | None:
+    """Resolve the base URL: --base-url flag > config file > None (provider default)."""
+    if explicit_url:
+        return explicit_url
+    return config_base_url(provider)
+
+
+def resolve_model(provider: str | None, explicit_model: str | None) -> str | None:
+    """Resolve the model: --model flag > config file > None (provider default)."""
+    if explicit_model:
+        return explicit_model
+    return config_model(provider)
+
+
+def resolve_provider(explicit_provider: str | None) -> str | None:
+    """Resolve the provider: --provider flag > config default_provider > None."""
+    if explicit_provider:
+        return explicit_provider
+    return config_default_provider()
+
+
+def resolve_cli_provider(explicit_provider: str | None, allowed: list[str]) -> tuple[str | None, str | None]:
+    """Resolve and validate a provider for a CLI command.
+
+    A provider coming from the config file bypasses click.Choice validation, so it
+    must be checked against ``allowed`` here.
+
+    Returns ``(provider, None)`` on success or ``(None, error_message)`` on failure.
+    """
+    resolved = resolve_provider(explicit_provider)
+    if not resolved:
+        return None, "No provider specified. Use --provider or set default_provider in the config file."
+    if resolved.lower() not in {a.lower() for a in allowed}:
+        return None, f"Invalid provider '{resolved}'. Valid providers: {', '.join(allowed)}."
+    return resolved, None
 
 
 @click.group()
@@ -69,14 +118,14 @@ def main() -> None:
     "--provider",
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
-    required=True,
-    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama)",
+    default=None,
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
     "-k",
     default=None,
-    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var. Not required for local providers.",
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var, then the config file. Not required for local providers.",
 )
 @click.option(
     "--model",
@@ -96,7 +145,9 @@ def main() -> None:
     default=None,
     help="Custom base URL for the provider. For local providers: LM Studio=localhost:1234, Ollama=localhost:11434",
 )
-def test_provider(provider: str, api_key: str | None, model: str | None, message: str, base_url: str | None) -> None:
+def test_provider(
+    provider: str | None, api_key: str | None, model: str | None, message: str, base_url: str | None
+) -> None:
     """Test connection to an LLM provider.
 
     Sends a test message and displays the response along with token usage.
@@ -117,14 +168,22 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
 
         eq-chatbot test-provider -p local -u http://localhost:1234/v1
     """
+    provider, perr = resolve_cli_provider(provider, ALL_PROVIDERS)
+    if perr:
+        click.echo(click.style("Error: ", fg="red") + perr, err=True)
+        sys.exit(1)
+    assert provider is not None  # narrowed by perr check
+
     # Check API key requirement (not needed for local providers or Vertex)
     api_key = resolve_api_key(provider, api_key)
+    base_url = resolve_base_url(provider, base_url)
+    model = resolve_model(provider, model)
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
             err=True,
         )
         sys.exit(1)
@@ -175,14 +234,14 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
     "--provider",
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
-    required=True,
-    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama)",
+    default=None,
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
     "-k",
     default=None,
-    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var. Not required for local providers.",
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var, then the config file. Not required for local providers.",
 )
 @click.option(
     "--base-url",
@@ -201,7 +260,9 @@ def test_provider(provider: str, api_key: str | None, model: str | None, message
     is_flag=True,
     help="Show only models with vision support",
 )
-def list_models(provider: str, api_key: str | None, base_url: str | None, as_json: bool, vision_only: bool) -> None:
+def list_models(
+    provider: str | None, api_key: str | None, base_url: str | None, as_json: bool, vision_only: bool
+) -> None:
     """List available models from a provider.
 
     Queries the provider's API and displays all available models
@@ -223,14 +284,21 @@ def list_models(provider: str, api_key: str | None, base_url: str | None, as_jso
 
         eq-chatbot list-models -p local -u http://localhost:1234/v1
     """
+    provider, perr = resolve_cli_provider(provider, ALL_PROVIDERS)
+    if perr:
+        click.echo(click.style("Error: ", fg="red") + perr, err=True)
+        sys.exit(1)
+    assert provider is not None  # narrowed by perr check
+
     # Check API key requirement (not needed for local providers or Vertex)
     api_key = resolve_api_key(provider, api_key)
+    base_url = resolve_base_url(provider, base_url)
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
+            + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
             err=True,
         )
         sys.exit(1)
@@ -316,33 +384,33 @@ def _validate_messages(messages: list) -> list[dict]:
     "--provider",
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
-    required=True,
-    help="LLM provider to use",
+    default=None,
+    help="LLM provider to use. Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
     "-k",
     default=None,
-    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var.",
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var, then the config file.",
 )
 @click.option(
     "--model",
     "-m",
     default=None,
-    help="Model to use (uses provider default if not specified)",
+    help="Model to use (config file or provider default if not specified)",
 )
 @click.option(
     "--temperature",
     "-t",
-    default=0.7,
+    default=None,
     type=float,
-    help="Temperature for response generation (default: 0.7)",
+    help="Temperature for response generation (config [defaults].temperature or 0.7)",
 )
 @click.option(
     "--max-tokens",
-    default=4096,
+    default=None,
     type=int,
-    help="Maximum tokens in response (default: 4096)",
+    help="Maximum tokens in response (config [defaults].max_tokens or 4096)",
 )
 @click.option(
     "--base-url",
@@ -351,11 +419,11 @@ def _validate_messages(messages: list) -> list[dict]:
     help="Custom base URL for the provider",
 )
 def chat(
-    provider: str,
+    provider: str | None,
     api_key: str | None,
     model: str | None,
-    temperature: float,
-    max_tokens: int,
+    temperature: float | None,
+    max_tokens: int | None,
     base_url: str | None,
 ) -> None:
     """Single-turn chat with JSON I/O for programmatic use.
@@ -379,13 +447,29 @@ def chat(
 
         LLM_API_KEY=sk-... eq-chatbot chat -p openai -m gpt-4o-mini
     """
+    provider, perr = resolve_cli_provider(provider, ALL_PROVIDERS)
+    if perr:
+        click.echo(json.dumps({"error": perr}), err=True)
+        sys.exit(1)
+    assert provider is not None  # narrowed by perr check
+
     # Check API key requirement
     api_key = resolve_api_key(provider, api_key)
+    base_url = resolve_base_url(provider, base_url)
+    model = resolve_model(provider, model)
+    if temperature is None:
+        temperature = config_temperature()
+        if temperature is None:
+            temperature = 0.7
+    if max_tokens is None:
+        max_tokens = config_max_tokens()
+        if max_tokens is None:
+            max_tokens = 4096
     is_local = provider.lower() in LOCAL_PROVIDERS
     is_vertex = provider.lower() == "vertex"
     if not api_key and not is_local and not is_vertex:
         error_response = {
-            "error": "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable."
+            "error": "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         }
         click.echo(json.dumps(error_response), err=True)
         sys.exit(1)
@@ -759,14 +843,14 @@ IMAGE_PROVIDERS = ["openai", "openrouter"]
     "--provider",
     "-p",
     type=click.Choice(IMAGE_PROVIDERS, case_sensitive=False),
-    required=True,
-    help="LLM provider to use for image generation (openai, openrouter)",
+    default=None,
+    help="LLM provider to use for image generation (openai, openrouter). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
     "-k",
     default=None,
-    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var.",
+    help="API key. Falls back to <PROVIDER>_API_KEY then LLM_API_KEY env var, then the config file.",
 )
 @click.option(
     "--model",
@@ -810,7 +894,7 @@ IMAGE_PROVIDERS = ["openai", "openrouter"]
     help="Custom base URL for the provider",
 )
 def image(
-    provider: str,
+    provider: str | None,
     api_key: str | None,
     model: str | None,
     prompt: str | None,
@@ -840,11 +924,19 @@ def image(
         click.echo(click.style("Error: ", fg="red") + "Use either --prompt or --prompt-file, not both.", err=True)
         sys.exit(1)
 
+    provider, perr = resolve_cli_provider(provider, IMAGE_PROVIDERS)
+    if perr:
+        click.echo(click.style("Error: ", fg="red") + perr, err=True)
+        sys.exit(1)
+    assert provider is not None  # narrowed by perr check
+
     api_key = resolve_api_key(provider, api_key)
+    base_url = resolve_base_url(provider, base_url)
+    model = resolve_model(provider, model)
     if not api_key:
         click.echo(
             click.style("Error: ", fg="red")
-            + "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable.",
+            + "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
             err=True,
         )
         sys.exit(1)
@@ -1034,9 +1126,9 @@ def listing_assets(
     recipe = _load_recipe(recipe_file)
     defaults = recipe.get("defaults", {})
 
-    # Resolve provider and model: CLI > recipe defaults > hard default
-    resolved_provider = provider or defaults.get("provider") or "openai"
-    resolved_model = model or defaults.get("model") or None
+    # Resolve provider and model: CLI > recipe defaults > config file > hard default
+    resolved_provider = provider or defaults.get("provider") or config_default_provider() or "openai"
+    resolved_model = model or defaults.get("model") or config_model(resolved_provider) or None
 
     # Resolve destination directory
     recipe_dir = pathlib.Path(recipe_file).parent
@@ -1065,9 +1157,10 @@ def listing_assets(
         return
 
     api_key = resolve_api_key(resolved_provider, api_key)
+    base_url = resolve_base_url(resolved_provider, base_url)
     if not api_key:
         raise click.ClickException(
-            "API key required. Use --api-key, <PROVIDER>_API_KEY or LLM_API_KEY environment variable."
+            "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         )
 
     from eq_chatbot_core.providers import get_provider
@@ -1191,6 +1284,90 @@ def info() -> None:
     click.echo(click.style("Author:", fg="blue") + " Equitania Software GmbH")
     click.echo(click.style("License:", fg="blue") + " MIT")
     click.echo(click.style("Homepage:", fg="blue") + " https://www.ownerp.com")
+
+
+@main.group("config")
+def config_group() -> None:
+    """Manage the user config file (~/.config/eq-chatbot/config.toml).
+
+    Store provider API keys, base URLs, default models and chat defaults so they
+    do not have to be passed on every call.
+    """
+    pass
+
+
+@config_group.command("init")
+@click.option("--force", is_flag=True, help="Overwrite an existing config file.")
+def config_init(force: bool) -> None:
+    """Write a commented config template (mode 0600) to the config path.
+
+    Examples:
+
+        eq-chatbot config init
+
+        EQ_CHATBOT_CONFIG=./eqbot.toml eq-chatbot config init --force
+    """
+    from eq_chatbot_core.utils.config import ConfigError, write_template
+
+    try:
+        path = write_template(force=force)
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(click.style("✓ Config written:", fg="green") + f" {path}")
+    click.echo("Edit it to add your provider keys, then run: eq-chatbot config show")
+
+
+@config_group.command("path")
+def config_path_cmd() -> None:
+    """Print the resolved config file path (whether or not it exists)."""
+    from eq_chatbot_core.utils.config import config_path
+
+    click.echo(str(config_path()))
+
+
+@config_group.command("show")
+def config_show() -> None:
+    """Show the config path, permissions and a key-masked view of the contents."""
+    from eq_chatbot_core.utils.config import ConfigError, config_path, load_config, redact
+
+    path = config_path()
+    click.echo(click.style("Path:", fg="blue") + f" {path}")
+    if not path.exists():
+        click.echo(click.style("Status:", fg="blue") + " not found (run: eq-chatbot config init)")
+        return
+
+    mode = path.stat().st_mode & 0o777
+    perm_style = "yellow" if mode & 0o077 else "green"
+    click.echo(click.style("Permissions:", fg="blue") + " " + click.style(f"{mode:04o}", fg=perm_style))
+
+    try:
+        data = load_config()
+    except ConfigError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    default_provider = data.get("default_provider")
+    if default_provider:
+        click.echo(click.style("Default provider:", fg="blue") + f" {default_provider}")
+
+    defaults = data.get("defaults")
+    if isinstance(defaults, dict) and defaults:
+        click.echo(click.style("Chat defaults:", fg="blue") + f" {defaults}")
+
+    providers = data.get("providers")
+    if isinstance(providers, dict) and providers:
+        click.echo(click.style("Providers:", fg="blue"))
+        for name, section in providers.items():
+            if not isinstance(section, dict):
+                continue
+            parts = []
+            if isinstance(section.get("api_key"), str) and section["api_key"]:
+                parts.append(f"api_key={redact(section['api_key'])}")
+            if isinstance(section.get("model"), str) and section["model"]:
+                parts.append(f"model={section['model']}")
+            if isinstance(section.get("base_url"), str) and section["base_url"]:
+                parts.append(f"base_url={section['base_url']}")
+            detail = ", ".join(parts) if parts else "(empty)"
+            click.echo(f"  {name}: {detail}")
 
 
 if __name__ == "__main__":

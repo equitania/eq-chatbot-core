@@ -187,6 +187,7 @@ is resolved in this order (highest priority first):
 1. `-k` / `--api-key` flag
 2. `<PROVIDER>_API_KEY` — provider-specific variable (e.g. `OPENROUTER_API_KEY`)
 3. `LLM_API_KEY` — generic fallback
+4. the [config file](#configuration-file) (`[providers.<name>].api_key`)
 
 This lets you store one key per provider on the host and never pass `-k` again:
 
@@ -207,6 +208,48 @@ Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_AP
 | `LLM_API_KEY` | Generic fallback API key when no flag or provider-specific var is set | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LANGDOCK_API_KEY` | Fallback API key when `-k`/`--api-key` is not given | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback bearer token when no `--auth-token*` flag is given | `serve` |
+| `EQ_CHATBOT_CONFIG` | Override the config file path (default: `~/.config/eq-chatbot/config.toml`) | all |
+
+### Configuration file
+
+Instead of (or in addition to) environment variables you can store keys, base URLs,
+default models, a default provider and chat defaults in a TOML file. Default path:
+`~/.config/eq-chatbot/config.toml` (honours `$XDG_CONFIG_HOME`; override with
+`$EQ_CHATBOT_CONFIG`).
+
+```bash
+eq-chatbot config init     # write a commented template (mode 0600)
+eq-chatbot config show     # show path, permissions and a key-masked view
+eq-chatbot config path     # print the resolved config path
+```
+
+Example `config.toml`:
+
+```toml
+default_provider = "melious"     # used when --provider is omitted
+
+[defaults]                       # used by `chat` when the flags are omitted
+temperature = 0.7
+max_tokens  = 4096
+
+[providers.openrouter]
+api_key  = "sk-or-..."
+model    = "openai/gpt-4o"       # optional
+# base_url = "https://openrouter.ai/api/v1"   # optional
+```
+
+Resolution (highest priority first):
+
+| Value | Order |
+|-------|-------|
+| api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > config |
+| base_url | `--base-url` > config > provider default |
+| model | `--model` > config > provider default |
+| provider | `--provider` > config `default_provider` |
+| temperature / max_tokens | flag > config `[defaults]` > built-in (0.7 / 4096) |
+
+The file holds keys in **plain text** — keep it private (`chmod 600`). eq-chatbot warns
+if the file is readable by others.
 
 ### See also
 
@@ -402,6 +445,7 @@ wird in dieser Reihenfolge aufgelöst (höchste Priorität zuerst):
 1. `-k` / `--api-key`-Flag
 2. `<PROVIDER>_API_KEY` — provider-spezifische Variable (z.B. `OPENROUTER_API_KEY`)
 3. `LLM_API_KEY` — generischer Fallback
+4. die [Konfigurationsdatei](#konfigurationsdatei) (`[providers.<name>].api_key`)
 
 So lässt sich pro Provider ein Key auf dem Host hinterlegen, ohne je wieder `-k` zu übergeben:
 
@@ -422,6 +466,48 @@ Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK
 | `LLM_API_KEY` | Generischer Fallback-API-Key wenn weder Flag noch provider-spezifische Variable gesetzt | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LANGDOCK_API_KEY` | Fallback-API-Key wenn `-k`/`--api-key` fehlt | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback-Bearer-Token wenn kein `--auth-token*`-Flag | `serve` |
+| `EQ_CHATBOT_CONFIG` | Überschreibt den Config-Pfad (Default: `~/.config/eq-chatbot/config.toml`) | alle |
+
+### Konfigurationsdatei
+
+Statt (oder zusätzlich zu) Umgebungsvariablen lassen sich Keys, base_urls,
+Default-Modelle, ein Default-Provider und Chat-Defaults in einer TOML-Datei ablegen.
+Default-Pfad: `~/.config/eq-chatbot/config.toml` (beachtet `$XDG_CONFIG_HOME`;
+übersteuerbar via `$EQ_CHATBOT_CONFIG`).
+
+```bash
+eq-chatbot config init     # kommentiertes Template schreiben (Rechte 0600)
+eq-chatbot config show     # Pfad, Rechte und key-maskierte Ansicht
+eq-chatbot config path     # aufgelösten Config-Pfad ausgeben
+```
+
+Beispiel `config.toml`:
+
+```toml
+default_provider = "melious"     # greift wenn --provider fehlt
+
+[defaults]                       # genutzt von `chat` wenn die Flags fehlen
+temperature = 0.7
+max_tokens  = 4096
+
+[providers.openrouter]
+api_key  = "sk-or-..."
+model    = "openai/gpt-4o"       # optional
+# base_url = "https://openrouter.ai/api/v1"   # optional
+```
+
+Auflösung (höchste Priorität zuerst):
+
+| Wert | Reihenfolge |
+|------|-------------|
+| api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > Config |
+| base_url | `--base-url` > Config > Provider-Default |
+| model | `--model` > Config > Provider-Default |
+| provider | `--provider` > Config `default_provider` |
+| temperature / max_tokens | Flag > Config `[defaults]` > eingebaut (0.7 / 4096) |
+
+Die Datei enthält Keys im **Klartext** — privat halten (`chmod 600`). eq-chatbot warnt,
+wenn die Datei für andere lesbar ist.
 
 ### Siehe auch
 
