@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.17.1 (23.06.2026)
+
+### Changed
+
+- **[CHG] `listing-assets --help` examples** (`cli.py`) — the help now opens with a concrete
+  `eq-listing-assets/v1` recipe that mixes a **banner carrying rendered title text** with a
+  **pure no-text icon**, making the text-and-image batch tangible, plus three realistic CLI
+  invocations (`--dry-run` preview, full run, `--only banner --dest …/static/description`).
+  Click `\b` no-rewrap markers keep the inline JSON and commands verbatim. No behaviour change —
+  the pipeline stays text-to-image. Mirrored into `docs/cli.md` (EN + DE) and `usage/AGENT.md`.
+
 ## Version 1.17.0 (22.06.2026)
 
 ### Added

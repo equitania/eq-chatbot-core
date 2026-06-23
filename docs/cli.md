@@ -135,17 +135,31 @@ eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cove
 
 #### `eq-chatbot listing-assets`
 
-Batch-generate images from a recipe JSON file (schema `eq-listing-assets/v1`) — built for App-Store listing assets (icon, banner, eyecatchers). Provider/model come from the recipe's `defaults` block or are overridden by CLI flags.
+Batch-generate images from a recipe JSON file (schema `eq-listing-assets/v1`) — built for App-Store listing assets (icon, banner, eyecatchers). Provider/model come from the recipe's `defaults` block or are overridden by CLI flags. A recipe can mix assets that carry rendered **text** (a banner showing the module title) and pure **imagery** (an app icon):
+
+```json
+{
+  "schema": "eq-listing-assets/v1",
+  "module": "eq_chatbot",
+  "defaults": {"provider": "openai", "model": "gpt-image-1"},
+  "assets": [
+    {"id": "banner", "out": "banner.png", "size": "1536x1024",
+     "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot mascot, bold headline 'eq_chatbot - AI Assistant for Odoo'"},
+    {"id": "icon", "out": "icon.png", "size": "1024x1024",
+     "prompt": "Minimal flat app icon, rounded square, speech bubble with a spark, blue and white, no text"}
+  ]
+}
+```
 
 ```bash
-# Generate every asset in the recipe
-eq-chatbot listing-assets --recipe listing.json -k sk-...
-
 # Preview what would be generated, no API calls
-eq-chatbot listing-assets --recipe listing.json --dry-run
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json --dry-run
 
-# Only specific assets
-eq-chatbot listing-assets --recipe listing.json --only icon,banner -k sk-...
+# Generate every asset in the recipe
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json -k sk-...
+
+# Only the banner, written into the module's listing folder
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json --only banner --dest ./eq_chatbot/static/description -k sk-...
 ```
 
 | Flag | Purpose |
@@ -393,17 +407,31 @@ eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cove
 
 #### `eq-chatbot listing-assets`
 
-Generiert mehrere Bilder im Batch aus einer Recipe-JSON-Datei (Schema `eq-listing-assets/v1`) — gebaut für App-Store-Listing-Assets (Icon, Banner, Eyecatcher). Provider/Modell kommen aus dem `defaults`-Block der Recipe oder werden per CLI-Flags überschrieben.
+Generiert mehrere Bilder im Batch aus einer Recipe-JSON-Datei (Schema `eq-listing-assets/v1`) — gebaut für App-Store-Listing-Assets (Icon, Banner, Eyecatcher). Provider/Modell kommen aus dem `defaults`-Block der Recipe oder werden per CLI-Flags überschrieben. Eine Recipe kann Assets mit gerendertem **Text** (ein Banner mit dem Modultitel) und reine **Bild**-Assets (ein App-Icon) kombinieren:
+
+```json
+{
+  "schema": "eq-listing-assets/v1",
+  "module": "eq_chatbot",
+  "defaults": {"provider": "openai", "model": "gpt-image-1"},
+  "assets": [
+    {"id": "banner", "out": "banner.png", "size": "1536x1024",
+     "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot mascot, bold headline 'eq_chatbot - AI Assistant for Odoo'"},
+    {"id": "icon", "out": "icon.png", "size": "1024x1024",
+     "prompt": "Minimal flat app icon, rounded square, speech bubble with a spark, blue and white, no text"}
+  ]
+}
+```
 
 ```bash
-# Alle Assets der Recipe generieren
-eq-chatbot listing-assets --recipe listing.json -k sk-...
-
 # Vorschau ohne API-Calls
-eq-chatbot listing-assets --recipe listing.json --dry-run
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json --dry-run
 
-# Nur bestimmte Assets
-eq-chatbot listing-assets --recipe listing.json --only icon,banner -k sk-...
+# Alle Assets der Recipe generieren
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json -k sk-...
+
+# Nur den Banner, direkt in den Listing-Ordner des Moduls
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json --only banner --dest ./eq_chatbot/static/description -k sk-...
 ```
 
 | Flag | Zweck |

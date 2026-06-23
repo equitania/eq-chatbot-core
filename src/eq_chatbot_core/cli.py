@@ -1113,13 +1113,39 @@ def listing_assets(
 
     Schema: eq-listing-assets/v1
 
+    A recipe can mix assets that carry rendered TEXT (a banner showing the
+    module title) and pure IMAGERY (an app icon). Example recipe
+    (eq_chatbot_listing.json):
+
+    \b
+    {
+      "schema": "eq-listing-assets/v1",
+      "module": "eq_chatbot",
+      "defaults": {"provider": "openai", "model": "gpt-image-1"},
+      "assets": [
+        {"id": "banner", "out": "banner.png", "size": "1536x1024",
+         "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot
+                    mascot, bold headline 'eq_chatbot - AI Assistant for Odoo'"},
+        {"id": "icon", "out": "icon.png", "size": "1024x1024",
+         "prompt": "Minimal flat app icon, rounded square, speech bubble with a
+                    spark, blue and white, no text"}
+      ]
+    }
+
     Examples:
 
-        eq-chatbot listing-assets --recipe listing.json -k sk-...
+    \b
+        # Preview what would be generated (no API calls, no key needed)
+        eq-chatbot listing-assets --recipe eq_chatbot_listing.json --dry-run
 
-        eq-chatbot listing-assets --recipe listing.json --dry-run
+    \b
+        # Generate every asset
+        eq-chatbot listing-assets --recipe eq_chatbot_listing.json -k sk-...
 
-        eq-chatbot listing-assets --recipe listing.json --only icon,banner -k sk-...
+    \b
+        # Only the banner, written into the module's listing folder
+        eq-chatbot listing-assets --recipe eq_chatbot_listing.json \\
+            --only banner --dest ./eq_chatbot/static/description -k sk-...
     """
     import pathlib
 

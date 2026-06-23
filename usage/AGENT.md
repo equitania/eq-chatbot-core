@@ -78,10 +78,10 @@ Providers limited to `openai` (`gpt-image-1`) and `openrouter` (e.g. `gemini-2.5
 
 ### Batch-generate listing assets from a recipe
 ```bash
-eq-chatbot listing-assets --recipe listing.json --dry-run                 # preview, no API calls
-eq-chatbot listing-assets --recipe listing.json -k "$KEY" --only icon,banner --dest ./out
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json --dry-run      # preview, no API calls
+eq-chatbot listing-assets --recipe eq_chatbot_listing.json -k "$KEY" --only banner --dest ./eq_chatbot/static/description
 ```
-Recipe schema `eq-listing-assets/v1`; provider/model come from the recipe `defaults` block or CLI overrides. Each asset's `out` filename is confined to `--dest` (an untrusted absolute/`../` name cannot escape). Use `--dry-run` first to review the asset list.
+Recipe schema `eq-listing-assets/v1`; provider/model come from the recipe `defaults` block or CLI overrides. A recipe mixes text-bearing assets (a banner with the module title in the prompt) and pure imagery (an icon, prompt says "no text") — each asset is `{id, out, prompt, size?, fit?}`, all text-to-image. Each asset's `out` filename is confined to `--dest` (an untrusted absolute/`../` name cannot escape). Use `--dry-run` first to review the asset list.
 
 ### Run as a sidecar server for another app
 ```bash

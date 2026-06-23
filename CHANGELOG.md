@@ -5,6 +5,16 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.1] - 2026-06-23
+
+### Changed
+
+- **`listing-assets --help` examples** (`cli.py`): replaced the abstract `listing.json` snippets
+  with a concrete `eq-listing-assets/v1` recipe (a banner with rendered title text + a no-text
+  icon) and realistic CLI invocations. Click `\b` no-rewrap blocks keep the inline JSON/commands
+  verbatim. Docs-only, no behaviour change. Mirrored into `docs/cli.md` (EN + DE) and
+  `usage/AGENT.md`.
+
 ## [1.17.0] - 2026-06-22
 
 ### Added
