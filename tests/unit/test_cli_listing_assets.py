@@ -101,9 +101,12 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(dest),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(dest),
                 ],
             )
 
@@ -121,8 +124,10 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
                 ],
             )
 
@@ -145,9 +150,12 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(tmp_path / "out"),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(tmp_path / "out"),
                 ],
             )
 
@@ -171,7 +179,8 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
+                    "--recipe",
+                    str(recipe_path),
                     "--dry-run",
                 ],
             )
@@ -218,10 +227,14 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(dest),
-                    "--only", "icon",
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(dest),
+                    "--only",
+                    "icon",
                 ],
             )
 
@@ -247,10 +260,14 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(dest),
-                    "--only", "icon,extra",
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(dest),
+                    "--only",
+                    "icon,extra",
                 ],
             )
 
@@ -268,8 +285,10 @@ class TestListingAssetsCommand:
             main,
             [
                 "listing-assets",
-                "--recipe", str(recipe_path),
-                "--only", "nonexistent",
+                "--recipe",
+                str(recipe_path),
+                "--only",
+                "nonexistent",
                 "--dry-run",
             ],
         )
@@ -377,9 +396,12 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(dest),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(dest),
                 ],
             )
 
@@ -401,18 +423,19 @@ class TestListingAssetsCommand:
 
         with patch("eq_chatbot_core.providers.get_provider") as mock_get:
             mock_provider = MagicMock()
-            mock_provider.generate_image.side_effect = ProviderError(
-                "API error", provider="openai", status_code=500
-            )
+            mock_provider.generate_image.side_effect = ProviderError("API error", provider="openai", status_code=500)
             mock_get.return_value = mock_provider
 
             result = runner.invoke(
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(tmp_path / "out"),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(tmp_path / "out"),
                 ],
             )
 
@@ -453,9 +476,12 @@ class TestListingAssetsCommand:
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--dest", str(dest),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--dest",
+                    str(dest),
                 ],
             )
 
@@ -475,19 +501,21 @@ class TestListingAssetsCommand:
 
         with patch("eq_chatbot_core.providers.get_provider") as mock_get:
             mock_provider = MagicMock()
-            mock_provider.generate_image.return_value = ImageResult(
-                data=_FAKE_PNG, model="any", provider="openrouter"
-            )
+            mock_provider.generate_image.return_value = ImageResult(data=_FAKE_PNG, model="any", provider="openrouter")
             mock_get.return_value = mock_provider
 
             runner.invoke(
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-or-test",
-                    "--provider", "openrouter",
-                    "--dest", str(tmp_path / "out"),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-or-test",
+                    "--provider",
+                    "openrouter",
+                    "--dest",
+                    str(tmp_path / "out"),
                 ],
             )
 
@@ -500,19 +528,21 @@ class TestListingAssetsCommand:
 
         with patch("eq_chatbot_core.providers.get_provider") as mock_get:
             mock_provider = MagicMock()
-            mock_provider.generate_image.return_value = ImageResult(
-                data=_FAKE_PNG, model="dall-e-3", provider="openai"
-            )
+            mock_provider.generate_image.return_value = ImageResult(data=_FAKE_PNG, model="dall-e-3", provider="openai")
             mock_get.return_value = mock_provider
 
             runner.invoke(
                 main,
                 [
                     "listing-assets",
-                    "--recipe", str(recipe_path),
-                    "--api-key", "sk-test",
-                    "--model", "dall-e-3",
-                    "--dest", str(tmp_path / "out"),
+                    "--recipe",
+                    str(recipe_path),
+                    "--api-key",
+                    "sk-test",
+                    "--model",
+                    "dall-e-3",
+                    "--dest",
+                    str(tmp_path / "out"),
                 ],
             )
 

@@ -17,7 +17,6 @@ from PIL import Image as PILImage  # noqa: E402
 
 from eq_chatbot_core.utils.image import fit_to, parse_size, save_png  # noqa: E402
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

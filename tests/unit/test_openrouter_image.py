@@ -5,8 +5,7 @@ OpenRouter uses httpx directly).
 """
 
 import base64
-import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import httpx
 import pytest
@@ -252,9 +251,7 @@ class TestOpenRouterImageGeneration:
                     "message": {
                         "role": "assistant",
                         "content": "",
-                        "images": [
-                            {"type": "image_url", "image_url": {"url": "https://example.com/image.png"}}
-                        ],
+                        "images": [{"type": "image_url", "image_url": {"url": "https://example.com/image.png"}}],
                     },
                     "finish_reason": "stop",
                 }

@@ -430,8 +430,7 @@ class TestLocalLLMProviderErrors:
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = {
             "error": {
-                "message": "The number of tokens to keep from the initial prompt is "
-                "greater than the context length"
+                "message": "The number of tokens to keep from the initial prompt is greater than the context length"
             }
         }
 

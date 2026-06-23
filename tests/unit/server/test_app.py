@@ -202,7 +202,6 @@ class TestChatEndpoint:
         assert call_kwargs["tools"] is not None
         assert call_kwargs["tools"][0]["function"]["name"] == "f"
 
-
     def test_chat_provider_extra_forwarded_to_factory(self, client) -> None:
         """provider_extra body field should be unpacked into the
         get_provider() call so provider-constructor kwargs (e.g. LangDock's

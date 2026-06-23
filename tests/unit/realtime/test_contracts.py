@@ -44,11 +44,7 @@ def test_event_type_string_values():
 @pytest.mark.unit
 def test_event_type_count():
     """Verify exactly 12 public string attributes — future additions trigger CI failure."""
-    attrs = [
-        k
-        for k, v in vars(NormalizedRealtimeEventTypes).items()
-        if not k.startswith("_") and isinstance(v, str)
-    ]
+    attrs = [k for k, v in vars(NormalizedRealtimeEventTypes).items() if not k.startswith("_") and isinstance(v, str)]
     assert len(attrs) == 12
 
 
@@ -136,6 +132,7 @@ def test_adapter_contract_runtime_checkable():
 
     class _MissingOne:
         async def connect(self): ...  # noqa: E704
+
         # intentionally missing close and all other methods
 
     assert not isinstance(_MissingOne(), RealtimeAdapterContract)

@@ -9,10 +9,11 @@ Coverage:
   - PROV-07: _redact_sensitive_url strips key=, _redact_sensitive_text strips bearer token
   - QUAL-01: both endpoint modes URL shape, all wire types normalized
 """
+
 import dataclasses
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, patch
 
 from eq_chatbot_core.providers.base import ToolDefinition
 from eq_chatbot_core.realtime.contracts import NormalizedRealtimeEventTypes, RealtimeAdapterContract
@@ -32,24 +33,10 @@ _FAKE_TOKEN = "ya29.fake-bearer-token"
 # Wire frames for TestIterNormalizedEvents (no mocking of iter_events needed)
 _SETUP_COMPLETE_FRAME = {"setupComplete": {}}
 _SERVER_CONTENT_AUDIO_FRAME = {
-    "serverContent": {
-        "modelTurn": {
-            "parts": [
-                {"inlineData": {"mimeType": "audio/pcm", "data": "AAAA"}}
-            ]
-        }
-    }
+    "serverContent": {"modelTurn": {"parts": [{"inlineData": {"mimeType": "audio/pcm", "data": "AAAA"}}]}}
 }
-_SERVER_CONTENT_TURN_COMPLETE_FRAME = {
-    "serverContent": {"turnComplete": True}
-}
-_TOOL_CALL_FRAME = {
-    "toolCall": {
-        "functionCalls": [
-            {"id": "call-1", "name": "my_fn", "args": {"x": 1}}
-        ]
-    }
-}
+_SERVER_CONTENT_TURN_COMPLETE_FRAME = {"serverContent": {"turnComplete": True}}
+_TOOL_CALL_FRAME = {"toolCall": {"functionCalls": [{"id": "call-1", "name": "my_fn", "args": {"x": 1}}]}}
 _TOOL_CALL_CANCELLATION_FRAME = {"toolCallCancellation": {"ids": ["call-1"]}}
 _ERROR_FRAME = {"error": {"code": 500, "message": "internal error"}}
 _UNKNOWN_FRAME = {"someUnknownKey": {"data": "xyz"}}

@@ -10,6 +10,7 @@ Coverage:
   - PROV-04: model default "gpt-realtime" exact string
   - QUAL-01: tool call payload shape (PITFALL-05 item sub-dict + top-level fields)
 """
+
 import dataclasses
 
 import pytest
@@ -365,17 +366,13 @@ class TestIterNormalizedEvents:
     def test_input_speech_started_normalized(self) -> None:
         """input_audio_buffer.speech_started → INPUT_SPEECH_STARTED."""
         client = _make_client()
-        result = client._to_normalized_runtime_event(
-            {"type": "input_audio_buffer.speech_started"}
-        )
+        result = client._to_normalized_runtime_event({"type": "input_audio_buffer.speech_started"})
         assert result["type"] == NormalizedRealtimeEventTypes.INPUT_SPEECH_STARTED
 
     def test_input_speech_stopped_normalized(self) -> None:
         """input_audio_buffer.speech_stopped → INPUT_SPEECH_STOPPED."""
         client = _make_client()
-        result = client._to_normalized_runtime_event(
-            {"type": "input_audio_buffer.speech_stopped"}
-        )
+        result = client._to_normalized_runtime_event({"type": "input_audio_buffer.speech_stopped"})
         assert result["type"] == NormalizedRealtimeEventTypes.INPUT_SPEECH_STOPPED
 
     def test_response_created_normalized(self) -> None:
@@ -387,9 +384,7 @@ class TestIterNormalizedEvents:
     def test_input_audio_committed_normalized(self) -> None:
         """input_audio_buffer.committed → INPUT_AUDIO_COMMITTED."""
         client = _make_client()
-        result = client._to_normalized_runtime_event(
-            {"type": "input_audio_buffer.committed"}
-        )
+        result = client._to_normalized_runtime_event({"type": "input_audio_buffer.committed"})
         assert result["type"] == NormalizedRealtimeEventTypes.INPUT_AUDIO_COMMITTED
 
     def test_error_normalized(self) -> None:

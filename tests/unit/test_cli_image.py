@@ -1,6 +1,5 @@
 """Unit tests for the eq-chatbot image CLI command."""
 
-import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -49,10 +48,14 @@ class TestImageCommand:
                 main,
                 [
                     "image",
-                    "-p", "openai",
-                    "-k", "sk-test",
-                    "--prompt", "A sunset over the ocean",
-                    "-o", out_file,
+                    "-p",
+                    "openai",
+                    "-k",
+                    "sk-test",
+                    "--prompt",
+                    "A sunset over the ocean",
+                    "-o",
+                    out_file,
                 ],
             )
 
@@ -122,10 +125,14 @@ class TestImageCommand:
                 main,
                 [
                     "image",
-                    "-p", "openai",
-                    "-k", "sk-test",
-                    "--prompt-file", str(prompt_file),
-                    "-o", out_file,
+                    "-p",
+                    "openai",
+                    "-k",
+                    "sk-test",
+                    "--prompt-file",
+                    str(prompt_file),
+                    "-o",
+                    out_file,
                 ],
             )
 
@@ -147,11 +154,16 @@ class TestImageCommand:
                 main,
                 [
                     "image",
-                    "-p", "openai",
-                    "-k", "sk-test",
-                    "--prompt", "Test",
-                    "--model", "dall-e-3",
-                    "-o", out_file,
+                    "-p",
+                    "openai",
+                    "-k",
+                    "sk-test",
+                    "--prompt",
+                    "Test",
+                    "--model",
+                    "dall-e-3",
+                    "-o",
+                    out_file,
                 ],
             )
 
@@ -198,11 +210,16 @@ class TestImageCommand:
                 main,
                 [
                     "image",
-                    "-p", "openai",
-                    "-k", "sk-test",
-                    "--prompt", "Test",
-                    "--fit", "50x50:cover",
-                    "-o", out_file,
+                    "-p",
+                    "openai",
+                    "-k",
+                    "sk-test",
+                    "--prompt",
+                    "Test",
+                    "--fit",
+                    "50x50:cover",
+                    "-o",
+                    out_file,
                 ],
             )
 
