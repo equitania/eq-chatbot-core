@@ -274,7 +274,7 @@ class ChatbotErrorHandler:
         context: dict[str, Any],
     ) -> ErrorResult:
         """Handle unknown errors with fallback."""
-        logger.error(f"Generic LLM error from {provider}: {error}")
+        logger.error(f"Generic LLM error from {provider}: {scrub_secrets(str(error))}")
 
         fallback_result = self._try_fallback_provider(provider, context)
         if fallback_result.success:
@@ -314,7 +314,7 @@ class ChatbotErrorHandler:
                         fallback_used=fallback_name,
                     )
             except Exception as e:
-                logger.warning(f"Fallback to {fallback_name} failed: {e}")
+                logger.warning(f"Fallback to {fallback_name} failed: {scrub_secrets(str(e))}")
                 continue
 
         return ErrorResult(

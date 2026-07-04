@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets as _scrub
 from eq_chatbot_core.utils.url_validation import validate_url as _validate_url
 from eq_chatbot_core.version import __version__
 
@@ -299,7 +300,7 @@ class MCPClient:
         # Wait for connection and endpoint event (outside lock to avoid deadlock)
         if not self._connected.wait(timeout=self.timeout):
             sse_url = self.base_url if self.base_url.endswith("/sse") else f"{self.base_url}/sse"
-            raise TimeoutError(f"Failed to connect to MCP server at {sse_url} within {self.timeout}s")
+            raise TimeoutError(f"Failed to connect to MCP server at {_scrub(sse_url)} within {self.timeout}s")
 
     def _sse_listener_loop(self) -> None:
         """SSE listener loop running in separate thread."""
@@ -314,7 +315,7 @@ class MCPClient:
             sse_url = self.base_url
         else:
             sse_url = f"{self.base_url}/sse"
-        logger.info(f"Connecting to MCP SSE endpoint: {sse_url}")
+        logger.info(f"Connecting to MCP SSE endpoint: {_scrub(sse_url)}")
 
         try:
             # SSE connections need: quick connect, but infinite read timeout
@@ -362,9 +363,9 @@ class MCPClient:
                         event_data.append(line[5:].strip())
 
         except httpx.ConnectError as e:
-            logger.error(f"Failed to connect to MCP server at {sse_url}: {e}")
+            logger.error(f"Failed to connect to MCP server at {_scrub(sse_url)}: {_scrub(str(e))}")
         except httpx.TimeoutException as e:
-            logger.error(f"Connection timeout to MCP server at {sse_url}: {e}")
+            logger.error(f"Connection timeout to MCP server at {_scrub(sse_url)}: {_scrub(str(e))}")
         except Exception as e:
             if not self._stop_event.is_set():
                 logger.error(f"SSE connection error: {e}")

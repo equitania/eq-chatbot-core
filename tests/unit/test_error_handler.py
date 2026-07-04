@@ -622,3 +622,38 @@ class TestEnums:
         assert ErrorCategory.VALIDATION.value == "validation"
         assert ErrorCategory.RATE_LIMIT.value == "rate_limit"
         assert ErrorCategory.TOKEN_LIMIT.value == "token_limit"
+
+
+# =============================================================================
+# Secret Scrubbing in Log Output (v1.17.2)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestLogScrubbing:
+    """Logged error text must never contain credential-shaped substrings."""
+
+    def test_generic_error_log_scrubs_secret(self, handler, caplog):
+        error = Exception("500 upstream error for key sk-leakedsecret12345")
+
+        with caplog.at_level("ERROR", logger="eq_chatbot_core.services.error_handler"):
+            result = handler.handle_llm_error(error, "openai", {})
+
+        assert result.success is False
+        assert "sk-leakedsecret12345" not in caplog.text
+        assert "***" in caplog.text
+        assert result.original_error is not None
+        assert "sk-leakedsecret12345" not in result.original_error
+
+    def test_fallback_failure_log_scrubs_secret(self, caplog):
+        def get_provider(name):
+            raise Exception(f"connect failed: Bearer sk-fallbackleak99999 for {name}")
+
+        handler = ChatbotErrorHandler(get_provider_fn=get_provider)
+
+        with caplog.at_level("WARNING", logger="eq_chatbot_core.services.error_handler"):
+            result = handler.handle_llm_error(Exception("boom"), "openai", {})
+
+        assert result.success is False
+        assert "sk-fallbackleak99999" not in caplog.text
+        assert "***" in caplog.text

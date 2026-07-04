@@ -165,6 +165,13 @@ class AzureProvider(BaseLLMProvider):
                 "base_url is required for Azure provider. Example: https://your-resource.services.ai.azure.com/"
             )
 
+        # SSRF guard: base_url is always caller-supplied here. Reject non-HTTP
+        # schemes and private / link-local / cloud-metadata targets. Imported
+        # lazily to avoid an import cycle.
+        from eq_chatbot_core.utils.url_validation import validate_url
+
+        validate_url(base_url, allow_private_ranges=False)
+
         super().__init__(api_key, base_url, timeout, max_retries)
         self._api_version = api_version or self.DEFAULT_API_VERSION
         self._client: ChatCompletionsClient | None = None

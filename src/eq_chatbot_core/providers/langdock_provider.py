@@ -139,6 +139,14 @@ class LangDockProvider(BaseLLMProvider):
             reasoning_effort: For O1/O3/O4 models - 'low', 'medium', 'high'
             agent_id: LangDock Agent ID (required for backend='agent')
         """
+        # SSRF guard: only a caller-supplied base_url is validated — the fixed
+        # public default needs no DNS round-trip. Imported lazily to avoid an
+        # import cycle.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
         super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries)
 
         # Initialize clients BEFORE validation to ensure __del__ works
@@ -1758,9 +1766,9 @@ class LangDockAgentManager:
             }
 
         except httpx.RequestError as e:
-            _logger.error(f"Attachment upload request error: {e}")
+            _logger.error(f"Attachment upload request error: {_scrub(str(e))}")
             raise ProviderError(
-                f"Attachment upload failed: {e}",
+                f"Attachment upload failed: {_scrub(str(e))}",
                 provider="langdock",
             ) from e
 

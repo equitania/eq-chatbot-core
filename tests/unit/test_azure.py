@@ -68,10 +68,10 @@ class TestAzureProviderInit:
 
         provider = AzureProvider(
             api_key="test-azure-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
         )
         assert provider.api_key == "test-azure-key"
-        assert provider.base_url == "https://test.services.ai.azure.com/"
+        assert provider.base_url == "https://localhost/"
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
@@ -79,7 +79,7 @@ class TestAzureProviderInit:
         """Test initialization with custom endpoint."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        endpoint = "https://custom-resource.cognitiveservices.azure.com/"
+        endpoint = "https://localhost/"
         provider = AzureProvider(api_key="test-key", base_url=endpoint)
         assert provider.base_url == endpoint
 
@@ -100,7 +100,7 @@ class TestAzureProviderInit:
             with pytest.raises(ImportError, match="Azure AI SDK not installed"):
                 AzureProvider(
                     api_key="test-key",
-                    base_url="https://test.services.ai.azure.com/",
+                    base_url="https://localhost/",
                 )
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
@@ -111,7 +111,7 @@ class TestAzureProviderInit:
 
         provider = AzureProvider(
             api_key="test-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
             timeout=120.0,
         )
         assert provider.timeout == 120.0
@@ -134,7 +134,7 @@ class TestAzureProviderProperties:
 
         provider = AzureProvider(
             api_key="test-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
         )
         assert provider.provider_name == "azure"
 
@@ -146,7 +146,7 @@ class TestAzureProviderProperties:
 
         provider = AzureProvider(
             api_key="test-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
         )
         assert provider.default_model == "gpt-4o"
 
@@ -166,7 +166,7 @@ class TestAzureTemperatureConstraints:
         """Test reasoning models (o1, o3, o4) return None for temperature."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         assert provider._clamp_temperature("o1", 0.7) is None
         assert provider._clamp_temperature("o3", 0.5) is None
@@ -178,7 +178,7 @@ class TestAzureTemperatureConstraints:
         """Test GPT-4.1 models pass through temperature (min=0.0)."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         assert provider._clamp_temperature("gpt-4.1", 0.5) == 0.5
         assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
@@ -190,7 +190,7 @@ class TestAzureTemperatureConstraints:
         """Test legacy models (gpt-4o) pass through any valid temperature."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         assert provider._clamp_temperature("gpt-4o", 0.0) == 0.0
         assert provider._clamp_temperature("gpt-4o", 0.7) == 0.7
@@ -202,7 +202,7 @@ class TestAzureTemperatureConstraints:
         """Test Claude models clamp temperature to max 1.0."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         assert provider._clamp_temperature("claude-sonnet-4-5", 1.5) == 1.0
         assert provider._clamp_temperature("claude-sonnet-4-5", 0.5) == 0.5
@@ -213,7 +213,7 @@ class TestAzureTemperatureConstraints:
         """Test unknown models use default constraints (0.0-2.0)."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         assert provider._clamp_temperature("some-unknown-model", 0.0) == 0.0
         assert provider._clamp_temperature("some-unknown-model", 1.5) == 1.5
@@ -235,7 +235,7 @@ class TestAzureReasoningModels:
         """Test o1/o3/o4 models are detected as reasoning."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         assert provider._is_reasoning_model("o1") is True
         assert provider._is_reasoning_model("o1-mini") is True
         assert provider._is_reasoning_model("o3") is True
@@ -248,7 +248,7 @@ class TestAzureReasoningModels:
         """Test GPT and Claude models are not reasoning models."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         assert provider._is_reasoning_model("gpt-4o") is False
         assert provider._is_reasoning_model("gpt-4.1") is False
         assert provider._is_reasoning_model("claude-sonnet-4-5") is False
@@ -271,7 +271,7 @@ class TestAzureMessageConversion:
 
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         result = provider._convert_messages([{"role": "system", "content": "You are helpful."}])
         assert len(result) == 1
         assert isinstance(result[0], SystemMessage)
@@ -284,7 +284,7 @@ class TestAzureMessageConversion:
 
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         result = provider._convert_messages([{"role": "user", "content": "Hello"}])
         assert len(result) == 1
         assert isinstance(result[0], UserMessage)
@@ -297,7 +297,7 @@ class TestAzureMessageConversion:
 
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         result = provider._convert_messages([{"role": "assistant", "content": "Hi there!"}])
         assert len(result) == 1
         assert isinstance(result[0], AssistantMessage)
@@ -310,7 +310,7 @@ class TestAzureMessageConversion:
 
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         result = provider._convert_messages([{"role": "tool", "content": '{"temp": 20}', "tool_call_id": "call_123"}])
         assert len(result) == 1
         assert isinstance(result[0], ToolMessage)
@@ -323,7 +323,7 @@ class TestAzureMessageConversion:
 
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         result = provider._convert_messages([{"role": "unknown", "content": "test"}])
         assert len(result) == 1
         assert isinstance(result[0], UserMessage)
@@ -348,7 +348,7 @@ class TestAzureChatCompletion:
         mock_client.complete.return_value = mock_chat_response
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         response = provider.chat_completion(
@@ -371,7 +371,7 @@ class TestAzureChatCompletion:
         mock_client.complete.return_value = mock_chat_response
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         provider.chat_completion(
@@ -393,7 +393,7 @@ class TestAzureChatCompletion:
         mock_client.complete.return_value = mock_chat_response
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         provider.chat_completion(
@@ -415,7 +415,7 @@ class TestAzureChatCompletion:
         mock_client.complete.return_value = mock_chat_response
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         provider.chat_completion(
@@ -456,7 +456,7 @@ class TestAzureChatCompletion:
         mock_client.complete.return_value = response
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         tools = [{"type": "function", "function": {"name": "get_weather", "parameters": {}}}]
@@ -514,7 +514,7 @@ class TestAzureStreamCompletion:
         mock_client.complete.return_value = iter([chunk1, chunk2, chunk3])
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         chunks = list(
@@ -549,7 +549,7 @@ class TestAzureStreamCompletion:
         mock_client.complete.return_value = iter([chunk])
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         list(
@@ -579,7 +579,7 @@ class TestAzureListModels:
         """Test list_models returns all known models."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         models = provider.list_models()
 
@@ -595,7 +595,7 @@ class TestAzureListModels:
         """Test list_models includes model metadata."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         models = provider.list_models()
 
@@ -610,7 +610,7 @@ class TestAzureListModels:
         """Test list_models returns sorted by ID."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         models = provider.list_models()
         model_ids = [m["id"] for m in models]
@@ -622,7 +622,7 @@ class TestAzureListModels:
         """Test list_models includes correct temperature constraints."""
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
 
         models = provider.list_models()
 
@@ -666,7 +666,7 @@ class TestAzureErrorHandling:
         mock_client.complete.side_effect = error
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         with pytest.raises(RateLimitError):
@@ -688,7 +688,7 @@ class TestAzureErrorHandling:
         mock_client.complete.side_effect = error
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="invalid-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="invalid-key", base_url="https://localhost/")
         provider._client = mock_client
 
         with pytest.raises(AuthenticationError):
@@ -711,7 +711,7 @@ class TestAzureErrorHandling:
         mock_client.complete.side_effect = error
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         with pytest.raises(OverloadedError):
@@ -734,7 +734,7 @@ class TestAzureErrorHandling:
         mock_client.complete.side_effect = error
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         with pytest.raises(ContextLengthError):
@@ -753,7 +753,7 @@ class TestAzureErrorHandling:
         mock_client.complete.side_effect = Exception("Network error")
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         with pytest.raises(ProviderError):
@@ -781,7 +781,7 @@ class TestAzureContextManager:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
-        provider = AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/")
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
         provider._client = mock_client
 
         provider.close()
@@ -798,7 +798,7 @@ class TestAzureContextManager:
         mock_client = MagicMock()
         mock_client_class.return_value = mock_client
 
-        with AzureProvider(api_key="test-key", base_url="https://test.ai.azure.com/") as provider:
+        with AzureProvider(api_key="test-key", base_url="https://localhost/") as provider:
             provider._client = mock_client
             assert provider is not None
 
@@ -824,8 +824,36 @@ class TestAzureFactoryIntegration:
         provider = get_provider(
             "azure",
             api_key="test-azure-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
         )
 
         assert isinstance(provider, AzureProvider)
         assert provider.provider_name == "azure"
+
+
+# =============================================================================
+# SSRF Guard (v1.17.2)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestAzureSSRFGuard:
+    """base_url is always caller-supplied and must pass validate_url."""
+
+    def test_cloud_metadata_endpoint_rejected(self):
+        from eq_chatbot_core.providers.azure_provider import AzureProvider
+
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="test-key", base_url="http://169.254.169.254/models")
+
+    def test_non_http_scheme_rejected(self):
+        from eq_chatbot_core.providers.azure_provider import AzureProvider
+
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="test-key", base_url="ftp://localhost/models")
+
+    def test_localhost_base_url_accepted(self):
+        from eq_chatbot_core.providers.azure_provider import AzureProvider
+
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/models")
+        assert provider.base_url == "https://localhost/models"

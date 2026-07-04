@@ -85,6 +85,14 @@ class OpenRouterProvider(BaseLLMProvider):
             site_url: Optional site URL for HTTP-Referer header (for rankings)
             site_name: Optional site name for X-Title header (for display)
         """
+        # SSRF guard: only a caller-supplied base_url is validated — the fixed
+        # public default needs no DNS round-trip. Imported lazily to avoid an
+        # import cycle.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
         super().__init__(api_key, base_url or self.DEFAULT_BASE_URL, timeout, max_retries)
         self.site_url = site_url
         self.site_name = site_name

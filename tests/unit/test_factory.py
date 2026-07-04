@@ -67,7 +67,7 @@ class TestFactoryCloudProviders:
         provider = get_provider(
             "azure",
             api_key="test-azure-key",
-            base_url="https://test.services.ai.azure.com/",
+            base_url="https://localhost/",
         )
 
         assert isinstance(provider, AzureProvider)

@@ -107,7 +107,7 @@ class TestMammouthProviderInit:
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
-            custom_url = "https://custom.mammouth.ai/v1"
+            custom_url = "http://localhost:4000/v1"
             provider = MammouthProvider(api_key="mm-test-key", base_url=custom_url)
             assert provider.base_url == custom_url
 
@@ -861,3 +861,37 @@ class TestMammouthFactoryIntegration:
 
             assert isinstance(provider, MammouthProvider)
             assert provider.provider_name == "mammouth"
+
+
+# =============================================================================
+# SSRF Guard (v1.17.2)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestMammouthSSRFGuard:
+    """A caller-supplied base_url must pass validate_url; the default is exempt."""
+
+    def test_cloud_metadata_endpoint_rejected(self):
+        from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+
+        with pytest.raises(ValueError):
+            MammouthProvider(api_key="mm-test-key", base_url="http://169.254.169.254/v1")
+
+    def test_non_http_scheme_rejected(self):
+        from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+
+        with pytest.raises(ValueError):
+            MammouthProvider(api_key="mm-test-key", base_url="ftp://localhost/v1")
+
+    def test_localhost_base_url_accepted(self):
+        from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+
+        provider = MammouthProvider(api_key="mm-test-key", base_url="http://localhost:4000/v1")
+        assert provider.base_url == "http://localhost:4000/v1"
+
+    def test_default_base_url_skips_validation(self):
+        from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+
+        provider = MammouthProvider(api_key="mm-test-key")
+        assert provider.base_url == MammouthProvider.DEFAULT_BASE_URL

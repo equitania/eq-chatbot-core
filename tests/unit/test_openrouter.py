@@ -115,7 +115,7 @@ class TestOpenRouterProviderInit:
         with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
-            custom_url = "https://custom.openrouter.ai/v1"
+            custom_url = "http://localhost:4000/v1"
             provider = OpenRouterProvider(api_key="sk-or-test-key", base_url=custom_url)
             assert provider.base_url == custom_url
 
@@ -945,3 +945,37 @@ class TestOpenRouterFactoryIntegration:
 
             assert isinstance(provider, OpenRouterProvider)
             assert provider.provider_name == "openrouter"
+
+
+# =============================================================================
+# SSRF Guard (v1.17.2)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestOpenRouterSSRFGuard:
+    """A caller-supplied base_url must pass validate_url; the default is exempt."""
+
+    def test_cloud_metadata_endpoint_rejected(self):
+        from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+        with pytest.raises(ValueError):
+            OpenRouterProvider(api_key="sk-or-test-key", base_url="http://169.254.169.254/v1")
+
+    def test_non_http_scheme_rejected(self):
+        from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+        with pytest.raises(ValueError):
+            OpenRouterProvider(api_key="sk-or-test-key", base_url="ftp://localhost/v1")
+
+    def test_localhost_base_url_accepted(self):
+        from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key="sk-or-test-key", base_url="http://localhost:4000/v1")
+        assert provider.base_url == "http://localhost:4000/v1"
+
+    def test_default_base_url_skips_validation(self):
+        from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key="sk-or-test-key")
+        assert provider.base_url == OpenRouterProvider.DEFAULT_BASE_URL

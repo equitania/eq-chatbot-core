@@ -186,7 +186,7 @@ class TestLangDockProviderInit:
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
             from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
-            custom_url = "https://custom.langdock.com/v1"
+            custom_url = "http://localhost:4000/v1"
             provider = LangDockProvider(api_key="test-key", base_url=custom_url)
             assert provider.base_url == custom_url
 
@@ -961,3 +961,37 @@ class TestLangDockSystemPromptExtraction:
             system, filtered = provider._extract_system_prompt(messages)
             assert system is None
             assert len(filtered) == 2
+
+
+# =============================================================================
+# SSRF Guard (v1.17.2)
+# =============================================================================
+
+
+@pytest.mark.unit
+class TestLangDockSSRFGuard:
+    """A caller-supplied base_url must pass validate_url; the default is exempt."""
+
+    def test_cloud_metadata_endpoint_rejected(self):
+        from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+
+        with pytest.raises(ValueError):
+            LangDockProvider(api_key="test-key", base_url="http://169.254.169.254/v1")
+
+    def test_non_http_scheme_rejected(self):
+        from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+
+        with pytest.raises(ValueError):
+            LangDockProvider(api_key="test-key", base_url="ftp://localhost/v1")
+
+    def test_localhost_base_url_accepted(self):
+        from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+
+        provider = LangDockProvider(api_key="test-key", base_url="http://localhost:4000/v1")
+        assert provider.base_url == "http://localhost:4000/v1"
+
+    def test_default_base_url_skips_validation(self):
+        from eq_chatbot_core.providers.langdock_provider import LangDockProvider
+
+        provider = LangDockProvider(api_key="test-key")
+        assert provider.base_url == LangDockProvider.BASE_URL

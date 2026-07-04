@@ -1,5 +1,41 @@
 # Release Notes
 
+## Version 1.17.2 (04.07.2026)
+
+### Fixed
+
+- **[FIX] Pillow security update** (`pyproject.toml`) — the `[image]` extra now requires
+  `Pillow>=12.2.0,<13.0` (was `<12.0`). The old upper bound made it impossible to install the
+  patched Pillow 12.2.x line and left consumers exposed to six published CVEs in 11.x (PSD
+  out-of-bounds write/memory corruption CVE-2026-25990 / CVE-2026-42311, FITS decompression bomb
+  CVE-2026-40192, and further DoS issues — all fixed in 12.1.1/12.2.0). `uv.lock` refreshed
+  (Pillow 12.3.0, transitive msgpack 1.2.0 → 1.2.1 for GHSA-6v7p-g79w-8964).
+- **[FIX] Secret scrubbing applied consistently to log output** — the generic error path in
+  `services/error_handler.py` (`_handle_generic_error`, `_try_fallback_provider`) now runs
+  exception text through `scrub_secrets()` before logging, matching the already-scrubbed
+  `original_error` field; the MCP SSE client (`mcp/client.py`) scrubs the caller-supplied
+  SSE URL and error text in its connect/timeout log lines and the `TimeoutError` message; the
+  LangDock attachment-upload error path (`langdock_provider.py`) routes log and raised
+  `ProviderError` text through `_scrub()` like every other httpx handler in the file.
+- **[FIX] SSRF guard extended to all caller-supplied base_urls** — `validate_url()` (blocks
+  non-HTTP schemes, private/link-local/cloud-metadata targets) is now enforced in the Azure
+  provider (base_url is always caller-supplied) and in LangDock, OpenRouter and Mammouth when a
+  non-default `base_url` override is given, closing the gap against the already-guarded
+  litellm/ionos/melious/local providers. Explicit localhost URLs remain allowed.
+- **[FIX] Circular import on fresh `import eq_chatbot_core.services`** (`utils/__init__.py`) —
+  the eager `PRICING`/`calculate_cost` re-export completed the cycle
+  `utils → pricing → services.cost_service → providers → local_provider → utils` and broke any
+  interpreter that imported `eq_chatbot_core.services` first (e.g.
+  `from eq_chatbot_core.services.error_handler import ChatbotErrorHandler`). The re-export is now
+  lazy via PEP 562 module `__getattr__`; the public API is unchanged.
+
+### Tests
+
+- New `TestLogScrubbing` (error handler caplog checks) and per-provider `Test*SSRFGuard` classes
+  (metadata endpoint rejected, non-HTTP scheme rejected, localhost accepted, default URL exempt).
+  Azure/OpenRouter/Mammouth/LangDock unit tests now use hermetic `localhost` base URLs so the new
+  `validate_url` call needs no DNS in unit runs.
+
 ## Version 1.17.1 (23.06.2026)
 
 ### Changed

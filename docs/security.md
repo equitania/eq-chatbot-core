@@ -127,6 +127,10 @@ Detection is content-based — a `.txt` file with a JPEG header is rejected as `
 
 Standalone HTTP calls inside cloud providers (`mammouth`, `langdock`) disable redirect following (`follow_redirects=False`) to defeat SSRF via DNS-based redirect manipulation. This is automatic — no caller action needed.
 
+### Provider base_url validation (v1.17.2+)
+
+Every provider that accepts a caller-supplied `base_url` validates it with `validate_url()` at construction time: non-HTTP(S) schemes and private / link-local / cloud-metadata targets (e.g. `169.254.169.254`) raise `ValueError`. Cloud providers (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) reject private ranges; the `local` provider allows them (LAN mode for on-prem model servers). Fixed public default endpoints skip the check — no DNS round-trip on default construction. Explicit localhost URLs are always accepted.
+
 ### See also
 
 - [MCP](mcp.md#english) — DNS-pinning and stdio environment whitelist for the MCP transport
@@ -260,6 +264,10 @@ Erkennung ist Content-basiert — eine `.txt`-Datei mit JPEG-Header wird als `im
 ### Provider-Level Redirect-Schutz
 
 Standalone-HTTP-Calls in Cloud-Providern (`mammouth`, `langdock`) deaktivieren Redirect-Following (`follow_redirects=False`) um SSRF via DNS-basierte Redirect-Manipulation zu unterbinden. Automatisch — kein Caller-Eingriff nötig.
+
+### Provider base_url-Validierung (v1.17.2+)
+
+Jeder Provider mit caller-supplied `base_url` validiert diese beim Konstruieren mit `validate_url()`: Nicht-HTTP(S)-Schemata sowie private / link-local / Cloud-Metadata-Ziele (z. B. `169.254.169.254`) lösen `ValueError` aus. Cloud-Provider (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) lehnen private Ranges ab; der `local`-Provider erlaubt sie (LAN-Modus für On-Prem-Modellserver). Feste öffentliche Default-Endpoints überspringen die Prüfung — kein DNS-Roundtrip bei Default-Konstruktion. Explizite localhost-URLs sind immer erlaubt.
 
 ### Siehe auch
 

@@ -5,6 +5,27 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.2] - 2026-07-04
+
+### Security
+
+- **Pillow bumped to `>=12.2.0,<13.0`** (`[image]` extra): the old `<12.0` bound blocked the
+  patched 12.2.x line and pinned consumers to a version range with six published CVEs
+  (incl. CVE-2026-42311 memory corruption via crafted PSD). Lock refreshed: Pillow 12.3.0,
+  msgpack 1.2.1 (GHSA-6v7p-g79w-8964).
+- **Consistent secret scrubbing in logs**: `error_handler.py` generic/fallback log lines,
+  MCP SSE client URL/error logging and `TimeoutError` message, and the LangDock
+  attachment-upload error path now all pass through `scrub_secrets()`/`_scrub()`.
+- **SSRF validation for caller-supplied base_urls**: `validate_url()` now also guards the
+  Azure provider (always caller-supplied) and LangDock/OpenRouter/Mammouth `base_url`
+  overrides; default public endpoints skip the check (no DNS round-trip).
+
+### Fixed
+
+- **Circular import** on fresh `import eq_chatbot_core.services` (`utils/__init__.py`):
+  `PRICING`/`calculate_cost` re-export is now lazy (PEP 562), breaking the
+  `utils → pricing → cost_service → providers → local_provider → utils` cycle. API unchanged.
+
 ## [1.17.1] - 2026-06-23
 
 ### Changed
