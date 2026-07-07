@@ -3,11 +3,18 @@ Core services for chatbot operations.
 
 - ChatService: Main chat orchestration
 - CostService: Token and cost tracking
+- DocumentExtractor: Office documents to Markdown (knowledge ingestion)
 - ErrorHandler: Provider error handling with fallbacks
 - KnowledgeService: Odoo data export to vector databases
 """
 
 from eq_chatbot_core.services.cost_service import PRICING, calculate_cost
+from eq_chatbot_core.services.document_extractor import (
+    ExtractionResult,
+    extract_markdown,
+    is_document_extraction_available,
+    supported_extensions,
+)
 from eq_chatbot_core.services.error_handler import ChatbotErrorHandler
 from eq_chatbot_core.services.knowledge_service import (
     ExportRecord,
@@ -22,6 +29,11 @@ __all__ = [
     "calculate_cost",
     "PRICING",
     "ChatbotErrorHandler",
+    # Document Extraction
+    "ExtractionResult",
+    "extract_markdown",
+    "is_document_extraction_available",
+    "supported_extensions",
     # Knowledge Export
     "FieldConfig",
     "ModelConfig",

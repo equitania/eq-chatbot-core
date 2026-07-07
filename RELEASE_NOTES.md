@@ -1,5 +1,18 @@
 # Release Notes
 
+## Version 1.18.0 (07.07.2026)
+
+### Added
+
+- **[ADD] Document-to-Markdown extraction** (`services/document_extractor.py`) — converts
+  uploaded office documents (PDF, DOCX, PPTX, XLSX, HTML, CSV, MD, TXT) into Markdown for
+  knowledge ingestion (consumed by the Odoo `eq_knowledge_ai` module). `extract_markdown()`
+  returns an `ExtractionResult` (markdown, embedded images as blobs, warnings);
+  `is_document_extraction_available()` / `supported_extensions()` gate rich formats behind the
+  new optional extra `eq-chatbot-core[docs]` (markitdown + pymupdf). Plain `.md`/`.txt`
+  extraction is dependency-free. Hard resource limits (50 MB input, 50 images, 10 MB/image)
+  bound untrusted uploads; embedded-image extraction from PDFs via PyMuPDF is best effort.
+
 ## Version 1.17.2 (04.07.2026)
 
 ### Fixed
