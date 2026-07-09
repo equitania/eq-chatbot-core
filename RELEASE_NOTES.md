@@ -1,5 +1,20 @@
 # Release Notes
 
+## Version 1.18.1 (09.07.2026)
+
+### Removed
+
+- **[CHG] Removed the `langdock-export` CLI command** — the `eq-chatbot langdock-export`
+  backup command, the `services/langdock_export.py` module (`LangDockBackupExporter`),
+  `tests/unit/test_langdock_export.py`, and `docs/langdock-export.md` have been removed.
+  The feature is no longer shipped. **Unaffected:** the LangDock *chat* provider
+  (`providers/langdock_provider.py`) and the knowledge-sync helpers
+  `services/knowledge_service.py::KnowledgeExporter.prepare_for_langdock` /
+  `export_to_langdock` remain fully supported — only the agent/knowledge *backup*
+  CLI is gone. References in the README, `docs/README.md`, `docs/cli.md`,
+  `usage/AGENT.md`, and the `cli.py` group docstring / `info` output have been
+  cleaned up.
+
 ## Version 1.18.0 (07.07.2026)
 
 ### Added

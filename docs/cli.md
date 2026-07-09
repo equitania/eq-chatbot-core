@@ -183,16 +183,6 @@ Start the local HTTP/SSE sidecar. See [server-mode.md](server-mode.md) for the f
 echo "$TOKEN" | eq-chatbot serve --port 0 --auth-token-fd 0 --parent-pid $$
 ```
 
-#### `eq-chatbot langdock-export`
-
-Back up LangDock agents (system prompt + config) and knowledge-folder metadata to portable `.md`/`.json` files (added in v1.11.0). See [langdock-export.md](langdock-export.md#english) for the full reference.
-
-```bash
-eq-chatbot langdock-export -k ld-... --agent-id AGENT_ID -o ./langdock-backup
-```
-
-The API key may also be set via the `LANGDOCK_API_KEY` env var.
-
 ### Environment variables
 
 The API key for `chat`, `test-provider`, `list-models`, `image`, and `listing-assets`
@@ -220,7 +210,6 @@ Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_AP
 |----------|---------|---------|
 | `<PROVIDER>_API_KEY` | Per-provider key (e.g. `OPENAI_API_KEY`); checked before `LLM_API_KEY` | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LLM_API_KEY` | Generic fallback API key when no flag or provider-specific var is set | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
-| `LANGDOCK_API_KEY` | Fallback API key when `-k`/`--api-key` is not given | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback bearer token when no `--auth-token*` flag is given | `serve` |
 | `EQ_CHATBOT_CONFIG` | Override the config file path (default: `~/.config/eq-chatbot/config.toml`) | all |
 
@@ -455,16 +444,6 @@ Startet den lokalen HTTP/SSE-Sidecar. Vollständige Referenz: [server-mode.md](s
 echo "$TOKEN" | eq-chatbot serve --port 0 --auth-token-fd 0 --parent-pid $$
 ```
 
-#### `eq-chatbot langdock-export`
-
-Sichert LangDock-Agenten (System-Prompt + Konfig) und Knowledge-Folder-Metadaten als portable `.md`/`.json`-Dateien (hinzugefügt in v1.11.0). Vollständige Referenz: [langdock-export.md](langdock-export.md#deutsch).
-
-```bash
-eq-chatbot langdock-export -k ld-... --agent-id AGENT_ID -o ./langdock-backup
-```
-
-Der API-Key kann auch über die `LANGDOCK_API_KEY`-Env gesetzt werden.
-
 ### Umgebungsvariablen
 
 Der API-Key für `chat`, `test-provider`, `list-models`, `image` und `listing-assets`
@@ -492,7 +471,6 @@ Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK
 |----------|-------|-------------|
 | `<PROVIDER>_API_KEY` | Key pro Provider (z.B. `OPENAI_API_KEY`); vor `LLM_API_KEY` geprüft | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
 | `LLM_API_KEY` | Generischer Fallback-API-Key wenn weder Flag noch provider-spezifische Variable gesetzt | `chat`, `test-provider`, `list-models`, `image`, `listing-assets` |
-| `LANGDOCK_API_KEY` | Fallback-API-Key wenn `-k`/`--api-key` fehlt | `langdock-export` |
 | `EQ_CHATBOT_AUTH_TOKEN` | Fallback-Bearer-Token wenn kein `--auth-token*`-Flag | `serve` |
 | `EQ_CHATBOT_CONFIG` | Überschreibt den Config-Pfad (Default: `~/.config/eq-chatbot/config.toml`) | alle |
 
