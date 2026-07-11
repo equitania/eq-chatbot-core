@@ -1,0 +1,19 @@
+{
+  "_comment": "Hand-curated override layer for the eq-model-catalog sync tool (Teil B, follow-up). The sync tool merges: OpenRouter /models (+ provider APIs) -> these overrides -> capability_catalog.json. Overrides win over auto-detected values. Use to (a) correct wrong auto-detected flags, (b) add Equitania-specific models/providers OpenRouter does not cover (e.g. Melious, IONOS), (c) pin curated display names/pricing. Not read at runtime by eq_chatbot_core; it is an input to the generator only.",
+  "schema_version": "1.0",
+  "providers": {
+    "melious": {"label": "Melious.ai", "status": "active", "needs_api_key": true},
+    "ionos": {"label": "IONOS AI", "status": "active", "needs_api_key": true}
+  },
+  "models": {
+    "minimax/minimax-m3": {
+      "display_name": "MiniMax M3 (428B)",
+      "providers": ["melious", "openrouter"],
+      "aliases": ["minimax-428b-m3", "minimax-m3"],
+      "capabilities": {"tools": true, "reasoning": true},
+      "limits": {"context_length": 1000000, "max_output_tokens": 40000},
+      "pricing": {"input_per_1k": 0.0, "output_per_1k": 0.0},
+      "note": "EU-sovereign (Melious). Pricing to be confirmed."
+    }
+  }
+}
