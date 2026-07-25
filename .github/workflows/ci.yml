@@ -29,7 +29,7 @@ jobs:
         run: uv venv --python 3.12
 
       - name: Install dev dependencies
-        run: uv pip install -e ".[dev,security,pdf,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
 
       - name: Run ruff lint
         run: uv run ruff check src/ tests/
@@ -41,13 +41,23 @@ jobs:
       # code. Clearing that debt is a dedicated typing pass, so existing errors do
       # not block CI — but the count is ratcheted: a PR that ADDS errors fails.
       # Lower MYPY_BASELINE whenever debt is paid down so the ratchet tightens.
-      # NOTE: the baseline is measured WITH the extras this job installs. Upgrading
-      # the vertex SDK can shift the count and may require adjusting the baseline.
+      # NOTE: the baseline depends on which extras this job installs (a missing
+      # Pillow, for instance, adds errors in utils/image.py). It also shifts when
+      # the vertex SDK is upgraded. Whenever the notice below reports a lower
+      # count, lower MYPY_BASELINE to lock the gain in.
       - name: Run mypy (ratcheted against baseline)
         env:
-          MYPY_BASELINE: "155"
+          MYPY_BASELINE: "157"
         run: |
           uv run mypy src/ | tee mypy.log || true
+          # A blocking syntax/stub error makes mypy stop early. The error count
+          # would then be small and the ratchet would pass for the wrong reason,
+          # so treat an aborted run as a failure rather than a green gate.
+          if grep -q "errors prevented further checking" mypy.log; then
+            echo "::error::mypy aborted early — the error count is not meaningful"
+            tail -5 mypy.log
+            exit 1
+          fi
           count=$(grep -cE '^src/.*: error:' mypy.log || true)
           echo "mypy errors: ${count} (baseline: ${MYPY_BASELINE})"
           if [ "${count}" -gt "${MYPY_BASELINE}" ]; then
@@ -76,7 +86,7 @@ jobs:
         run: uv venv --python 3.12
 
       - name: Install package and dev extras
-        run: uv pip install -e ".[dev,security,pdf,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
 
       # Scans installed dependencies against the PyPI Advisory DB. This is a HARD
       # gate: a disclosed CVE in a (transitive) dependency must be triaged, not
@@ -108,7 +118,7 @@ jobs:
         run: uv venv --python ${{ matrix.python-version }}
 
       - name: Install package and dev extras
-        run: uv pip install -e ".[dev,security,pdf,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
 
       - name: Run unit tests with coverage
         env:

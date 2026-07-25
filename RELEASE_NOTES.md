@@ -57,6 +57,27 @@
   (4 advisories incl. CVE-2025-3001) with `transformers` 4.57.6 → 5.14.1
   (5 advisories). `pip-audit` is clean for the extras CI installs.
 
+### Fixed
+
+- **[FIX] CI was red before this release and is now green.** Three independent
+  causes, two of them long-standing:
+  - `tests/unit/realtime/test_pyproject.py` imported `tomllib` at module level
+    behind a `pytestmark = skipif(python < 3.11)`. Marks are evaluated *after* the
+    module import, so the whole Python 3.10 job died during collection. Now falls
+    back to `tomli` (already a declared dependency for `python_version < '3.11'`),
+    and the test runs on every matrix entry instead of being skipped.
+  - The CI jobs did not install the `[image]` extra, so
+    `test_cli_image.py::test_fit_option_resizes_image` and
+    `test_cli_listing_assets.py::test_fit_option_resizes_asset` failed with
+    `ModuleNotFoundError: No module named 'PIL'` on all Python versions. The extra
+    is now installed — the image code paths were previously never exercised in CI.
+  - The mypy ratchet baseline was measured with Pillow present while CI ran
+    without it, which adds errors in `utils/image.py`. Baseline corrected.
+- **[FIX] mypy ratchet no longer passes on an aborted run.** A blocking
+  syntax/stub error makes mypy stop early ("errors prevented further checking"),
+  which yields a near-zero error count — the ratchet would then report success
+  for the wrong reason. An aborted run is now an explicit failure.
+
 ### Tests
 
 - `tests/unit/test_azure.py` rewritten against the OpenAI SDK. It no longer

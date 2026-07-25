@@ -35,6 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CI is green again** (it was red before this release). `test_pyproject.py` imported
+  `tomllib` at module level behind a `skipif` mark — marks run after the import, so the
+  Python 3.10 job died during collection; it now falls back to `tomli`. The CI jobs did not
+  install the `[image]` extra, so the two Pillow-dependent CLI tests failed on every Python
+  version and the image code paths were never exercised. The mypy baseline was measured with
+  Pillow present while CI ran without it; corrected.
+- The mypy ratchet no longer reports success when mypy aborts early on a blocking
+  syntax/stub error (which would otherwise yield a near-zero, meaningless error count).
 - The Azure unit suite no longer begins with `pytest.importorskip("azure.ai.inference")`,
   so it runs always instead of being silently skipped wherever the optional SDK was
   missing — which had hidden the Azure error paths from local test runs.

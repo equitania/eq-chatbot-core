@@ -1,14 +1,18 @@
 """CON-12: Static check that pyproject.toml declares the [realtime] extra with correct websockets version bounds."""
 
 import sys
+from pathlib import Path
 
 import pytest
 
-pytestmark = pytest.mark.skipif(sys.version_info < (3, 11), reason="tomllib requires Python 3.11+")
-
-from pathlib import Path  # noqa: E402
-
-import tomllib  # noqa: E402
+# tomllib is stdlib from 3.11; on 3.10 the project already ships `tomli` (declared
+# in pyproject.toml with a python_version marker) and it exposes the same load().
+# A module-level `import tomllib` guarded only by a pytestmark skipif would still
+# break collection on 3.10 — the mark is evaluated after the import runs.
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
 
 
 @pytest.mark.unit
