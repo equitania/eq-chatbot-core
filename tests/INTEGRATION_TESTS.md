@@ -28,7 +28,7 @@ pytest tests/ -v
 | `ANTHROPIC_API_KEY` | Anthropic tests | - | API key from console.anthropic.com |
 | `LANGDOCK_API_KEY` | LangDock tests | - | API key from app.langdock.com |
 | `AZURE_API_KEY` | Azure AI tests | - | API key from ai.azure.com |
-| `AZURE_ENDPOINT` | Azure AI tests | - | Azure endpoint URL (e.g. `https://your-resource.services.ai.azure.com/models`) |
+| `AZURE_ENDPOINT` | Azure AI tests | - | Azure endpoint URL (e.g. `https://your-resource.openai.azure.com/openai/v1/`) |
 | `AZURE_TEST_MODEL` | Azure AI tests | `gpt-4o` | Deployed model name (must be available on your endpoint) |
 | `MCP_TEST_URL` | MCP SSE tests | - | MCP server URL (e.g. `http://localhost:8000/sse`) |
 | `LM_STUDIO_URL` | LM Studio tests | `http://localhost:1234/v1` | LM Studio server URL |
@@ -125,7 +125,7 @@ pytest tests/ -v
 
 **Estimated cost per full run:** Depends on model (serverless models may be free or pay-per-token)
 
-**Note:** Azure AI Foundry uses serverless model deployments. The `AZURE_ENDPOINT` must point to the `/models` inference path (e.g. `https://your-resource.services.ai.azure.com/models`), and the `AZURE_TEST_MODEL` must be a model that is actually deployed on your endpoint. Use the Azure AI Foundry portal to check available models.
+**Note:** Azure AI Foundry uses serverless model deployments. The `AZURE_ENDPOINT` must point to the OpenAI `/v1` path (e.g. `https://your-resource.openai.azure.com/openai/v1/`), and the `AZURE_TEST_MODEL` must be a model that is actually deployed on your endpoint. Use the Azure AI Foundry portal to check available models.
 
 ---
 

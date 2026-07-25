@@ -40,7 +40,7 @@ uv pip install eq-chatbot-core
 # With optional extras
 uv pip install eq-chatbot-core[pdf]       # PDF→image conversion (vision)
 uv pip install eq-chatbot-core[security]  # MIME-type file validation
-uv pip install eq-chatbot-core[azure]     # Azure AI Foundry
+# Note: [azure] is a no-op since v2.0.0 — the Azure provider uses the core openai SDK
 uv pip install eq-chatbot-core[vertex]    # Google Vertex AI
 uv pip install eq-chatbot-core[image]     # Text-to-image generation (Pillow)
 uv pip install eq-chatbot-core[realtime]  # Realtime voice providers (websockets)
@@ -217,7 +217,7 @@ uv pip install eq-chatbot-core
 # Mit optionalen Extras
 uv pip install eq-chatbot-core[pdf]       # PDF→Bild-Konvertierung (Vision)
 uv pip install eq-chatbot-core[security]  # MIME-Type-File-Validation
-uv pip install eq-chatbot-core[azure]     # Azure AI Foundry
+# Note: [azure] is a no-op since v2.0.0 — the Azure provider uses the core openai SDK
 uv pip install eq-chatbot-core[vertex]    # Google Vertex AI
 uv pip install eq-chatbot-core[image]     # Text-zu-Bild-Generierung (Pillow)
 uv pip install eq-chatbot-core[realtime]  # Realtime-Voice-Provider (websockets)

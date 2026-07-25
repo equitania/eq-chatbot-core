@@ -5,6 +5,40 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-07-25
+
+### Changed
+
+- **BREAKING — Azure provider migrated off the retired `azure-ai-inference` SDK.**
+  Microsoft retires the Azure AI Inference beta SDK on **2026-08-26**; the official
+  replacement is the GA OpenAI SDK against the resource's OpenAI `/v1` endpoint.
+  `AzureProvider` now derives from `OpenAICompatibleProvider`.
+  - `base_url` changes from `https://<res>.services.ai.azure.com/models` to
+    `https://<res>.openai.azure.com/openai/v1/`. The old form is rejected at
+    construction with a migration hint instead of failing later with a 404.
+  - The `[azure]` extra is no longer needed and is kept as an empty no-op so
+    existing install commands keep working.
+  - `api_version` is obsolete: accepted but ignored, with a `DeprecationWarning`.
+  - Model coverage is unchanged — the `/v1` endpoint serves Azure OpenAI models and
+    Foundry Models from other providers alike. Reasoning deployments now correctly
+    send `max_completion_tokens`. `AzureProvider` gained the shared `model` argument.
+- `sse-starlette` ceiling raised to `<4.0.0` and `google-genai` moved to
+  `>=2.0.0,<3.0.0`; both verified against the API surface actually used.
+- mypy CI baseline lowered 167 → 155.
+
+### Security
+
+- Lock refreshed against the now-hard `pip-audit` gate, which surfaced pins that were
+  previously only logged: `python-dotenv` → 1.2.2 (PYSEC-2026-2270, declared floor raised),
+  `pyasn1` → 0.6.4 (3 advisories, transitive via `google-auth`), `setuptools` → 83.0.0,
+  and behind `[local]`: `torch` → 2.13.0 (incl. CVE-2025-3001), `transformers` → 5.14.1.
+
+### Fixed
+
+- The Azure unit suite no longer begins with `pytest.importorskip("azure.ai.inference")`,
+  so it runs always instead of being silently skipped wherever the optional SDK was
+  missing — which had hidden the Azure error paths from local test runs.
+
 ## [1.20.0] - 2026-07-25
 
 ### Security

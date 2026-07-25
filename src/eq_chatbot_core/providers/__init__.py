@@ -20,7 +20,7 @@ Usage:
     response = provider.chat_completion(messages=[...], model="gpt-4o")
 
     # Azure AI Foundry
-    provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/")
+    provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
     response = provider.chat_completion(messages=[...], model="gpt-4o")
 
     # Google Vertex AI (Gemini models)
@@ -101,7 +101,7 @@ def get_provider(
         provider = get_provider("mammouth", api_key="mm-...")
 
         # Azure AI Foundry
-        provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/")
+        provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
 
         # Local LM Studio
         provider = get_provider("lm_studio")

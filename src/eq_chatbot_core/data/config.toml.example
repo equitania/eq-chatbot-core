@@ -62,7 +62,7 @@
 [providers.azure]
 # api_key  = "..."
 # model    = "gpt-4o"
-# base_url = "https://your-resource.services.ai.azure.com/models"   # required for Azure
+# base_url = "https://your-resource.openai.azure.com/openai/v1/"   # required for Azure
 
 [providers.vertex]
 # Vertex uses Google Application Default Credentials — no api_key needed.

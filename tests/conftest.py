@@ -555,8 +555,11 @@ def mammouth_resolved_model(test_config, resolved_models) -> str:
 def azure_resolved_model(test_config, resolved_models) -> str:
     """Resolve Azure AI test model from registry against live API.
 
-    Skips gracefully when the optional ``[azure]`` extra is not installed
-    (azure-ai-inference SDK missing) instead of failing with ImportError.
+    Since v2.0.0 the provider runs on the core ``openai`` SDK, so there is no
+    optional-extra ImportError to guard against. A stale ``AZURE_ENDPOINT`` still
+    pointing at the retired ``.services.ai.azure.com/models`` form raises
+    ValueError from the provider's migration guard — surfaced as a skip with the
+    migration hint rather than an opaque failure.
     """
     api_key = test_config.get("azure_api_key")
     endpoint = test_config.get("azure_endpoint")
@@ -573,8 +576,8 @@ def azure_resolved_model(test_config, resolved_models) -> str:
             provider = get_provider("azure", api_key=api_key, base_url=endpoint)
             chain = _select_chain(cache_key, "AZURE_TEST_MODEL")
             resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
-        except ImportError as exc:
-            pytest.skip(f"Azure SDK not installed (use [azure] extra): {exc}")
+        except ValueError as exc:
+            pytest.skip(f"AZURE_ENDPOINT needs migrating to the OpenAI /v1 form: {exc}")
 
     return resolved_models[cache_key].actual
 

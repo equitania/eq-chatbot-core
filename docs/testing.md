@@ -57,7 +57,7 @@ tests/.env.test
 | `LANGDOCK_API_KEY` | LangDock API key for integration tests | - |
 | `MAMMOUTH_API_KEY` | Mammouth AI API key for integration tests | - |
 | `AZURE_API_KEY` | Azure AI API key for integration tests | - |
-| `AZURE_ENDPOINT` | Azure AI endpoint URL (e.g. `https://your-resource.services.ai.azure.com/models`) | - |
+| `AZURE_ENDPOINT` | Azure AI endpoint URL (e.g. `https://your-resource.openai.azure.com/openai/v1/`) | - |
 | `OPENAI_TEST_MODEL` | Model for OpenAI tests | `gpt-4o-mini` |
 | `ANTHROPIC_TEST_MODEL` | Model for Anthropic tests | `claude-3-haiku-20240307` |
 | `LANGDOCK_TEST_MODEL` | Model for LangDock tests | `gpt-5.2` |
@@ -224,7 +224,7 @@ pytest tests/unit/test_azure.py -v
 pytest tests/integration/test_azure_live.py -v -m integration
 ```
 
-**Note:** Azure AI requires the `[azure]` extra: `uv pip install -e ".[dev,azure]"`
+**Note:** Since v2.0.0 the Azure provider runs on the `openai` SDK (a core dependency); no extra is required.
 
 ### Mammouth AI Tests
 

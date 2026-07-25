@@ -51,7 +51,8 @@ dev = [
     "pytest>=8.0.0,<10.0.0",
     "pytest-cov>=6.0.0,<8.0.0",
     "pytest-asyncio>=0.24.0,<2.0.0",
-    "python-dotenv>=1.0.0,<2.0.0",  # For loading .env.test in tests
+    # Floor 1.2.2 excludes PYSEC-2026-2270.
+    "python-dotenv>=1.2.2,<2.0.0",  # For loading .env.test in tests
     "ruff>=0.12.0,<1.0.0",
     "mypy>=1.15.0,<2.0.0",
     "twine>=6.0.0,<7.0.0",
@@ -81,11 +82,18 @@ docs = [
     "pymupdf>=1.26.0,<2.0.0",  # Embedded-image extraction from PDFs
 ]
 azure = [
-    "azure-ai-inference>=1.0.0b9,<2.0.0",
-    "azure-core>=1.30.0,<2.0.0",
+    # Intentionally empty since v2.0.0. The Azure provider now drives the Azure
+    # OpenAI /v1 endpoint through the `openai` SDK (already a core dependency),
+    # because Microsoft retires the azure-ai-inference beta SDK on 2026-08-26.
+    # The extra is kept as a no-op so existing `pip install ...[azure]` commands
+    # and deployment scripts keep working instead of erroring on an unknown extra.
 ]
 vertex = [
-    "google-genai>=1.0.0,<2.0.0",
+    # 2.x verified against the API surface this provider uses: genai.Client(
+    # vertexai=/project=/location=), models.generate_content(_stream)(model=,
+    # contents=, config=), types.Content/Part.from_text/from_function_response/
+    # FunctionDeclaration/Tool/GenerateContentConfig.
+    "google-genai>=2.0.0,<3.0.0",
 ]
 image = [
     # Floor 12.3.0 excludes CVE-2026-59205 (ImageCmsTransform buffer overflow),
@@ -100,7 +108,10 @@ server = [
     # Avalonia desktop app spawning eq-chatbot as a sidecar).
     "fastapi>=0.115.0,<1.0.0",
     "uvicorn>=0.32.0,<1.0.0",
-    "sse-starlette>=2.1.0,<3.0.0",
+    # 3.x verified: the only API used is EventSourceResponse(<async generator of
+    # {"event": ..., "data": ...} dicts>), exercised end-to-end by the server
+    # streaming tests.
+    "sse-starlette>=3.0.0,<4.0.0",
 ]
 
 [project.scripts]

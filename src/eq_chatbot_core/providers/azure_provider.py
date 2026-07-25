@@ -1,68 +1,68 @@
 """
 Azure AI Foundry provider implementation.
 
-Uses the azure-ai-inference SDK with ChatCompletionsClient for lightweight,
-stable access to Azure AI models (GPT, Claude, Mistral, etc.) via API key auth.
+Uses the standard ``openai`` SDK against the Azure OpenAI ``/v1`` endpoint.
+
+Migration note (v2.0.0): this provider previously used the ``azure-ai-inference``
+beta SDK, which Microsoft deprecated and retires on **26 August 2026**. The
+official replacement is the GA OpenAI SDK pointed at
+``https://<resource>.openai.azure.com/openai/v1/``. That endpoint speaks plain
+OpenAI Chat Completions and serves both Azure OpenAI models and Foundry Models
+from other providers (DeepSeek, Llama, Mistral, Cohere, Grok, ...), so the whole
+message/tool conversion layer this module used to carry is gone and the wire
+handling is inherited from :class:`OpenAICompatibleProvider`.
+
+Consequences for callers:
+- ``base_url`` must now be the ``.openai.azure.com/openai/v1/`` form. The old
+  ``.services.ai.azure.com/models`` endpoint is detected and rejected with a
+  migration hint rather than failing later with an opaque 404.
+- The ``[azure]`` extra (``azure-ai-inference``, ``azure-core``) is no longer
+  needed; ``openai`` is already a core dependency.
+- ``api_version`` is obsolete — the ``/v1`` endpoint versions implicitly. The
+  argument is still accepted but ignored, with a DeprecationWarning.
+
+Reference:
+https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/model-inference-to-openai-migration
 """
 
-import logging
-from collections.abc import Iterator
+import warnings
 from typing import Any
 
-from eq_chatbot_core.providers.base import (
-    AuthenticationError,
-    BaseLLMProvider,
-    ContextLengthError,
-    LLMResponse,
-    OverloadedError,
-    ProviderError,
-    RateLimitError,
-    StreamChunk,
-)
+from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature as _shared_clamp_temperature,
 )
 from eq_chatbot_core.providers.temperature_constraints import (
     get_temperature_constraints as _shared_get_temperature_constraints,
 )
-from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
-_logger = logging.getLogger(__name__)
 
-# Graceful import for azure-ai-inference SDK
-_azure_available = True
-try:
-    from azure.ai.inference import ChatCompletionsClient
-    from azure.ai.inference.models import (
-        AssistantMessage,
-        ChatCompletionsToolDefinition,
-        FunctionDefinition,
-        SystemMessage,
-        ToolMessage,
-        UserMessage,
+class AzureProvider(OpenAICompatibleProvider):
+    """
+    Azure AI Foundry provider (OpenAI-compatible ``/v1`` endpoint).
+
+    Supports models deployed on Azure AI Foundry — Azure OpenAI models (GPT-4o,
+    GPT-5.x, o-series) as well as Foundry Models from other providers (DeepSeek,
+    Llama, Mistral, Cohere, ...) — authenticated with an API key.
+
+    ``base_url`` is required and must point at the resource's OpenAI ``/v1``
+    endpoint, e.g. ``https://your-resource.openai.azure.com/openai/v1/``.
+    """
+
+    PROVIDER_NAME = "azure"
+    # No default: the endpoint is resource-specific and cannot be guessed.
+    DEFAULT_BASE_URL = None
+    DEFAULT_MODEL = "gpt-4o"
+    # Azure endpoints are public cloud resources; internal targets are never valid.
+    ALLOW_PRIVATE_RANGES = False
+    MISSING_BASE_URL_MESSAGE = (
+        "base_url is required for the Azure provider. Example: https://your-resource.openai.azure.com/openai/v1/"
     )
-    from azure.core.credentials import AzureKeyCredential
-    from azure.core.exceptions import ClientAuthenticationError, HttpResponseError
-except ImportError:
-    _azure_available = False
-    # Placeholders for type hints when SDK not installed
-    ChatCompletionsClient = None  # type: ignore[assignment, misc]
-    AzureKeyCredential = None  # type: ignore[assignment, misc]
-    ClientAuthenticationError = None  # type: ignore[assignment, misc]
-    HttpResponseError = None  # type: ignore[assignment, misc]
 
+    # Substring identifying the retired azure-ai-inference endpoint form.
+    _LEGACY_ENDPOINT_MARKER = ".services.ai.azure.com"
 
-class AzureProvider(BaseLLMProvider):
-    """
-    Azure AI Foundry provider using azure-ai-inference SDK.
-
-    Supports models deployed on Azure AI (GPT-4o, GPT-4.1, O1, O3, O4,
-    Claude, Mistral, etc.) via AzureKeyCredential authentication.
-
-    Requires 'azure' extra: pip install eq-chatbot-core[azure]
-    """
-
-    # Reasoning models that don't support temperature parameter
+    # Reasoning models that don't support temperature and need max_completion_tokens
     REASONING_MODEL_PREFIXES = ("o1", "o3", "o4", "codex-mini", "deepseek-r1", "DeepSeek-R1", "MAI-DS-R1")
 
     # Static model catalog for list_models() (Azure has no list endpoint).
@@ -129,77 +129,57 @@ class AzureProvider(BaseLLMProvider):
         {"id": "Kimi-K2-Thinking", "name": "Kimi K2 Thinking", "context_length": 262144, "max_output_tokens": 262144},
     ]
 
-    # Default API version for Azure AI Inference SDK.
-    # SDK default (2024-05-01-preview) is outdated for newer Azure AI Foundry endpoints.
-    DEFAULT_API_VERSION = "2025-04-01-preview"
-
     def __init__(
         self,
         api_key: str,
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        model: str | None = None,
         api_version: str | None = None,
     ):
         """
         Initialize the Azure AI provider.
 
         Args:
-            api_key: Azure API key for AzureKeyCredential auth
-            base_url: REQUIRED - Azure endpoint URL (e.g. https://your-resource.services.ai.azure.com/)
-            timeout: Request timeout in seconds
-            max_retries: Number of retries on transient failures
-            api_version: Azure API version (default: 2025-04-01-preview)
+            api_key: Azure API key, sent as a Bearer token by the OpenAI SDK.
+            base_url: REQUIRED — the resource's OpenAI ``/v1`` endpoint, e.g.
+                ``https://your-resource.openai.azure.com/openai/v1/``.
+            timeout: Request timeout in seconds.
+            max_retries: Number of retries on transient failures.
+            model: Default deployment/model id for this instance (overridable per
+                call). Falls back to ``DEFAULT_MODEL`` when not given.
+            api_version: Deprecated and ignored — the ``/v1`` endpoint versions
+                implicitly. Accepted so existing call sites keep working.
 
         Raises:
-            ImportError: If azure-ai-inference is not installed
-            ValueError: If base_url is not provided
+            ValueError: If base_url is missing, uses the retired
+                ``.services.ai.azure.com/models`` form, or fails URL validation.
         """
-        if not _azure_available:
-            raise ImportError(
-                "Azure AI SDK not installed. Install with: pip install eq-chatbot-core[azure] "
-                "or: pip install azure-ai-inference azure-core"
+        if api_version is not None:
+            warnings.warn(
+                "api_version is obsolete for the Azure provider: the OpenAI /v1 endpoint "
+                "versions implicitly. The argument is ignored and will be removed in a "
+                "future release.",
+                DeprecationWarning,
+                stacklevel=2,
             )
 
-        if not base_url:
+        if base_url and self._LEGACY_ENDPOINT_MARKER in base_url:
             raise ValueError(
-                "base_url is required for Azure provider. Example: https://your-resource.services.ai.azure.com/"
+                f"base_url points at the retired Azure AI Inference endpoint ({base_url!r}). "
+                "That SDK is retired as of 26 August 2026. Use the resource's OpenAI /v1 "
+                "endpoint instead, e.g. https://your-resource.openai.azure.com/openai/v1/ — "
+                "see https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/"
+                "model-inference-to-openai-migration"
             )
 
-        # SSRF guard: base_url is always caller-supplied here. Reject non-HTTP
-        # schemes and private / link-local / cloud-metadata targets. Imported
-        # lazily to avoid an import cycle.
-        from eq_chatbot_core.utils.url_validation import validate_url
-
-        validate_url(base_url, allow_private_ranges=False)
-
-        super().__init__(api_key, base_url, timeout, max_retries)
-        self._api_version = api_version or self.DEFAULT_API_VERSION
-        self._client: ChatCompletionsClient | None = None
-
-    @property
-    def provider_name(self) -> str:
-        return "azure"
-
-    @property
-    def default_model(self) -> str:
-        return "gpt-4o"
-
-    @property
-    def client(self) -> "ChatCompletionsClient":
-        """Lazy initialization of Azure ChatCompletionsClient."""
-        if self._client is None:
-            self._client = ChatCompletionsClient(
-                endpoint=self.base_url,
-                credential=AzureKeyCredential(self.api_key),
-                api_version=self._api_version,
-            )
-        return self._client
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model (O1, O3, O4)."""
+        """Check if model is a reasoning model (o-series, DeepSeek-R1, MAI-DS-R1)."""
         model_lower = model.lower()
-        return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODEL_PREFIXES)
+        return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
     def _get_temperature_constraints(self, model: str) -> dict[str, Any]:
         """Get temperature constraints for a specific model. Delegates to shared module."""
@@ -209,258 +189,36 @@ class AzureProvider(BaseLLMProvider):
         """Clamp temperature to valid range for the model. Delegates to shared module."""
         return _shared_clamp_temperature(model, temperature)
 
-    def _convert_messages(self, messages: list[dict[str, Any]]) -> list:
-        """Convert dict messages to Azure SDK message types."""
-        azure_messages = []
-        for msg in messages:
-            role = msg.get("role", "user")
-            content = msg.get("content", "")
-
-            if role == "system":
-                azure_messages.append(SystemMessage(content=content))
-            elif role == "user":
-                azure_messages.append(UserMessage(content=content))
-            elif role == "assistant":
-                azure_messages.append(AssistantMessage(content=content))
-            elif role == "tool":
-                azure_messages.append(
-                    ToolMessage(
-                        content=content,
-                        tool_call_id=msg.get("tool_call_id", ""),
-                    )
-                )
-            else:
-                # Fallback: treat unknown roles as user messages
-                _logger.warning("Unknown message role '%s', treating as user message", role)
-                azure_messages.append(UserMessage(content=content))
-
-        return azure_messages
-
-    def _convert_tools(self, tools: list[dict[str, Any]]) -> list:
-        """Convert dict tool definitions to Azure SDK tool types."""
-        azure_tools = []
-        for tool in tools:
-            func = tool.get("function", {})
-            azure_tools.append(
-                ChatCompletionsToolDefinition(
-                    function=FunctionDefinition(
-                        name=func.get("name", ""),
-                        description=func.get("description", ""),
-                        parameters=func.get("parameters", {}),
-                    )
-                )
-            )
-        return azure_tools
-
-    def chat_completion(
+    def _build_params(
         self,
         messages: list[dict[str, Any]],
-        model: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
-    ) -> LLMResponse:
-        """Send a chat completion request to Azure AI."""
-        model = model or self.default_model
+        model: str,
+        temperature: float,
+        max_tokens: int | None,
+        tools: list[dict[str, Any]] | None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Build request params, using max_completion_tokens for reasoning models.
 
-        try:
-            azure_messages = self._convert_messages(messages)
+        Azure's o-series deployments follow OpenAI's newer token-parameter
+        semantics: ``max_tokens`` is rejected in favour of
+        ``max_completion_tokens``.
+        """
+        params = super()._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
 
-            params: dict[str, Any] = {
-                "messages": azure_messages,
-                "model": model,
-            }
+        if max_tokens and self._is_reasoning_model(model):
+            params.pop("max_tokens", None)
+            params["max_completion_tokens"] = max_tokens
 
-            # Clamp temperature per model constraints
-            clamped_temp = self._clamp_temperature(model, temperature)
-            if clamped_temp is not None:
-                params["temperature"] = clamped_temp
-
-            if max_tokens:
-                params["max_tokens"] = max_tokens
-
-            if tools:
-                params["tools"] = self._convert_tools(tools)
-
-            response = self.client.complete(**params)
-
-            choice = response.choices[0]
-            message = choice.message
-
-            # Parse tool calls if present
-            tool_calls = []
-            if message.tool_calls:
-                for tc in message.tool_calls:
-                    tool_calls.append(
-                        {
-                            "id": tc.id,
-                            "type": tc.type,
-                            "function": {
-                                "name": tc.function.name,
-                                "arguments": tc.function.arguments,
-                            },
-                        }
-                    )
-
-            usage = response.usage
-
-            return LLMResponse(
-                content=message.content or "",
-                model=response.model or model,
-                input_tokens=usage.prompt_tokens if usage else 0,
-                output_tokens=usage.completion_tokens if usage else 0,
-                finish_reason=choice.finish_reason,
-                tool_calls=tool_calls,
-            )
-
-        except ClientAuthenticationError as e:
-            raise AuthenticationError(
-                message=scrub_secrets(str(e)),
-                provider=self.provider_name,
-                status_code=401,
-            ) from e
-        except HttpResponseError as e:
-            raise self._handle_http_error(e) from e
-        except (AuthenticationError, RateLimitError, ContextLengthError, OverloadedError, ProviderError):
-            raise
-        except Exception as e:
-            raise ProviderError(
-                message=scrub_secrets(str(e)),
-                provider=self.provider_name,
-            ) from e
-
-    def stream_completion(
-        self,
-        messages: list[dict[str, Any]],
-        model: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
-    ) -> Iterator[StreamChunk]:
-        """Stream a chat completion response from Azure AI."""
-        model = model or self.default_model
-
-        try:
-            azure_messages = self._convert_messages(messages)
-
-            params: dict[str, Any] = {
-                "messages": azure_messages,
-                "model": model,
-                "stream": True,
-            }
-
-            # Clamp temperature per model constraints
-            clamped_temp = self._clamp_temperature(model, temperature)
-            if clamped_temp is not None:
-                params["temperature"] = clamped_temp
-
-            if max_tokens:
-                params["max_tokens"] = max_tokens
-
-            if tools:
-                params["tools"] = self._convert_tools(tools)
-
-            response = self.client.complete(**params)
-
-            # Accumulate tool calls from deltas
-            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
-
-            for chunk in response:
-                if not chunk.choices:
-                    continue
-
-                choice = chunk.choices[0]
-                delta = choice.delta
-
-                content = delta.content or "" if delta else ""
-                is_final = choice.finish_reason is not None
-
-                # Handle tool call deltas
-                tool_call_delta = None
-                if delta and delta.tool_calls:
-                    for tc in delta.tool_calls:
-                        idx = tc.get("index", 0) if isinstance(tc, dict) else getattr(tc, "index", 0)
-                        func = tc.get("function", {}) if isinstance(tc, dict) else tc.function
-
-                        func_name = func.get("name", "") if isinstance(func, dict) else getattr(func, "name", "") or ""
-                        func_args = (
-                            func.get("arguments", "")
-                            if isinstance(func, dict)
-                            else getattr(func, "arguments", "") or ""
-                        )
-                        tc_id = tc.get("id", "") if isinstance(tc, dict) else getattr(tc, "id", "") or ""
-
-                        tool_call_delta = {
-                            "index": idx,
-                            "id": tc_id,
-                            "function": {
-                                "name": func_name,
-                                "arguments": func_args,
-                            },
-                        }
-
-                        # Accumulate tool call data
-                        if idx not in accumulated_tool_calls:
-                            accumulated_tool_calls[idx] = {
-                                "id": "",
-                                "type": "function",
-                                "function": {
-                                    "name": "",
-                                    "arguments": "",
-                                },
-                            }
-
-                        if tc_id:
-                            accumulated_tool_calls[idx]["id"] = tc_id
-                        if func_name:
-                            accumulated_tool_calls[idx]["function"]["name"] += func_name
-                        if func_args:
-                            accumulated_tool_calls[idx]["function"]["arguments"] += func_args
-
-                # On final chunk, include accumulated tool calls
-                complete_tool_calls = None
-                if is_final and accumulated_tool_calls:
-                    complete_tool_calls = [accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())]
-
-                # Extract usage if available
-                usage = getattr(chunk, "usage", None)
-                input_tokens = usage.prompt_tokens if usage and is_final else 0
-                output_tokens = usage.completion_tokens if usage and is_final else 0
-
-                yield StreamChunk(
-                    content=content,
-                    is_final=is_final,
-                    finish_reason=choice.finish_reason,
-                    tool_call_delta=tool_call_delta,
-                    tool_calls=complete_tool_calls,
-                    input_tokens=input_tokens,
-                    output_tokens=output_tokens,
-                )
-
-        except ClientAuthenticationError as e:
-            raise AuthenticationError(
-                message=scrub_secrets(str(e)),
-                provider=self.provider_name,
-                status_code=401,
-            ) from e
-        except HttpResponseError as e:
-            raise self._handle_http_error(e) from e
-        except (AuthenticationError, RateLimitError, ContextLengthError, OverloadedError, ProviderError):
-            raise
-        except Exception as e:
-            raise ProviderError(
-                message=scrub_secrets(str(e)),
-                provider=self.provider_name,
-            ) from e
+        return params
 
     def list_models(self) -> list[dict[str, Any]]:
         """
         List known Azure AI models.
 
-        Azure doesn't provide a model listing API, so this returns a static
-        catalog of commonly available models with temperature constraints.
+        Azure does not expose a usable deployment-listing API here, so this
+        returns a static catalog of commonly available models enriched with
+        temperature constraints.
 
         Returns:
             List of model dicts with 'id', 'name', constraints, and metadata.
@@ -488,59 +246,3 @@ class AzureProvider(BaseLLMProvider):
 
         models.sort(key=lambda m: m["id"])
         return models
-
-    def _handle_http_error(self, error: "HttpResponseError") -> ProviderError:
-        """Convert Azure HTTP errors to ProviderError types (secrets scrubbed)."""
-        status = error.status_code or 500
-        message = scrub_secrets(str(error.message) if error.message else str(error))
-
-        if status == 429:
-            return RateLimitError(
-                message=message,
-                provider=self.provider_name,
-                status_code=429,
-            )
-
-        if status in (401, 403):
-            return AuthenticationError(
-                message=message,
-                provider=self.provider_name,
-                status_code=status,
-            )
-
-        if status in (503, 529):
-            return OverloadedError(
-                message=message,
-                provider=self.provider_name,
-                status_code=status,
-            )
-
-        if status == 400 and "context" in message.lower():
-            return ContextLengthError(
-                message=message,
-                provider=self.provider_name,
-            )
-
-        return ProviderError(
-            message=message,
-            provider=self.provider_name,
-            status_code=status,
-        )
-
-    def close(self) -> None:
-        """Close the Azure client."""
-        if self._client is not None:
-            self._client.close()
-            self._client = None
-
-    def __enter__(self) -> "AzureProvider":
-        return self
-
-    def __exit__(self, *args) -> None:
-        self.close()
-
-    def __del__(self) -> None:
-        try:
-            self.close()
-        except AttributeError:
-            pass

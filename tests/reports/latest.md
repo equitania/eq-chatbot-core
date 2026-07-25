@@ -1,8 +1,8 @@
-# Test Report - 2026-07-25 12:01:09
+# Test Report - 2026-07-25 18:32:39
 
-**eq_chatbot_core v1.20.0** | 7.43s | Python 3.13.12 | macOS-26.5.2-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v2.0.0** | 16.67s | Python 3.13.12 | macOS-26.5.2-arm64-arm-64bit-Mach-O
 
-> **Result: ALL PASSED - 1738 tests OK, 5 expected failures, 1 skipped**
+> **Result: ALL PASSED - 1748 tests OK, 5 expected failures**
 
 Command: `.venv/bin/pytest tests/unit -q --no-header -p no:cacheprovider`
 
@@ -10,11 +10,10 @@ Command: `.venv/bin/pytest tests/unit -q --no-header -p no:cacheprovider`
 
 | Status | Count |
 |--------|-------|
-| Passed | 1738 |
+| Passed | 1748 |
 | Failed | 0 |
-| Skipped | 1 |
 | XFailed (expected) | 5 |
-| **Total** | **1744** |
+| **Total** | **1753** |
 
 ## Configuration Status
 
@@ -45,36 +44,30 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | Melious.ai | — | ~EUR 0.4 in / 2.0 out per 1M tok (sovereign EU, MiniMax M3) | — | SKIPPED — provider not exercised this run |
 | Local (LM Studio / Ollama) | — | $0 (local) | — | SKIPPED — provider not exercised this run |
 
-## Skipped Tests
-
-| Test | Reason / Action |
-|------|-----------------|
-| `unit/test_document_extractor.py::TestRichFormats::test_html_extraction` | Skipped: markitdown not installed (docs extra) |
-
 ## Results by Module
 
 | Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|------------|--------|--------|---------|---------|-------|----------|
 | **Provider: OpenAI** | - | 46 | 0 | 0 | 0 | 46 | <0.01s |
-| **Provider: Anthropic** | - | 50 | 0 | 0 | 0 | 50 | <0.01s |
-| **Provider: LangDock** | - | 60 | 0 | 0 | 0 | 60 | 0.02s |
-| **Provider: OpenRouter** | - | 41 | 0 | 0 | 0 | 41 | 0.01s |
+| **Provider: Anthropic** | - | 50 | 0 | 0 | 0 | 50 | 0.07s |
+| **Provider: LangDock** | - | 60 | 0 | 0 | 0 | 60 | 0.01s |
+| **Provider: OpenRouter** | - | 41 | 0 | 0 | 0 | 41 | <0.01s |
 | **Provider: Mammouth AI** | - | 42 | 0 | 0 | 0 | 42 | 0.01s |
-| **Provider: Azure AI** | - | 42 | 0 | 0 | 0 | 42 | 0.02s |
-| **Provider: Google Vertex AI** | - | 45 | 0 | 0 | 0 | 45 | 0.01s |
+| **Provider: Azure AI** | - | 50 | 0 | 0 | 0 | 50 | 0.02s |
+| **Provider: Google Vertex AI** | - | 45 | 0 | 0 | 0 | 45 | 0.02s |
 | **Provider: LiteLLM Gateway** | - | 30 | 0 | 0 | 0 | 30 | 0.01s |
 | **Provider: IONOS AI Model Hub** | - | 27 | 0 | 0 | 0 | 27 | 0.03s |
 | **Provider: Melious.ai (sovereign EU)** | - | 28 | 0 | 0 | 0 | 28 | 0.04s |
-| **Provider: Local (LM Studio / Ollama)** | - | 35 | 0 | 0 | 0 | 35 | 0.03s |
-| **Security** | - | 423 | 0 | 0 | 5 | 428 | 0.05s |
-| **RAG Pipeline** | - | 117 | 0 | 0 | 0 | 117 | 0.27s |
-| **Services & Core** | - | 193 | 0 | 0 | 0 | 193 | 0.05s |
-| **MCP Client** | - | 99 | 0 | 0 | 0 | 99 | 1.58s |
-| **Other** | - | 460 | 0 | 1 | 0 | 461 | 2.48s |
+| **Provider: Local (LM Studio / Ollama)** | - | 35 | 0 | 0 | 0 | 35 | 0.02s |
+| **Security** | - | 423 | 0 | 0 | 5 | 428 | 0.04s |
+| **RAG Pipeline** | - | 117 | 0 | 0 | 0 | 117 | 0.32s |
+| **Services & Core** | - | 194 | 0 | 0 | 0 | 194 | 0.05s |
+| **MCP Client** | - | 99 | 0 | 0 | 0 | 99 | 1.60s |
+| **Other** | - | 461 | 0 | 0 | 0 | 461 | 2.53s |
 
 ## Detailed Results
 
-### Unit Tests (1737 passed, 1 skipped, 5 xfailed)
+### Unit Tests (1747 passed, 5 xfailed)
 
 #### Provider: OpenAI (46 passed) - <0.01s
 
@@ -127,7 +120,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_model_no_temperature` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
 
-#### Provider: Anthropic (50 passed) - <0.01s
+#### Provider: Anthropic (50 passed) - 0.07s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -160,7 +153,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_anthropic.py::TestAnthropicChatCompletion::test_completion_mixed_content` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_completion` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_includes_usage` | PASSED | <0.01s |
-| `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_with_system_prompt` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicStreamCompletion::test_stream_with_system_prompt` | PASSED | 0.06s |
 | `unit/test_anthropic.py::TestAnthropicListModels::test_list_models` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicListModels::test_list_models_includes_constraints` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicListModels::test_list_models_sorted_by_date` | PASSED | <0.01s |
@@ -182,7 +175,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_claude_temperature_clamped_to_max` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderProperties::test_repr` | PASSED | <0.01s |
 
-#### Provider: LangDock (60 passed) - 0.02s
+#### Provider: LangDock (60 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -247,7 +240,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_langdock.py::TestLangDockSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockSSRFGuard::test_default_base_url_skips_validation` | PASSED | <0.01s |
 
-#### Provider: OpenRouter (41 passed) - 0.01s
+#### Provider: OpenRouter (41 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -340,54 +333,62 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mammouth.py::TestMammouthSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthSSRFGuard::test_default_base_url_skips_validation` | PASSED | <0.01s |
 
-#### Provider: Azure AI (42 passed) - 0.02s
+#### Provider: Azure AI (50 passed) - 0.02s
 
 | Test | Status | Duration |
 |------|--------|----------|
 | `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderInit::test_missing_sdk_raises` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_params` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_base_url_required` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_model_override` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_lazy_client` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_client_created_with_base_url` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMigrationGuardrails::test_legacy_endpoint_rejected` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMigrationGuardrails::test_legacy_endpoint_message_names_replacement` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMigrationGuardrails::test_legacy_endpoint_rejected_before_dns` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMigrationGuardrails::test_api_version_is_deprecated_but_accepted` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMigrationGuardrails::test_no_api_version_emits_no_warning` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_ssrf_metadata_blocked` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_private_range_blocked` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_non_http_scheme_blocked` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[o1]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[o1-mini]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[o3]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[o3-mini]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[o4-mini]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[codex-mini]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[DeepSeek-R1]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_models_detected[MAI-DS-R1]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_non_reasoning_models[gpt-4o]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_non_reasoning_models[gpt-4.1]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_non_reasoning_models[gpt-5.2]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_non_reasoning_models[Llama-3.3-70B-Instruct]` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_reasoning_model_uses_max_completion_tokens` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_standard_model_uses_max_tokens` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_temperature_constraints_available` | PASSED | <0.01s |
 | `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_messages_passed_as_plain_dicts` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_tools_passed_through` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_tool_calls_parsed` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_stream_yields_content_then_final` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_stream_requests_usage` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_returns_static_catalog` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_catalog_covers_openai_and_foundry_models` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_entries_carry_metadata` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_does_not_call_the_api` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_authentication` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_context_length` | PASSED | <0.01s |
 | `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureContextManager::test_close_client` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureContextManager::test_close_closes_client` | PASSED | <0.01s |
 | `unit/test_azure.py::TestAzureContextManager::test_context_manager` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureSSRFGuard::test_cloud_metadata_endpoint_rejected` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureSSRFGuard::test_non_http_scheme_rejected` | PASSED | <0.01s |
-| `unit/test_azure.py::TestAzureSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureContextManager::test_close_without_client_is_safe` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureContextManager::test_rejected_base_url_leaves_instance_closable` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureFactoryIntegration::test_factory_returns_azure_provider` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureFactoryIntegration::test_factory_rejects_legacy_endpoint` | PASSED | <0.01s |
 
-#### Provider: Google Vertex AI (45 passed) - 0.01s
+#### Provider: Google Vertex AI (45 passed) - 0.02s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -537,7 +538,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_melious.py::TestMeliousContextManager::test_close_closes_client` | PASSED | <0.01s |
 | `unit/test_melious.py::TestMeliousContextManager::test_context_manager` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (35 passed) - 0.03s
+#### Provider: Local (LM Studio / Ollama) (35 passed) - 0.02s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -577,7 +578,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_reuses_instance` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderClient::test_client_includes_auth_header` | PASSED | <0.01s |
 
-#### Security (423 passed, 5 xfailed) - 0.05s
+#### Security (423 passed, 5 xfailed) - 0.04s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -1010,7 +1011,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_rate_limit.py::TestEnforceRateLimit::test_non_atomic_records_usage_when_allowed` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestEnforceRateLimit::test_non_atomic_does_not_record_when_denied` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (117 passed) - 0.27s
+#### RAG Pipeline (117 passed) - 0.32s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1088,7 +1089,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_export_to_langdock_filenames_cannot_escape_temp_dir` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.26s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.31s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -1132,7 +1133,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (193 passed) - 0.05s
+#### Services & Core (194 passed) - 0.05s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1265,6 +1266,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_langdock_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_openrouter_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider_rejects_legacy_endpoint` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_vertex_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_ionos_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_melious_provider` | PASSED | 0.02s |
@@ -1330,7 +1332,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |
 
-#### MCP Client (99 passed) - 1.58s
+#### MCP Client (99 passed) - 1.60s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1354,14 +1356,14 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_success` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_timeout` | PASSED | 1.01s |
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_http_error` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.06s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_extracts_text_content` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_enter_exit` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestMCPClientContextManager::test_context_manager_exception_cleanup` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestStdioMCPClientInitialization::test_init_with_defaults` | PASSED | <0.01s |
@@ -1428,476 +1430,476 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_returns_resolved_ips` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_rejects_unresolvable_in_strict_mode` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_allows_unresolvable_in_lan_mode` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.03s |
+| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.02s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_passes_when_resolution_matches` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_skips_check_for_unpinned_hosts` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_base_url_on_init` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_endpoint_from_sse_event` | PASSED | <0.01s |
 
-#### Other (459 passed, 1 skipped) - 2.48s
+#### Other (460 passed) - 2.53s
 
-| Test | Status | Duration | Detail |
-|------|--------|----------|--------|
-| `unit/realtime/test_contracts.py::test_event_type_string_values` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_event_type_count` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_input_audio_sample_rate` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_normalized_event_typeddict` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_capabilities_defaults` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_capabilities_frozen` | PASSED | <0.01s |  |
-| `unit/realtime/test_contracts.py::test_adapter_contract_runtime_checkable` | PASSED | <0.01s |  |
-| `unit/realtime/test_import_guard.py::test_import_guard_friendly_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_import_guard.py::test_always_importable_without_websockets` | PASSED | <0.01s |  |
-| `unit/realtime/test_import_guard.py::test_realtime_providers_constant` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_isinstance_check` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_connect_sets_connected` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_close_sets_disconnected` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_context_manager` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_enqueue_and_iter` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_append_client_audio_even_ok` | PASSED | <0.01s |  |
-| `unit/realtime/test_mock.py::test_append_client_audio_odd_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_pyproject.py::test_realtime_extra_declared` | PASSED | <0.01s |  |
-| `unit/realtime/test_pyproject.py::test_dev_extra_has_pytest_asyncio` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_frozen_dataclass` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_sample_rate` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_base_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_voice_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_instructions_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_custom_base_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_no_manual_turn_commit` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_result_mode_elevenlabs_native` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_session_sample_rate_16k` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_server_vad_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_calling_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_api_key_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_api_key_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_agent_id_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_agent_id_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_valid_config_does_not_raise` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_api_key_not_in_endpoint` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_agent_id_in_endpoint` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_endpoint_starts_with_wss` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_no_auth_header_in_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_provider_name` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_capabilities_property` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_conversation_initiation_metadata_maps_to_session_ready` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_audio_maps_to_response_audio_delta` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_maps_to_response_done` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_complete_maps_to_response_done` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_user_transcript_maps_to_input_audio_committed` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_interruption_maps_to_input_speech_started` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_client_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_call_id` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_name` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_ping_returns_none_sentinel` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_correction_maps_to_unhandled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_unknown_event_maps_to_unhandled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_missing_type_maps_to_unhandled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_has_user_audio_chunk_key` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_no_type_key` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_is_base64` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_empty_audio_is_noop` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_commit_client_turn_noop` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_create_response_noop` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_cancel_response_noop` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_client_tool_result_type` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_tool_call_id_not_call_id` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_tool_call_id_value` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_result_field` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_is_error_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_frozen` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_has_dataclass_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_contains_gemini` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_is_verified_alias` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_mode_is_developer` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_region_is_europe_west4` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_custom_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_server_vad_is_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_manual_turn_commit_required_is_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_result_mode_is_provider_call_id` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_all_streaming_flags` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_calling_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_voice_selection_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_interruption_cancel_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_api_key_for_developer_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_api_key_for_developer_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_unknown_mode_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_model_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_developer_config_does_not_raise` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_vertex_config_does_not_raise` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_key_param` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_has_no_authorization_header` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_is_wss` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_generativelanguage` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_aiplatform` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_region` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_authorization_header` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_project_header` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_does_not_contain_key_param` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_does_not_contain_api_key` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_does_not_contain_access_token` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_is_wss_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_is_wss_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_key_param_from_developer_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_url_without_key_param_unchanged` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_bearer_token_from_error_text` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_api_key_from_error_text` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_empty_text_returns_empty` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_adds_models_prefix` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_does_not_double_prefix` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_includes_system_instruction` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_no_system_instruction_when_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_top_level_key_is_setup` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_contains_model` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_tool_definition_uses_parameters_field` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_strips_additional_properties` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_empty_object_returns_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_none_input_returns_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_dict_tool_passthrough` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_setup_complete_maps_to_session_ready` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_audio_maps_to_audio_delta` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_turn_complete_maps_to_response_done` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_payload_has_call_id_and_name` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_cancellation_maps_to_tool_call_cancelled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_error_frame_maps_to_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_unknown_key_maps_to_unhandled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_all_results_have_source_and_raw_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestManualTurnCommit::test_commit_client_turn_sends_audio_stream_end` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_sends_correct_shape` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_decodes_json_output` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_fallback_for_malformed_json` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_on_connected_does_not_call_initialize_session` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestContractConformance::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[connect-kwargs0]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[close-kwargs1]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[initialize_session-kwargs2]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[update_session-kwargs3]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[append_client_audio-kwargs4]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[commit_client_turn-kwargs5]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[create_response-kwargs6]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[cancel_response-kwargs7]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[register_tools-kwargs8]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[submit_tool_result-kwargs9]` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_iter_normalized_events_raises` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_nova.py::TestErrorMessages::test_message_references_v190` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_frozen` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_model_is_gpt_realtime` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_voice_is_ash` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_include_turn_detection_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_instructions_is_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_custom_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_server_vad_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_manual_turn_commit_required_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_tool_result_mode_conversation_item` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_all_streaming_flags` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_tool_calling_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_voice_selection_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_interruption_cancel_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_startup_validation_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_empty_api_key_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_whitespace_api_key_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_empty_model_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_whitespace_model_raises_value_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_valid_key_and_model_does_not_raise` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_present_when_include_true` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_absent_when_include_false` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_type_is_server_vad` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_session_update_event_type` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_session_model_matches_config` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_does_not_contain_api_key` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_contains_model` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_is_wss_url` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_tool_definition_conversion` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_dict_passthrough` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_none_returns_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_empty_list_returns_none` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_mixed_list` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_session_created_maps_to_session_ready` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_session_updated_maps_to_session_ready` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_audio_delta_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_audio_done_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_done_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_speech_started_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_speech_stopped_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_created_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_audio_committed_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_error_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_unknown_event_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_missing_type_normalized` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_raw_and_source_fields_present` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_arguments_done_maps_to_tool_call_completed` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_arguments_done_has_item_sub_dict` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_top_level_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_item_id_in_item` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_response_id_in_payload` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_item_type_is_function_call` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_response_output_item_done_with_function_call_maps_to_tool_call_completed` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_response_output_item_done_non_function_call_maps_to_unhandled` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_on_connected_calls_initialize_session` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |  |
-| `unit/realtime/test_realtime_openai.py::TestCloseLifecycle::test_close_does_not_raise_when_not_connected` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_3_failures_then_success` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 2.31s |  |
-| `unit/realtime/test_websocket_client.py::test_realtime_closed_error_fields` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_realtime_rate_limit_error` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_error_hierarchy` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_base_class_is_abstract` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestHealthAndProviders::test_health_returns_ok_without_auth` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestHealthAndProviders::test_providers_requires_auth` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestHealthAndProviders::test_providers_lists_known_names` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_returns_provider_response` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_authentication_error_returns_401` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_rate_limit_returns_429_with_retry_after` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_context_length_returns_413` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_unknown_provider_returns_400` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_with_tools_forwards_to_provider` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_provider_extra_forwarded_to_factory` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatEndpoint::test_chat_stream_provider_extra_forwarded_to_factory` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_chat_emits_chunk_and_done` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_provider_error_emits_error_event` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_unknown_provider_returns_400` | PASSED | <0.01s |  |
-| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_requires_auth` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_health_bypasses_auth` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_missing_authorization_header_is_401` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_wrong_scheme_is_401` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_wrong_token_is_401` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_correct_token_passes` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_token_compared_constant_time_against_prefix_match` | PASSED | <0.01s |  |
-| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_empty_token_in_constructor_raises` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_fd_takes_precedence_and_closes_fd` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_fd_strips_whitespace_and_newline` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_argv_token_when_no_fd` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_env_var_used_as_fallback` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_missing_token_raises` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestReadAuthToken::test_short_token_raises` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestServeCommand::test_missing_token_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestServeCommand::test_short_token_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestServeCommand::test_valid_token_invokes_run_server` | PASSED | <0.01s |  |
-| `unit/server/test_cli_serve.py::TestServeCommand::test_serve_help_lists_options` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_content_only_chunk_emits_chunk_event` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_empty_content_is_skipped` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_emits_done_with_finish_reason` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_with_usage_emits_usage_event` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_zero_token_usage_does_not_emit_usage_event` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_tool_call_delta_passes_through` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_with_tool_calls_emits_tool_calls_event` | PASSED | <0.01s |  |
-| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_full_stream_event_order` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestCapabilities::test_resolved_flags` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestCapabilities::test_limits_and_pricing` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestCapabilities::test_reasoning_model` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMatching::test_openrouter_style_prefix_stripped` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMatching::test_prefix_match_dated_variant` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMatching::test_alias_match` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMatching::test_unknown_returns_none` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMatching::test_empty_returns_none` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestProviderScoping::test_provider_hint_disambiguates` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestMetadataExposed::test_meta_and_providers_available` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestSnapshotAndRemote::test_from_snapshot_loads_known_model` | PASSED | <0.01s |  |
-| `unit/test_capability_catalog.py::TestSnapshotAndRemote::test_from_remote_falls_back_to_snapshot` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_explicit_flag_wins_over_everything` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_specific_env_used_when_no_flag` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_specific_env_wins_over_generic` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_generic_fallback_when_no_provider_specific` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_returns_none_when_nothing_set` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_cross_provider_env_does_not_leak` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_name_is_case_insensitive` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_unknown_provider_falls_back_to_generic` | PASSED | <0.01s |  |
-| `unit/test_cli_api_key.py::TestResolveApiKey::test_none_provider_uses_generic` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_successful_chat` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_custom_model_and_temperature` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_missing_api_key` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_local_provider_no_key` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_empty_stdin` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_invalid_json` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_missing_messages` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_empty_messages` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_role` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_content` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_role` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_message_not_dict` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_provider_error` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_input_size_limit` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_multi_message_conversation` | PASSED | <0.01s |  |
-| `unit/test_cli_chat.py::TestChatCommand::test_tool_role_accepted` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_successful_generation` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_output_message_contains_path` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_provider_error_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_missing_prompt_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_missing_api_key_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_prompt_file` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_custom_model_forwarded` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_openrouter_provider_accepted` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_fit_option_resizes_image` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_successful_batch_creates_files` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dest_defaults_to_recipe_directory` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_provider_called_once_for_batch` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_no_api_calls` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_lists_asset_ids` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_does_not_need_api_key` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_filter_generates_single_asset` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_multiple_ids` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_unknown_id_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_invalid_schema_prefix_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_missing_assets_key_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_empty_assets_list_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_asset_missing_required_field_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_invalid_json_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_one_asset_fails_others_still_generated` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_failed_asset_id_appears_in_output` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_fit_option_resizes_asset` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_cli_provider_overrides_defaults` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_cli_model_overrides_defaults` | PASSED | <0.01s |  |
-| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_missing_api_key_exits_nonzero` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigPath::test_explicit_override_wins` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigPath::test_xdg_config_home` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigPath::test_default_home` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestLoadConfig::test_missing_file_returns_empty` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestLoadConfig::test_malformed_toml_raises` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestLoadConfig::test_permission_warning_when_world_readable` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestLoadConfig::test_no_warning_when_locked_down` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_provider_fields` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_provider_name_case_insensitive` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_unknown_provider_returns_none` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_none_provider_returns_none` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_default_provider` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_chat_defaults` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_chat_defaults_absent` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestAccessors::test_bool_is_not_accepted_as_number` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_api_key_flag_beats_all` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_api_key_env_beats_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_api_key_generic_env_beats_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_api_key_config_used_when_no_flag_or_env` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_base_url_flag_beats_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_base_url_from_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_model_from_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_provider_from_config_default` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestResolverPrecedence::test_provider_flag_beats_config` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestWriteTemplate::test_creates_file_0600` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestWriteTemplate::test_refuses_overwrite_without_force` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestWriteTemplate::test_force_overwrites` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestRedact::test_masks_long_value` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestRedact::test_short_value_fully_masked` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigCLI::test_config_path_command` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigCLI::test_config_init_then_show` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigCLI::test_config_init_refuses_overwrite` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigCLI::test_config_show_masks_keys` | PASSED | <0.01s |  |
-| `unit/test_config.py::TestConfigIntegration::test_test_provider_uses_config_key` | PASSED | <0.01s |  |
-| `unit/test_config.py::test_module_exposes_cli_resolvers` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestPlainTextExtraction::test_markdown_passthrough` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestPlainTextExtraction::test_txt_passthrough` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestPlainTextExtraction::test_latin1_fallback_warns` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestGuards::test_too_large_rejected` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestGuards::test_default_limit_constant` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestGuards::test_unsupported_extension_rejected` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestGuards::test_non_bytes_rejected` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestGuards::test_supported_extensions_always_include_plain_text` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestRichFormats::test_missing_markitdown_yields_warning_not_crash` | PASSED | <0.01s |  |
-| `unit/test_document_extractor.py::TestRichFormats::test_html_extraction` | SKIPPED | - | Skipped: markitdown not installed (docs extra) |
-| `unit/test_embedder.py::TestOpenAIEmbedder::test_unknown_model_raises` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestOpenAIEmbedder::test_dimensions_from_catalog` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestLangDockEmbedder::test_region_sets_base_url` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestLangDockEmbedder::test_default_region_is_eu` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_default_base_url` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_base_url_override` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_ssrf_metadata_blocked` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_private_range_blocked` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_non_http_scheme_blocked` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_default_dimensions` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_configurable_dimensions` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_skips_static_model_validation` | PASSED | <0.01s |  |
-| `unit/test_embedder.py::TestMeliousEmbedder::test_embed_uses_openai_compatible_client` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_supports_image_generation_flag` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_default_image_model` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_returns_image_result` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_uses_default_model` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_no_response_format_for_gpt_image_1` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_sends_response_format_for_dalle3` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_custom_size` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_custom_model` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_base64_decoding` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_authentication_error` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_rate_limit_error` | PASSED | <0.01s |  |
-| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_forwards_n_1` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_supports_image_generation_flag` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_default_image_model` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_returns_image_result` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_uses_default_model` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_modalities_in_payload` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_prompt_in_message` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_data_url_parsing` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_no_images_raises_provider_error` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_missing_images_key_raises_provider_error` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_http_401_raises_authentication_error` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_http_429_raises_rate_limit_error` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_custom_model` | PASSED | <0.01s |  |
-| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_invalid_data_url_raises_error` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestUnitConversion::test_input_output_converted_to_per_1k` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestUnitConversion::test_embedding_zero_output` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_exact_match` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_prefix_match_dated_variant` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_openrouter_style_prefix_stripped` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_unknown_returns_none` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_empty_returns_none` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestMatching::test_entry_without_price_skipped` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestProviderScoping::test_provider_hint_prefers_matching_litellm_provider` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestSnapshotAndRemote::test_from_snapshot_loads_known_model` | PASSED | <0.01s |  |
-| `unit/test_pricing_catalog.py::TestSnapshotAndRemote::test_from_remote_falls_back_to_snapshot` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_openai_key` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_provider_prefixes` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_bearer_token` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_key_query_param` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_json_api_key` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_preserves_plain_text` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestScrubSecrets::test_handles_empty` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_rejects_non_http_scheme` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_rejects_missing_hostname` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_strict_blocks_private_ip` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_strict_blocks_cloud_metadata` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_strict_allows_localhost` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestValidateUrl::test_lan_mode_allows_private_but_blocks_metadata` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestLocalProviderBaseUrl::test_rejects_metadata_base_url` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestLocalProviderBaseUrl::test_accepts_localhost_default` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestRetryAfterCap::test_caps_huge_retry_after` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestRetryAfterCap::test_passes_reasonable_value` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestRetryAfterCap::test_returns_none_when_absent` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestRetryAfterCap::test_rate_limit_result_scrubs_key` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestCostNegativeGuard::test_negative_input_raises` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestCostNegativeGuard::test_negative_output_raises` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestCostNegativeGuard::test_zero_is_allowed` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_verified_true_with_magic` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_not_verified_when_magic_disabled` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_require_magic_raises_when_unavailable` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestPdfLimits::test_oversized_pdf_raises` | PASSED | 0.05s |  |
-| `unit/test_security_hardening.py::TestPdfLimits::test_invalid_format_raises` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_basic` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_square` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_uppercase` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_invalid_format_no_x` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_invalid_format_non_integer` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_zero_dimension_rejected` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestParseSize::test_negative_dimension_rejected` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_creates_file` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_returns_resolved_path` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_creates_parent_directories` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_accepts_string_path` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_base_dir_allows_path_inside` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_base_dir_rejects_parent_traversal` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestSavePng::test_base_dir_rejects_absolute_escape` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToCover::test_square_to_square` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToCover::test_wide_to_square` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToCover::test_tall_to_square` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToCover::test_cover_is_default_mode` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToCover::test_output_is_png_bytes` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToContain::test_output_dimensions` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToContain::test_wide_source_in_square_box` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToContain::test_tall_source_in_square_box` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToStretch::test_stretches_to_exact_dimensions` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToStretch::test_output_is_png` | PASSED | <0.01s |  |
-| `unit/test_utils_image.py::TestFitToInvalidMode::test_invalid_mode_raises_value_error` | PASSED | <0.01s |  |
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/realtime/test_contracts.py::test_event_type_string_values` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_event_type_count` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_input_audio_sample_rate` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_normalized_event_typeddict` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_capabilities_defaults` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_capabilities_frozen` | PASSED | <0.01s |
+| `unit/realtime/test_contracts.py::test_adapter_contract_runtime_checkable` | PASSED | <0.01s |
+| `unit/realtime/test_import_guard.py::test_import_guard_friendly_error` | PASSED | <0.01s |
+| `unit/realtime/test_import_guard.py::test_always_importable_without_websockets` | PASSED | <0.01s |
+| `unit/realtime/test_import_guard.py::test_realtime_providers_constant` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_isinstance_check` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_connect_sets_connected` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_close_sets_disconnected` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_context_manager` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_enqueue_and_iter` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_append_client_audio_even_ok` | PASSED | <0.01s |
+| `unit/realtime/test_mock.py::test_append_client_audio_odd_raises` | PASSED | <0.01s |
+| `unit/realtime/test_pyproject.py::test_realtime_extra_declared` | PASSED | <0.01s |
+| `unit/realtime/test_pyproject.py::test_dev_extra_has_pytest_asyncio` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_frozen_dataclass` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_sample_rate` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_base_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_voice_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_default_instructions_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsRealtimeConfig::test_custom_base_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_no_manual_turn_commit` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_result_mode_elevenlabs_native` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_session_sample_rate_16k` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_server_vad_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsCapabilities::test_tool_calling_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_api_key_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_api_key_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_empty_agent_id_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_whitespace_agent_id_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConstructorValidation::test_valid_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_api_key_not_in_endpoint` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_agent_id_in_endpoint` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_endpoint_starts_with_wss` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectionErrorEndpoint::test_no_auth_header_in_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_provider_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestConnectLifecycle::test_capabilities_property` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_conversation_initiation_metadata_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_audio_maps_to_response_audio_delta` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_complete_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_user_transcript_maps_to_input_audio_committed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_interruption_maps_to_input_speech_started` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_client_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_tool_call_completed_payload_has_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_ping_returns_none_sentinel` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_agent_response_correction_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_unknown_event_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsEventMapping::test_missing_type_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_has_user_audio_chunk_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_format_no_type_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_audio_chunk_is_base64` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsAudioInput::test_empty_audio_is_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_commit_client_turn_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_create_response_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsTurnControl::test_cancel_response_noop` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_client_tool_result_type` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_uses_tool_call_id_not_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_tool_call_id_value` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_result_field` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_elevenlabs.py::TestElevenLabsToolResult::test_tool_result_is_error_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_frozen` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_has_dataclass_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_contains_gemini` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_model_is_verified_alias` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_mode_is_developer` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_default_region_is_europe_west4` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestGeminiLiveConfig::test_custom_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_server_vad_is_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_manual_turn_commit_required_is_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_result_mode_is_provider_call_id` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_all_streaming_flags` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_tool_calling_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_voice_selection_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestCapabilities::test_interruption_cancel_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_api_key_for_developer_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_api_key_for_developer_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_whitespace_access_token_for_vertex_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_unknown_mode_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_empty_model_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_developer_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConstructorValidation::test_valid_vertex_config_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_key_param` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_has_no_authorization_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_is_wss` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_developer_mode_url_contains_generativelanguage` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_aiplatform` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_contains_region` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_authorization_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_has_project_header` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestEndpointModes::test_vertex_mode_url_does_not_contain_key_param` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_does_not_contain_api_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_does_not_contain_access_token` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_developer_endpoint_is_wss_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectionErrorEndpoint::test_vertex_endpoint_is_wss_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_key_param_from_developer_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_url_without_key_param_unchanged` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_bearer_token_from_error_text` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_api_key_from_error_text` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestRedaction::test_redact_empty_text_returns_empty` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_adds_models_prefix` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_does_not_double_prefix` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_includes_system_instruction` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_no_system_instruction_when_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_top_level_key_is_setup` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestSetupEvent::test_build_setup_event_contains_model` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_tool_definition_uses_parameters_field` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_strips_additional_properties` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_empty_object_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_to_gemini_schema_none_input_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolSchemaConversion::test_dict_tool_passthrough` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_setup_complete_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_audio_maps_to_audio_delta` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_server_content_turn_complete_maps_to_response_done` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_payload_has_call_id_and_name` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_tool_call_cancellation_maps_to_tool_call_cancelled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_error_frame_maps_to_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_unknown_key_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestIterNormalizedEvents::test_all_results_have_source_and_raw_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestManualTurnCommit::test_commit_client_turn_sends_audio_stream_end` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_sends_correct_shape` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_decodes_json_output` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestToolResult::test_submit_tool_result_fallback_for_malformed_json` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_on_connected_does_not_call_initialize_session` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_gemini.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestContractConformance::test_isinstance_realtime_adapter_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[connect-kwargs0]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[close-kwargs1]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[initialize_session-kwargs2]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[update_session-kwargs3]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[append_client_audio-kwargs4]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[commit_client_turn-kwargs5]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[create_response-kwargs6]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[cancel_response-kwargs7]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[register_tools-kwargs8]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_async_method_raises[submit_tool_result-kwargs9]` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestAllMethodsRaise::test_iter_normalized_events_raises` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_nova.py::TestErrorMessages::test_message_references_v190` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_frozen` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_model_is_gpt_realtime` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_voice_is_ash` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_include_turn_detection_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_default_instructions_is_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestOpenAIRealtimeConfig::test_custom_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_server_vad_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_manual_turn_commit_required_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_tool_result_mode_conversation_item` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_all_streaming_flags` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_tool_calling_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_voice_selection_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_interruption_cancel_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCapabilities::test_startup_validation_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_empty_api_key_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_whitespace_api_key_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_empty_model_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_whitespace_model_raises_value_error` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConstructorValidation::test_valid_key_and_model_does_not_raise` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_present_when_include_true` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_absent_when_include_false` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_turn_detection_type_is_server_vad` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_session_update_event_type` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestVADSessionPayload::test_session_model_matches_config` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_does_not_contain_api_key` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_contains_model` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConnectionErrorEndpoint::test_is_wss_url` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_tool_definition_conversion` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_dict_passthrough` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_none_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_empty_list_returns_none` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestNormalizeTools::test_mixed_list` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_session_created_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_session_updated_maps_to_session_ready` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_audio_delta_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_audio_done_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_done_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_speech_started_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_speech_stopped_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_response_created_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_input_audio_committed_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_error_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_unknown_event_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_missing_type_normalized` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestIterNormalizedEvents::test_raw_and_source_fields_present` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_arguments_done_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_arguments_done_has_item_sub_dict` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_top_level_fields` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_item_id_in_item` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_response_id_in_payload` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_function_call_item_type_is_function_call` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_response_output_item_done_with_function_call_maps_to_tool_call_completed` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestToolCallNormalization::test_response_output_item_done_non_function_call_maps_to_unhandled` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_on_connected_calls_initialize_session` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |
+| `unit/realtime/test_realtime_openai.py::TestCloseLifecycle::test_close_does_not_raise_when_not_connected` | PASSED | <0.01s |
+| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_3_failures_then_success` | PASSED | <0.01s |
+| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 2.19s |
+| `unit/realtime/test_websocket_client.py::test_realtime_closed_error_fields` | PASSED | <0.01s |
+| `unit/realtime/test_websocket_client.py::test_realtime_rate_limit_error` | PASSED | <0.01s |
+| `unit/realtime/test_websocket_client.py::test_error_hierarchy` | PASSED | <0.01s |
+| `unit/realtime/test_websocket_client.py::test_base_class_is_abstract` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestHealthAndProviders::test_health_returns_ok_without_auth` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestHealthAndProviders::test_providers_requires_auth` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestHealthAndProviders::test_providers_lists_known_names` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_returns_provider_response` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_authentication_error_returns_401` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_rate_limit_returns_429_with_retry_after` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_context_length_returns_413` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_unknown_provider_returns_400` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_with_tools_forwards_to_provider` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_provider_extra_forwarded_to_factory` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatEndpoint::test_chat_stream_provider_extra_forwarded_to_factory` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_chat_emits_chunk_and_done` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_provider_error_emits_error_event` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_unknown_provider_returns_400` | PASSED | <0.01s |
+| `unit/server/test_app.py::TestChatStreamEndpoint::test_stream_requires_auth` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_health_bypasses_auth` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_missing_authorization_header_is_401` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_wrong_scheme_is_401` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_wrong_token_is_401` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_correct_token_passes` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_token_compared_constant_time_against_prefix_match` | PASSED | <0.01s |
+| `unit/server/test_auth.py::TestBearerTokenMiddleware::test_empty_token_in_constructor_raises` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_fd_takes_precedence_and_closes_fd` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_fd_strips_whitespace_and_newline` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_argv_token_when_no_fd` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_env_var_used_as_fallback` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_missing_token_raises` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestReadAuthToken::test_short_token_raises` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestServeCommand::test_missing_token_exits_nonzero` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestServeCommand::test_short_token_exits_nonzero` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestServeCommand::test_valid_token_invokes_run_server` | PASSED | <0.01s |
+| `unit/server/test_cli_serve.py::TestServeCommand::test_serve_help_lists_options` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_content_only_chunk_emits_chunk_event` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_empty_content_is_skipped` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_emits_done_with_finish_reason` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_with_usage_emits_usage_event` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_zero_token_usage_does_not_emit_usage_event` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_tool_call_delta_passes_through` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_final_chunk_with_tool_calls_emits_tool_calls_event` | PASSED | <0.01s |
+| `unit/server/test_streaming.py::TestStreamChunkToSseEvents::test_full_stream_event_order` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestCapabilities::test_resolved_flags` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestCapabilities::test_limits_and_pricing` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestCapabilities::test_reasoning_model` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMatching::test_openrouter_style_prefix_stripped` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMatching::test_prefix_match_dated_variant` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMatching::test_alias_match` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMatching::test_unknown_returns_none` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMatching::test_empty_returns_none` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestProviderScoping::test_provider_hint_disambiguates` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestMetadataExposed::test_meta_and_providers_available` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestSnapshotAndRemote::test_from_snapshot_loads_known_model` | PASSED | <0.01s |
+| `unit/test_capability_catalog.py::TestSnapshotAndRemote::test_from_remote_falls_back_to_snapshot` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_explicit_flag_wins_over_everything` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_specific_env_used_when_no_flag` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_specific_env_wins_over_generic` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_generic_fallback_when_no_provider_specific` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_returns_none_when_nothing_set` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_cross_provider_env_does_not_leak` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_provider_name_is_case_insensitive` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_unknown_provider_falls_back_to_generic` | PASSED | <0.01s |
+| `unit/test_cli_api_key.py::TestResolveApiKey::test_none_provider_uses_generic` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_successful_chat` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_custom_model_and_temperature` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_missing_api_key` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_local_provider_no_key` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_empty_stdin` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_json` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_missing_messages` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_empty_messages` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_role` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_content` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_invalid_message_no_role` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_message_not_dict` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_provider_error` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_input_size_limit` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_multi_message_conversation` | PASSED | <0.01s |
+| `unit/test_cli_chat.py::TestChatCommand::test_tool_role_accepted` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_successful_generation` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_output_message_contains_path` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_provider_error_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_missing_prompt_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_missing_api_key_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_prompt_file` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_custom_model_forwarded` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_openrouter_provider_accepted` | PASSED | <0.01s |
+| `unit/test_cli_image.py::TestImageCommand::test_fit_option_resizes_image` | PASSED | 0.18s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_successful_batch_creates_files` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dest_defaults_to_recipe_directory` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_provider_called_once_for_batch` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_no_api_calls` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_lists_asset_ids` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dry_run_does_not_need_api_key` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_filter_generates_single_asset` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_multiple_ids` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_only_unknown_id_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_invalid_schema_prefix_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_missing_assets_key_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_empty_assets_list_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_asset_missing_required_field_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_invalid_json_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_one_asset_fails_others_still_generated` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_failed_asset_id_appears_in_output` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_fit_option_resizes_asset` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_cli_provider_overrides_defaults` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_cli_model_overrides_defaults` | PASSED | <0.01s |
+| `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_missing_api_key_exits_nonzero` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigPath::test_explicit_override_wins` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigPath::test_xdg_config_home` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigPath::test_default_home` | PASSED | <0.01s |
+| `unit/test_config.py::TestLoadConfig::test_missing_file_returns_empty` | PASSED | <0.01s |
+| `unit/test_config.py::TestLoadConfig::test_malformed_toml_raises` | PASSED | <0.01s |
+| `unit/test_config.py::TestLoadConfig::test_permission_warning_when_world_readable` | PASSED | <0.01s |
+| `unit/test_config.py::TestLoadConfig::test_no_warning_when_locked_down` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_provider_fields` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_provider_name_case_insensitive` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_unknown_provider_returns_none` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_none_provider_returns_none` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_default_provider` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_chat_defaults` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_chat_defaults_absent` | PASSED | <0.01s |
+| `unit/test_config.py::TestAccessors::test_bool_is_not_accepted_as_number` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_api_key_flag_beats_all` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_api_key_env_beats_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_api_key_generic_env_beats_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_api_key_config_used_when_no_flag_or_env` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_base_url_flag_beats_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_base_url_from_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_model_from_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_provider_from_config_default` | PASSED | <0.01s |
+| `unit/test_config.py::TestResolverPrecedence::test_provider_flag_beats_config` | PASSED | <0.01s |
+| `unit/test_config.py::TestWriteTemplate::test_creates_file_0600` | PASSED | <0.01s |
+| `unit/test_config.py::TestWriteTemplate::test_refuses_overwrite_without_force` | PASSED | <0.01s |
+| `unit/test_config.py::TestWriteTemplate::test_force_overwrites` | PASSED | <0.01s |
+| `unit/test_config.py::TestRedact::test_masks_long_value` | PASSED | <0.01s |
+| `unit/test_config.py::TestRedact::test_short_value_fully_masked` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigCLI::test_config_path_command` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigCLI::test_config_init_then_show` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigCLI::test_config_init_refuses_overwrite` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigCLI::test_config_show_masks_keys` | PASSED | <0.01s |
+| `unit/test_config.py::TestConfigIntegration::test_test_provider_uses_config_key` | PASSED | <0.01s |
+| `unit/test_config.py::test_module_exposes_cli_resolvers` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestPlainTextExtraction::test_markdown_passthrough` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestPlainTextExtraction::test_txt_passthrough` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestPlainTextExtraction::test_latin1_fallback_warns` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestGuards::test_too_large_rejected` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestGuards::test_default_limit_constant` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestGuards::test_unsupported_extension_rejected` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestGuards::test_non_bytes_rejected` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestGuards::test_supported_extensions_always_include_plain_text` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestRichFormats::test_missing_markitdown_yields_warning_not_crash` | PASSED | <0.01s |
+| `unit/test_document_extractor.py::TestRichFormats::test_html_extraction` | PASSED | 0.02s |
+| `unit/test_embedder.py::TestOpenAIEmbedder::test_unknown_model_raises` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestOpenAIEmbedder::test_dimensions_from_catalog` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestLangDockEmbedder::test_region_sets_base_url` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestLangDockEmbedder::test_default_region_is_eu` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_default_base_url` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_base_url_override` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_ssrf_metadata_blocked` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_private_range_blocked` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_non_http_scheme_blocked` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_default_dimensions` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_configurable_dimensions` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_skips_static_model_validation` | PASSED | <0.01s |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_embed_uses_openai_compatible_client` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_supports_image_generation_flag` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_default_image_model` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_returns_image_result` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_uses_default_model` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_no_response_format_for_gpt_image_1` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_sends_response_format_for_dalle3` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_custom_size` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_custom_model` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_base64_decoding` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_authentication_error` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_rate_limit_error` | PASSED | <0.01s |
+| `unit/test_openai_image.py::TestOpenAIImageGeneration::test_generate_image_forwards_n_1` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_supports_image_generation_flag` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_default_image_model` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_returns_image_result` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_uses_default_model` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_modalities_in_payload` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_prompt_in_message` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_data_url_parsing` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_no_images_raises_provider_error` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_missing_images_key_raises_provider_error` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_http_401_raises_authentication_error` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_http_429_raises_rate_limit_error` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_custom_model` | PASSED | <0.01s |
+| `unit/test_openrouter_image.py::TestOpenRouterImageGeneration::test_generate_image_invalid_data_url_raises_error` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestUnitConversion::test_input_output_converted_to_per_1k` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestUnitConversion::test_embedding_zero_output` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_exact_match` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_prefix_match_dated_variant` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_openrouter_style_prefix_stripped` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_unknown_returns_none` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_empty_returns_none` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestMatching::test_entry_without_price_skipped` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestProviderScoping::test_provider_hint_prefers_matching_litellm_provider` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestSnapshotAndRemote::test_from_snapshot_loads_known_model` | PASSED | <0.01s |
+| `unit/test_pricing_catalog.py::TestSnapshotAndRemote::test_from_remote_falls_back_to_snapshot` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_openai_key` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_provider_prefixes` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_bearer_token` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_key_query_param` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_masks_json_api_key` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_preserves_plain_text` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestScrubSecrets::test_handles_empty` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_rejects_non_http_scheme` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_rejects_missing_hostname` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_strict_blocks_private_ip` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_strict_blocks_cloud_metadata` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_strict_allows_localhost` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestValidateUrl::test_lan_mode_allows_private_but_blocks_metadata` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestLocalProviderBaseUrl::test_rejects_metadata_base_url` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestLocalProviderBaseUrl::test_accepts_localhost_default` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestRetryAfterCap::test_caps_huge_retry_after` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestRetryAfterCap::test_passes_reasonable_value` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestRetryAfterCap::test_returns_none_when_absent` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestRetryAfterCap::test_rate_limit_result_scrubs_key` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestCostNegativeGuard::test_negative_input_raises` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestCostNegativeGuard::test_negative_output_raises` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestCostNegativeGuard::test_zero_is_allowed` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_verified_true_with_magic` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_not_verified_when_magic_disabled` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_require_magic_raises_when_unavailable` | PASSED | <0.01s |
+| `unit/test_security_hardening.py::TestPdfLimits::test_oversized_pdf_raises` | PASSED | 0.03s |
+| `unit/test_security_hardening.py::TestPdfLimits::test_invalid_format_raises` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_basic` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_square` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_uppercase` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_invalid_format_no_x` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_invalid_format_non_integer` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_zero_dimension_rejected` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestParseSize::test_negative_dimension_rejected` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_creates_file` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_returns_resolved_path` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_creates_parent_directories` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_accepts_string_path` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_base_dir_allows_path_inside` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_base_dir_rejects_parent_traversal` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestSavePng::test_base_dir_rejects_absolute_escape` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToCover::test_square_to_square` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToCover::test_wide_to_square` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToCover::test_tall_to_square` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToCover::test_cover_is_default_mode` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToCover::test_output_is_png_bytes` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToContain::test_output_dimensions` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToContain::test_wide_source_in_square_box` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToContain::test_tall_source_in_square_box` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToStretch::test_stretches_to_exact_dimensions` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToStretch::test_output_is_png` | PASSED | <0.01s |
+| `unit/test_utils_image.py::TestFitToInvalidMode::test_invalid_mode_raises_value_error` | PASSED | <0.01s |
 
 ### Local Server Tests (1 passed)
 

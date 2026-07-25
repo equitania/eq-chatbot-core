@@ -1,5 +1,71 @@
 # Release Notes
 
+## Version 2.0.0 (25.07.2026)
+
+### ⚠️ Breaking
+
+- **[CHG] Azure provider migrated off the retired `azure-ai-inference` SDK.**
+  Microsoft deprecated the Azure AI Inference beta SDK and **retires it on
+  26 August 2026**; the official replacement is the GA OpenAI SDK pointed at the
+  resource's OpenAI `/v1` endpoint. `AzureProvider` now derives from
+  `OpenAICompatibleProvider` and speaks plain OpenAI Chat Completions.
+
+  **What callers must change:**
+
+  | | Before | After |
+  |---|---|---|
+  | `base_url` | `https://<res>.services.ai.azure.com/models` | `https://<res>.openai.azure.com/openai/v1/` |
+  | Install | `pip install eq-chatbot-core[azure]` | no extra needed (`openai` is core) |
+  | `api_version` | honoured | obsolete — accepted but ignored, emits `DeprecationWarning` |
+
+  The old endpoint form is **detected and rejected at construction time** with a
+  message naming the replacement and linking the migration guide, rather than
+  failing later with an opaque 404. The `[azure]` extra is kept as an empty no-op
+  so existing install commands and deployment scripts do not break.
+
+  **Not affected:** model coverage. The `/v1` endpoint serves Azure OpenAI models
+  *and* Foundry Models from other providers (DeepSeek, Llama, Mistral, Cohere,
+  ...); the full `KNOWN_MODELS` catalog is retained unchanged. Reasoning
+  deployments (o-series, DeepSeek-R1, MAI-DS-R1) now correctly send
+  `max_completion_tokens` instead of `max_tokens`. `AzureProvider` additionally
+  gained the `model` constructor argument shared by the other providers.
+
+  Reference: [Microsoft migration guide](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/model-inference-to-openai-migration)
+
+### Changed
+
+- **[CHG] `sse-starlette` ceiling raised to `<4.0.0`** (`[server]` extra, was
+  `<3.0.0` while upstream is at 3.4.6). The only API used is
+  `EventSourceResponse`, exercised end-to-end by the server streaming tests.
+- **[CHG] `google-genai` floor/ceiling moved to `>=2.0.0,<3.0.0`** (`[vertex]`
+  extra, was `<2.0.0` while upstream is at 2.14.0). Verified against the API
+  surface the provider actually uses: `genai.Client(vertexai=/project=/location=)`,
+  `models.generate_content(_stream)(model=, contents=, config=)`, and the
+  `types.Content` / `Part.from_text` / `Part.from_function_response` /
+  `FunctionDeclaration` / `Tool` / `GenerateContentConfig` constructors.
+- **[CHG] mypy CI baseline lowered 167 → 155** — the Azure rewrite removed a
+  further chunk of typing debt.
+
+### Security
+
+- **[FIX] Lock refreshed against the newly-hard `pip-audit` gate.** Turning the
+  gate hard in 1.20.0 surfaced vulnerable pins that had previously only been
+  logged: `python-dotenv` 1.2.1 → 1.2.2 (PYSEC-2026-2270; the declared floor is
+  raised to `>=1.2.2` so the range itself excludes it), `pyasn1` 0.6.3 → 0.6.4
+  (3 advisories; transitive via `google-auth`), `setuptools` 80.9.0 → 83.0.0
+  (PYSEC-2026-3447), and — behind the `[local]` extra — `torch` 2.9.1 → 2.13.0
+  (4 advisories incl. CVE-2025-3001) with `transformers` 4.57.6 → 5.14.1
+  (5 advisories). `pip-audit` is clean for the extras CI installs.
+
+### Tests
+
+- `tests/unit/test_azure.py` rewritten against the OpenAI SDK. It no longer
+  starts with `pytest.importorskip("azure.ai.inference")`, so the Azure suite now
+  runs **always** instead of being silently skipped wherever the optional SDK was
+  absent — this previously hid the Azure error paths from local runs entirely.
+  Added coverage for the legacy-endpoint rejection, the `api_version`
+  deprecation, and the reasoning-model token-parameter switch. 1747 tests pass.
+
 ## Version 1.20.0 (25.07.2026)
 
 ### Security

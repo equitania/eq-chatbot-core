@@ -41,12 +41,11 @@ jobs:
       # code. Clearing that debt is a dedicated typing pass, so existing errors do
       # not block CI — but the count is ratcheted: a PR that ADDS errors fails.
       # Lower MYPY_BASELINE whenever debt is paid down so the ratchet tightens.
-      # NOTE: the baseline is measured WITH the azure+vertex extras installed (as
-      # this job does); without them mypy reports ~12 fewer errors. Upgrading those
-      # SDKs can shift the count and may require adjusting the baseline.
+      # NOTE: the baseline is measured WITH the extras this job installs. Upgrading
+      # the vertex SDK can shift the count and may require adjusting the baseline.
       - name: Run mypy (ratcheted against baseline)
         env:
-          MYPY_BASELINE: "167"
+          MYPY_BASELINE: "155"
         run: |
           uv run mypy src/ | tee mypy.log || true
           count=$(grep -cE '^src/.*: error:' mypy.log || true)

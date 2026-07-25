@@ -69,7 +69,7 @@ provider = get_provider("anthropic", api_key="sk-ant-...")
 provider = get_provider("langdock", api_key="ld-...")
 provider = get_provider("openrouter", api_key="sk-or-...")
 provider = get_provider("mammouth", api_key="mm-...")
-provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/models")
+provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
 provider = get_provider("litellm", api_key="...", base_url="https://gateway/v1")  # OpenAI-compatible gateway
 provider = get_provider("ionos", api_key="...")  # IONOS AI Model Hub (EU-hosted, base_url has a default)
 provider = get_provider("melious", api_key="sk-mel-...")  # Melious.ai (sovereign EU-hosted, base_url has a default)
@@ -118,7 +118,7 @@ src/eq_chatbot_core/
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
 │   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
-│   ├── azure_provider.py   # Azure AI Foundry (requires [azure] extra)
+│   ├── azure_provider.py   # Azure AI Foundry (OpenAI /v1 endpoint, no extra)
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
 │   ├── openrouter_provider.py # OpenRouter (400+ models)
 │   ├── litellm_provider.py  # LiteLLM / any OpenAI-compatible gateway
@@ -206,5 +206,5 @@ openai, anthropic, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
 - `[dev]` - pytest, ruff, mypy, twine, pytest-cov, pytest-asyncio
 - `[security]` - puremagic (MIME validation)
 - `[pdf]` - pymupdf (PDF to image conversion)
-- `[azure]` - azure-ai-inference, azure-core (Azure AI Foundry)
+- `[azure]` - empty since v2.0.0 (kept as a no-op; the Azure provider uses the core `openai` SDK)
 - `[local]` - sentence-transformers (local embeddings)

@@ -56,23 +56,32 @@ class TestFactoryCloudProviders:
         assert provider.api_key == "sk-or-test-key"
         assert provider.provider_name == "openrouter"
 
-    @patch("eq_chatbot_core.providers.azure_provider._azure_available", True)
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_get_azure_provider(self, mock_credential, mock_client_class):
-        """Test creating Azure provider — runs even without azure-ai-inference
-        installed by patching the SDK availability flag."""
+    def test_get_azure_provider(self):
+        """Test creating Azure provider.
+
+        Since v2.0.0 this runs on the plain openai SDK (a core dependency), so no
+        optional-SDK patching is needed any more.
+        """
         from eq_chatbot_core.providers.azure_provider import AzureProvider
 
         provider = get_provider(
             "azure",
             api_key="test-azure-key",
-            base_url="https://localhost/",
+            base_url="http://localhost:8080/openai/v1/",
         )
 
         assert isinstance(provider, AzureProvider)
         assert provider.api_key == "test-azure-key"
         assert provider.provider_name == "azure"
+
+    def test_get_azure_provider_rejects_legacy_endpoint(self):
+        """The retired azure-ai-inference endpoint must fail with a migration hint."""
+        with pytest.raises(ValueError, match="retired Azure AI Inference endpoint"):
+            get_provider(
+                "azure",
+                api_key="test-azure-key",
+                base_url="https://my-resource.services.ai.azure.com/models",
+            )
 
     @patch("eq_chatbot_core.providers.vertex_provider._google_available", True)
     @patch("eq_chatbot_core.providers.vertex_provider.genai")

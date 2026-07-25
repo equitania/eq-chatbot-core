@@ -24,7 +24,7 @@ All providers implement the same `BaseLLMProvider` interface — `chat_completio
 |------|-------|------|-------|
 | `openai` | `OpenAIProvider` | `api_key` | GPT-4, GPT-4o, GPT-4.1, GPT-5, o1/o3/o4 reasoning models |
 | `anthropic` | `AnthropicProvider` | `api_key` | Claude 3, Claude 3.5, Claude 4 |
-| `azure` | `AzureProvider` | `api_key` + `base_url` | Azure AI Foundry — needs `[azure]` extra |
+| `azure` | `AzureProvider` | `api_key` + `base_url` | Azure AI Foundry via the OpenAI `/v1` endpoint (no extra needed) |
 | `vertex` | `VertexProvider` | ADC (no api_key) | Google Gemini — `project=`, `location=`, needs `[vertex]` extra |
 | `langdock` | `LangDockProvider` | `api_key` | EU/US gateway, all models via single endpoint |
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ models via gateway |
@@ -44,7 +44,7 @@ from eq_chatbot_core.providers import get_provider
 # Cloud providers
 provider = get_provider("openai", api_key="sk-...")
 provider = get_provider("anthropic", api_key="sk-ant-...")
-provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/")
+provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
 provider = get_provider("vertex", project="my-gcp-project", location="europe-west1")
 provider = get_provider("langdock", api_key="ld-...", region="eu")
 provider = get_provider("openrouter", api_key="sk-or-...")
@@ -277,7 +277,7 @@ Alle Provider implementieren das gleiche `BaseLLMProvider`-Interface — `chat_c
 |------|--------|------|-----------|
 | `openai` | `OpenAIProvider` | `api_key` | GPT-4, GPT-4o, GPT-4.1, GPT-5, o1/o3/o4 Reasoning-Modelle |
 | `anthropic` | `AnthropicProvider` | `api_key` | Claude 3, Claude 3.5, Claude 4 |
-| `azure` | `AzureProvider` | `api_key` + `base_url` | Azure AI Foundry — braucht `[azure]`-Extra |
+| `azure` | `AzureProvider` | `api_key` + `base_url` | Azure AI Foundry über den OpenAI-`/v1`-Endpoint (kein Extra nötig) |
 | `vertex` | `VertexProvider` | ADC (kein api_key) | Google Gemini — `project=`, `location=`, braucht `[vertex]`-Extra |
 | `langdock` | `LangDockProvider` | `api_key` | EU/US-Gateway, alle Modelle über einen Endpoint |
 | `openrouter` | `OpenRouterProvider` | `api_key` | 400+ Modelle via Gateway |
@@ -297,7 +297,7 @@ from eq_chatbot_core.providers import get_provider
 # Cloud-Provider
 provider = get_provider("openai", api_key="sk-...")
 provider = get_provider("anthropic", api_key="sk-ant-...")
-provider = get_provider("azure", api_key="...", base_url="https://your-resource.services.ai.azure.com/")
+provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
 provider = get_provider("vertex", project="my-gcp-project", location="europe-west1")
 provider = get_provider("langdock", api_key="ld-...", region="eu")
 provider = get_provider("openrouter", api_key="sk-or-...")

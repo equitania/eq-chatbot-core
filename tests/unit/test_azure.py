@@ -1,874 +1,508 @@
 """
-Unit tests for Azure AI provider.
+Unit tests for the Azure AI Foundry provider.
 
 All tests use mocked responses - no real API calls.
-Tests cover Azure AI Foundry access with temperature constraints.
 
-Requires the optional [azure] extra. If azure-ai-inference is not installed
-the entire module is skipped — install with:
-    uv pip install -e ".[dev,azure]"
+Since v2.0.0 the provider drives the Azure OpenAI ``/v1`` endpoint through the
+``openai`` SDK instead of the retired ``azure-ai-inference`` beta SDK, so there
+is no optional-extra skip here any more: the openai module is a core dependency
+and is mocked at import time, exactly like the other OpenAI-compatible providers.
 """
 
-from unittest.mock import MagicMock, patch
+import sys
+from unittest.mock import MagicMock
 
 import pytest
 
-# Skip the whole module when the optional Azure SDK is not installed.
-# Matches how test_azure.py interacts with the lazy import in azure_provider.py.
-pytest.importorskip("azure.ai.inference")
+# Mock the openai module before importing the provider.
+mock_openai_module = MagicMock()
+sys.modules["openai"] = mock_openai_module
 
-from eq_chatbot_core.providers.base import (  # noqa: E402
+from eq_chatbot_core.providers.azure_provider import AzureProvider
+from eq_chatbot_core.providers.base import (
     AuthenticationError,
     ContextLengthError,
-    OverloadedError,
     ProviderError,
     RateLimitError,
 )
 
+# Loopback URL keeps validate_url hermetic (no DNS in unit tests).
+TEST_BASE_URL = "http://localhost:8080/openai/v1/"
+LEGACY_BASE_URL = "https://my-resource.services.ai.azure.com/models"
+
+
 # =============================================================================
-# Fixtures
+# Fixtures / helpers
 # =============================================================================
 
 
 @pytest.fixture
 def mock_chat_response():
-    """Create a mock Azure chat completion response."""
+    """Mock chat completion response."""
     response = MagicMock()
     response.model = "gpt-4o"
-
-    choice = MagicMock()
-    choice.message.content = "Test response from Azure"
-    choice.message.tool_calls = None
-    choice.finish_reason = "stop"
-
-    response.choices = [choice]
-
-    usage = MagicMock()
-    usage.prompt_tokens = 10
-    usage.completion_tokens = 5
-    response.usage = usage
-
+    response.choices = [MagicMock()]
+    response.choices[0].message.content = "Hello from Azure."
+    response.choices[0].message.tool_calls = None
+    response.choices[0].finish_reason = "stop"
+    response.usage = MagicMock()
+    response.usage.prompt_tokens = 12
+    response.usage.completion_tokens = 6
+    response.model_dump.return_value = {"model": "gpt-4o"}
     return response
 
 
+@pytest.fixture
+def mock_stream_chunks():
+    """Mock streaming chunk generator (usage arrives in the final chunk)."""
+
+    def generate():
+        for content in ["Hel", "lo", "!"]:
+            chunk = MagicMock()
+            chunk.usage = None
+            chunk.choices = [MagicMock()]
+            chunk.choices[0].delta.content = content
+            chunk.choices[0].delta.tool_calls = None
+            chunk.choices[0].finish_reason = None
+            yield chunk
+
+        final = MagicMock()
+        final.usage = MagicMock()
+        final.usage.prompt_tokens = 12
+        final.usage.completion_tokens = 3
+        final.choices = [MagicMock()]
+        final.choices[0].delta.content = ""
+        final.choices[0].delta.tool_calls = None
+        final.choices[0].finish_reason = "stop"
+        yield final
+
+    return generate
+
+
+def _active_openai_module():
+    """Return the openai mock currently registered in ``sys.modules``.
+
+    Several provider test modules install their own MagicMock under
+    ``sys.modules["openai"]`` at import time, and the last module collected wins.
+    Providers import ``openai`` lazily inside the ``client`` property, so patches
+    must target whatever is registered at call time — not this module's own
+    object, which may have been superseded during collection.
+    """
+    return sys.modules["openai"]
+
+
+def _make_provider_with_client(mock_client) -> AzureProvider:
+    """Build a provider whose openai client is the given mock."""
+    _active_openai_module().OpenAI = MagicMock(return_value=mock_client)
+    provider = AzureProvider(api_key="test-key", base_url=TEST_BASE_URL)
+    provider._client = None  # force lazy re-creation through the mocked OpenAI()
+    return provider
+
+
 # =============================================================================
-# Provider Initialization Tests
+# Initialization
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureProviderInit:
-    """Test Azure provider initialization."""
+    def test_basic_init(self):
+        provider = AzureProvider(api_key="test-key", base_url=TEST_BASE_URL)
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_basic_init(self, mock_credential, mock_client_class):
-        """Test basic provider initialization."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+        assert provider.api_key == "test-key"
+        assert provider.base_url == TEST_BASE_URL
+        assert provider.provider_name == "azure"
+        assert provider.default_model == "gpt-4o"
+        assert provider.timeout == 60.0
+        assert provider.max_retries == 2
 
+    def test_custom_params(self):
         provider = AzureProvider(
-            api_key="test-azure-key",
-            base_url="https://localhost/",
+            api_key="test-key",
+            base_url=TEST_BASE_URL,
+            timeout=120.0,
+            max_retries=5,
         )
-        assert provider.api_key == "test-azure-key"
-        assert provider.base_url == "https://localhost/"
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_custom_endpoint(self, mock_credential, mock_client_class):
-        """Test initialization with custom endpoint."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+        assert provider.timeout == 120.0
+        assert provider.max_retries == 5
 
-        endpoint = "https://localhost/"
-        provider = AzureProvider(api_key="test-key", base_url=endpoint)
-        assert provider.base_url == endpoint
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_missing_endpoint_raises(self, mock_credential, mock_client_class):
-        """Test that missing base_url raises ValueError."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
+    def test_base_url_required(self):
         with pytest.raises(ValueError, match="base_url is required"):
             AzureProvider(api_key="test-key")
 
-    def test_missing_sdk_raises(self):
-        """Test that missing Azure SDK raises ImportError."""
-        with patch("eq_chatbot_core.providers.azure_provider._azure_available", False):
-            from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_model_override(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL, model="gpt-5.2")
+        assert provider.default_model == "gpt-5.2"
 
-            with pytest.raises(ImportError, match="Azure AI SDK not installed"):
-                AzureProvider(
-                    api_key="test-key",
-                    base_url="https://localhost/",
-                )
+    def test_lazy_client(self):
+        provider = AzureProvider(api_key="test-key", base_url=TEST_BASE_URL)
+        assert provider._client is None
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_custom_timeout(self, mock_credential, mock_client_class):
-        """Test initialization with custom timeout."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_client_created_with_base_url(self):
+        mock_openai_class = MagicMock()
+        _active_openai_module().OpenAI = mock_openai_class
 
-        provider = AzureProvider(
+        provider = AzureProvider(api_key="test-key", base_url=TEST_BASE_URL)
+        provider._client = None
+        _ = provider.client
+
+        mock_openai_class.assert_called_once_with(
             api_key="test-key",
-            base_url="https://localhost/",
-            timeout=120.0,
+            base_url=TEST_BASE_URL,
+            timeout=60.0,
+            max_retries=2,
         )
-        assert provider.timeout == 120.0
 
 
 # =============================================================================
-# Provider Properties Tests
+# Migration guardrails (v2.0.0)
 # =============================================================================
 
 
 @pytest.mark.unit
-class TestAzureProviderProperties:
-    """Test provider properties."""
+class TestAzureMigrationGuardrails:
+    def test_legacy_endpoint_rejected(self):
+        """The retired azure-ai-inference endpoint must fail with a migration hint."""
+        with pytest.raises(ValueError, match="retired Azure AI Inference endpoint"):
+            AzureProvider(api_key="test-key", base_url=LEGACY_BASE_URL)
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_provider_name(self, mock_credential, mock_client_class):
-        """Test provider_name property."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_legacy_endpoint_message_names_replacement(self):
+        with pytest.raises(ValueError) as exc_info:
+            AzureProvider(api_key="test-key", base_url=LEGACY_BASE_URL)
+        assert "openai.azure.com/openai/v1" in str(exc_info.value)
 
-        provider = AzureProvider(
-            api_key="test-key",
-            base_url="https://localhost/",
-        )
-        assert provider.provider_name == "azure"
+    def test_legacy_endpoint_rejected_before_dns(self):
+        """Rejection must not depend on the legacy hostname resolving."""
+        with pytest.raises(ValueError, match="retired Azure AI Inference endpoint"):
+            AzureProvider(api_key="k", base_url="https://nonexistent-xyz.services.ai.azure.com/models")
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_default_model(self, mock_credential, mock_client_class):
-        """Test default model is GPT-4o."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_api_version_is_deprecated_but_accepted(self):
+        """Existing call sites passing api_version must keep working."""
+        with pytest.warns(DeprecationWarning, match="api_version is obsolete"):
+            provider = AzureProvider(
+                api_key="test-key",
+                base_url=TEST_BASE_URL,
+                api_version="2025-04-01-preview",
+            )
+        assert provider.base_url == TEST_BASE_URL
 
-        provider = AzureProvider(
-            api_key="test-key",
-            base_url="https://localhost/",
-        )
-        assert provider.default_model == "gpt-4o"
+    def test_no_api_version_emits_no_warning(self, recwarn):
+        AzureProvider(api_key="test-key", base_url=TEST_BASE_URL)
+        assert not [w for w in recwarn if issubclass(w.category, DeprecationWarning)]
 
 
 # =============================================================================
-# Temperature Constraints Tests
+# SSRF guard
 # =============================================================================
 
 
 @pytest.mark.unit
-class TestAzureTemperatureConstraints:
-    """Test temperature constraint handling."""
+class TestAzureSSRFGuard:
+    def test_ssrf_metadata_blocked(self):
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="test-key", base_url="http://169.254.169.254/openai/v1/")
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_reasoning_model_no_temperature(self, mock_credential, mock_client_class):
-        """Test reasoning models (o1, o3, o4) return None for temperature."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_private_range_blocked(self):
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="test-key", base_url="http://10.0.0.5/openai/v1/")
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        assert provider._clamp_temperature("o1", 0.7) is None
-        assert provider._clamp_temperature("o3", 0.5) is None
-        assert provider._clamp_temperature("o4-mini", 0.3) is None
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_gpt41_temperature_passthrough(self, mock_credential, mock_client_class):
-        """Test GPT-4.1 models pass through temperature (min=0.0)."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        assert provider._clamp_temperature("gpt-4.1", 0.5) == 0.5
-        assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
-        assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 0.0
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_legacy_model_passthrough(self, mock_credential, mock_client_class):
-        """Test legacy models (gpt-4o) pass through any valid temperature."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        assert provider._clamp_temperature("gpt-4o", 0.0) == 0.0
-        assert provider._clamp_temperature("gpt-4o", 0.7) == 0.7
-        assert provider._clamp_temperature("gpt-4o", 2.0) == 2.0
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_claude_max_temperature_clamped(self, mock_credential, mock_client_class):
-        """Test Claude models clamp temperature to max 1.0."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        assert provider._clamp_temperature("claude-sonnet-4-5", 1.5) == 1.0
-        assert provider._clamp_temperature("claude-sonnet-4-5", 0.5) == 0.5
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_unknown_model_uses_defaults(self, mock_credential, mock_client_class):
-        """Test unknown models use default constraints (0.0-2.0)."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        assert provider._clamp_temperature("some-unknown-model", 0.0) == 0.0
-        assert provider._clamp_temperature("some-unknown-model", 1.5) == 1.5
-        assert provider._clamp_temperature("some-unknown-model", 2.0) == 2.0
+    def test_non_http_scheme_blocked(self):
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="test-key", base_url="file:///etc/passwd")
 
 
 # =============================================================================
-# Reasoning Model Detection Tests
+# Temperature constraints and reasoning models
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureReasoningModels:
-    """Test reasoning model detection."""
+    @pytest.mark.parametrize(
+        "model",
+        ["o1", "o1-mini", "o3", "o3-mini", "o4-mini", "codex-mini", "DeepSeek-R1", "MAI-DS-R1"],
+    )
+    def test_reasoning_models_detected(self, model):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        assert provider._is_reasoning_model(model) is True
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_o1_o3_o4_detected(self, mock_credential, mock_client_class):
-        """Test o1/o3/o4 models are detected as reasoning."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    @pytest.mark.parametrize("model", ["gpt-4o", "gpt-4.1", "gpt-5.2", "Llama-3.3-70B-Instruct"])
+    def test_non_reasoning_models(self, model):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        assert provider._is_reasoning_model(model) is False
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        assert provider._is_reasoning_model("o1") is True
-        assert provider._is_reasoning_model("o1-mini") is True
-        assert provider._is_reasoning_model("o3") is True
-        assert provider._is_reasoning_model("o3-mini") is True
-        assert provider._is_reasoning_model("o4-mini") is True
+    def test_reasoning_model_uses_max_completion_tokens(self, mock_chat_response):
+        """o-series deployments reject max_tokens; they need max_completion_tokens."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_gpt_claude_not_detected(self, mock_credential, mock_client_class):
-        """Test GPT and Claude models are not reasoning models."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}], model="o3", max_tokens=500)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        assert provider._is_reasoning_model("gpt-4o") is False
-        assert provider._is_reasoning_model("gpt-4.1") is False
-        assert provider._is_reasoning_model("claude-sonnet-4-5") is False
+        params = mock_client.chat.completions.create.call_args.kwargs
+        assert params["max_completion_tokens"] == 500
+        assert "max_tokens" not in params
 
+    def test_standard_model_uses_max_tokens(self, mock_chat_response):
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
 
-# =============================================================================
-# Message Conversion Tests
-# =============================================================================
+        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}], model="gpt-4o", max_tokens=500)
 
+        params = mock_client.chat.completions.create.call_args.kwargs
+        assert params["max_tokens"] == 500
+        assert "max_completion_tokens" not in params
 
-@pytest.mark.unit
-class TestAzureMessageConversion:
-    """Test message dict to Azure SDK type conversion."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_system_message(self, mock_credential, mock_client_class):
-        """Test system message conversion."""
-        from azure.ai.inference.models import SystemMessage
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        result = provider._convert_messages([{"role": "system", "content": "You are helpful."}])
-        assert len(result) == 1
-        assert isinstance(result[0], SystemMessage)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_user_message(self, mock_credential, mock_client_class):
-        """Test user message conversion."""
-        from azure.ai.inference.models import UserMessage
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        result = provider._convert_messages([{"role": "user", "content": "Hello"}])
-        assert len(result) == 1
-        assert isinstance(result[0], UserMessage)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_assistant_message(self, mock_credential, mock_client_class):
-        """Test assistant message conversion."""
-        from azure.ai.inference.models import AssistantMessage
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        result = provider._convert_messages([{"role": "assistant", "content": "Hi there!"}])
-        assert len(result) == 1
-        assert isinstance(result[0], AssistantMessage)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_tool_message(self, mock_credential, mock_client_class):
-        """Test tool message conversion."""
-        from azure.ai.inference.models import ToolMessage
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        result = provider._convert_messages([{"role": "tool", "content": '{"temp": 20}', "tool_call_id": "call_123"}])
-        assert len(result) == 1
-        assert isinstance(result[0], ToolMessage)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_unknown_role_fallback(self, mock_credential, mock_client_class):
-        """Test unknown role falls back to user message."""
-        from azure.ai.inference.models import UserMessage
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        result = provider._convert_messages([{"role": "unknown", "content": "test"}])
-        assert len(result) == 1
-        assert isinstance(result[0], UserMessage)
+    def test_temperature_constraints_available(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        constraints = provider._get_temperature_constraints("gpt-4o")
+        assert "supports_temperature" in constraints
+        assert "min" in constraints
+        assert "max" in constraints
 
 
 # =============================================================================
-# Chat Completion Tests
+# Chat completion
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureChatCompletion:
-    """Test chat completion functionality."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_simple_completion(self, mock_credential, mock_client_class, mock_chat_response):
-        """Test simple chat completion."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
+    def test_simple_completion(self, mock_chat_response):
         mock_client = MagicMock()
-        mock_client.complete.return_value = mock_chat_response
-        mock_client_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
+        response = provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
 
-        response = provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-4o",
-        )
-
-        assert response.content == "Test response from Azure"
+        assert response.content == "Hello from Azure."
         assert response.model == "gpt-4o"
-        assert response.input_tokens == 10
-        assert response.output_tokens == 5
+        assert response.input_tokens == 12
+        assert response.output_tokens == 6
+        assert response.finish_reason == "stop"
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_completion_temperature_passthrough_gpt41(self, mock_credential, mock_client_class, mock_chat_response):
-        """Test temperature passes through for GPT-4.1 models (min=0.0)."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_messages_passed_as_plain_dicts(self, mock_chat_response):
+        """No SDK message objects any more — the wire format is plain OpenAI dicts."""
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
+
+        messages = [
+            {"role": "system", "content": "You are helpful."},
+            {"role": "user", "content": "Hi"},
+        ]
+        provider.chat_completion(messages=messages)
+
+        sent = mock_client.chat.completions.create.call_args.kwargs["messages"]
+        assert sent == messages
+
+    def test_tools_passed_through(self, mock_chat_response):
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
+
+        tools = [
+            {
+                "type": "function",
+                "function": {"name": "get_weather", "description": "Weather", "parameters": {}},
+            }
+        ]
+        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}], tools=tools)
+
+        assert mock_client.chat.completions.create.call_args.kwargs["tools"] == tools
+
+    def test_tool_calls_parsed(self, mock_chat_response):
+        tc = MagicMock()
+        tc.id = "call_1"
+        tc.type = "function"
+        tc.function.name = "get_weather"
+        tc.function.arguments = '{"city": "Berlin"}'
+        mock_chat_response.choices[0].message.tool_calls = [tc]
 
         mock_client = MagicMock()
-        mock_client.complete.return_value = mock_chat_response
-        mock_client_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_chat_response
+        provider = _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
+        response = provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
 
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-4.1",
-            temperature=0.3,
-        )
-
-        call_kwargs = mock_client.complete.call_args.kwargs
-        assert call_kwargs.get("temperature") == 0.3
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_completion_no_temperature_reasoning(self, mock_credential, mock_client_class, mock_chat_response):
-        """Test reasoning models don't receive temperature."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        mock_client.complete.return_value = mock_chat_response
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="o1",
-            temperature=0.7,
-        )
-
-        call_kwargs = mock_client.complete.call_args.kwargs
-        assert "temperature" not in call_kwargs
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_completion_with_max_tokens(self, mock_credential, mock_client_class, mock_chat_response):
-        """Test completion with max_tokens."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        mock_client.complete.return_value = mock_chat_response
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-4o",
-            max_tokens=100,
-        )
-
-        call_kwargs = mock_client.complete.call_args.kwargs
-        assert call_kwargs.get("max_tokens") == 100
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_completion_with_tools(self, mock_credential, mock_client_class):
-        """Test completion with tools."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        # Build mock response with tool calls
-        function_mock = MagicMock()
-        function_mock.name = "get_weather"
-        function_mock.arguments = '{"location": "Paris"}'
-
-        tool_call_mock = MagicMock()
-        tool_call_mock.id = "call_123"
-        tool_call_mock.type = "function"
-        tool_call_mock.function = function_mock
-
-        response = MagicMock()
-        response.model = "gpt-4o"
-        response.choices = [MagicMock()]
-        response.choices[0].message.content = ""
-        response.choices[0].message.tool_calls = [tool_call_mock]
-        response.choices[0].finish_reason = "tool_calls"
-        response.usage.prompt_tokens = 10
-        response.usage.completion_tokens = 5
-
-        mock_client = MagicMock()
-        mock_client.complete.return_value = response
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
-        tools = [{"type": "function", "function": {"name": "get_weather", "parameters": {}}}]
-        result = provider.chat_completion(
-            messages=[{"role": "user", "content": "Weather in Paris?"}],
-            model="gpt-4o",
-            tools=tools,
-        )
-
-        assert result.tool_calls is not None
-        assert len(result.tool_calls) == 1
-        assert result.tool_calls[0]["function"]["name"] == "get_weather"
+        assert len(response.tool_calls) == 1
+        assert response.tool_calls[0]["function"]["name"] == "get_weather"
 
 
 # =============================================================================
-# Stream Completion Tests
+# Streaming
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureStreamCompletion:
-    """Test streaming completion functionality."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_basic_streaming(self, mock_credential, mock_client_class):
-        """Test basic streaming."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        # Create stream chunks
-        chunk1 = MagicMock()
-        chunk1.choices = [MagicMock()]
-        chunk1.choices[0].delta.content = "Hello"
-        chunk1.choices[0].delta.tool_calls = None
-        chunk1.choices[0].finish_reason = None
-        chunk1.usage = None
-
-        chunk2 = MagicMock()
-        chunk2.choices = [MagicMock()]
-        chunk2.choices[0].delta.content = " world"
-        chunk2.choices[0].delta.tool_calls = None
-        chunk2.choices[0].finish_reason = None
-        chunk2.usage = None
-
-        chunk3 = MagicMock()
-        chunk3.choices = [MagicMock()]
-        chunk3.choices[0].delta.content = ""
-        chunk3.choices[0].delta.tool_calls = None
-        chunk3.choices[0].finish_reason = "stop"
-        chunk3.usage = MagicMock()
-        chunk3.usage.prompt_tokens = 5
-        chunk3.usage.completion_tokens = 2
-
+    def test_stream_yields_content_then_final(self, mock_stream_chunks):
         mock_client = MagicMock()
-        mock_client.complete.return_value = iter([chunk1, chunk2, chunk3])
-        mock_client_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_stream_chunks()
+        provider = _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
+        chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hi"}]))
 
-        chunks = list(
-            provider.stream_completion(
-                messages=[{"role": "user", "content": "Hi"}],
-                model="gpt-4o",
-            )
-        )
+        assert "".join(c.content for c in chunks if not c.is_final) == "Hello!"
+        assert chunks[-1].is_final is True
+        assert chunks[-1].finish_reason == "stop"
+        assert chunks[-1].input_tokens == 12
+        assert chunks[-1].output_tokens == 3
 
-        assert len(chunks) == 3
-        assert chunks[0].content == "Hello"
-        assert chunks[0].is_final is False
-        assert chunks[1].content == " world"
-        assert chunks[2].is_final is True
-        assert chunks[2].input_tokens == 5
-        assert chunks[2].output_tokens == 2
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_streaming_temperature_passthrough_gpt41(self, mock_credential, mock_client_class):
-        """Test streaming passes through temperature for GPT-4.1 models (min=0.0)."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        chunk = MagicMock()
-        chunk.choices = [MagicMock()]
-        chunk.choices[0].delta.content = "ok"
-        chunk.choices[0].delta.tool_calls = None
-        chunk.choices[0].finish_reason = "stop"
-        chunk.usage = None
-
+    def test_stream_requests_usage(self, mock_stream_chunks):
         mock_client = MagicMock()
-        mock_client.complete.return_value = iter([chunk])
-        mock_client_class.return_value = mock_client
+        mock_client.chat.completions.create.return_value = mock_stream_chunks()
+        provider = _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
+        list(provider.stream_completion(messages=[{"role": "user", "content": "Hi"}]))
 
-        list(
-            provider.stream_completion(
-                messages=[{"role": "user", "content": "Hi"}],
-                model="gpt-4.1",
-                temperature=0.5,
-            )
-        )
-
-        call_kwargs = mock_client.complete.call_args.kwargs
-        assert call_kwargs.get("temperature") == 0.5
+        params = mock_client.chat.completions.create.call_args.kwargs
+        assert params["stream"] is True
+        assert params["stream_options"] == {"include_usage": True}
 
 
 # =============================================================================
-# List Models Tests
+# Model catalog
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureListModels:
-    """Test list models functionality."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_list_models_returns_all(self, mock_credential, mock_client_class):
-        """Test list_models returns all known models."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
+    def test_returns_static_catalog(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
         models = provider.list_models()
 
-        assert len(models) > 0
-        model_ids = [m["id"] for m in models]
-        assert "gpt-4o" in model_ids
-        assert "gpt-4.1" in model_ids
-        assert "o3" in model_ids
+        assert len(models) == len(AzureProvider.KNOWN_MODELS)
+        ids = [m["id"] for m in models]
+        assert ids == sorted(ids)
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_list_models_includes_metadata(self, mock_credential, mock_client_class):
-        """Test list_models includes model metadata."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_catalog_covers_openai_and_foundry_models(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        ids = {m["id"] for m in provider.list_models()}
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
+        # Azure OpenAI models
+        assert "gpt-4o" in ids
+        assert "o3" in ids
+        # Foundry models from other providers stay reachable via the /v1 endpoint
+        assert "DeepSeek-R1" in ids
+        assert "Llama-3.3-70B-Instruct" in ids
+        assert "Mistral-Large-3" in ids
 
-        models = provider.list_models()
+    def test_entries_carry_metadata(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        entry = next(m for m in provider.list_models() if m["id"] == "o3")
 
-        gpt4o = next(m for m in models if m["id"] == "gpt-4o")
-        assert gpt4o["name"] == "GPT-4o"
-        assert gpt4o["context_length"] == 128000
-        assert gpt4o["provider"] == "azure"
+        assert entry["provider"] == "azure"
+        assert entry["supports_reasoning"] is True
+        assert entry["supports_streaming"] is True
+        assert entry["context_length"] == 200000
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_list_models_sorted(self, mock_credential, mock_client_class):
-        """Test list_models returns sorted by ID."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
+    def test_does_not_call_the_api(self):
+        """The catalog is static — no /v1/models round-trip."""
+        mock_client = MagicMock()
+        provider = _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
+        provider.list_models()
 
-        models = provider.list_models()
-        model_ids = [m["id"] for m in models]
-        assert model_ids == sorted(model_ids)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_list_models_temperature_constraints(self, mock_credential, mock_client_class):
-        """Test list_models includes correct temperature constraints."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-
-        models = provider.list_models()
-
-        # GPT-4o: 0.0-2.0
-        gpt4o = next(m for m in models if m["id"] == "gpt-4o")
-        assert gpt4o["supports_temperature"] is True
-        assert gpt4o["min_temperature"] == 0.0
-        assert gpt4o["max_temperature"] == 2.0
-
-        # O3: reasoning model, no temperature
-        o3 = next(m for m in models if m["id"] == "o3")
-        assert o3["supports_temperature"] is False
-        assert o3["supports_reasoning"] is True
-
-        # GPT-4.1: min 0.0
-        gpt41 = next(m for m in models if m["id"] == "gpt-4.1")
-        assert gpt41["supports_temperature"] is True
-        assert gpt41["min_temperature"] == 0.0
+        mock_client.models.list.assert_not_called()
 
 
 # =============================================================================
-# Error Handling Tests
+# Error handling
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureErrorHandling:
-    """Test error handling and mapping."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_error_scrubs_secret(self, mock_credential, mock_client_class):
-        """Provider errors must not leak API keys into the message."""
-        from azure.core.exceptions import HttpResponseError
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        error = HttpResponseError(message="401 auth failed for key sk-leakedsecret12345")
-        error.status_code = 401
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        err = provider._handle_http_error(error)
-        assert "sk-leakedsecret12345" not in str(err)
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_rate_limit_429(self, mock_credential, mock_client_class):
-        """Test rate limit error is properly mapped."""
-        from azure.core.exceptions import HttpResponseError
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
+    def _provider_raising(self, exc: Exception) -> AzureProvider:
         mock_client = MagicMock()
-        error = HttpResponseError(message="Rate limit exceeded")
-        error.status_code = 429
-        mock_client.complete.side_effect = error
-        mock_client_class.return_value = mock_client
+        mock_client.chat.completions.create.side_effect = exc
+        return _make_provider_with_client(mock_client)
 
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
+    def test_rate_limit(self):
+        provider = self._provider_raising(Exception("429 rate limit exceeded"))
         with pytest.raises(RateLimitError):
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4o",
-            )
+            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_auth_401(self, mock_credential, mock_client_class):
-        """Test authentication error via ClientAuthenticationError."""
-        from azure.core.exceptions import ClientAuthenticationError
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        error = ClientAuthenticationError(message="Invalid API key")
-        mock_client.complete.side_effect = error
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="invalid-key", base_url="https://localhost/")
-        provider._client = mock_client
-
+    def test_authentication(self):
+        provider = self._provider_raising(Exception("401 authentication failed"))
         with pytest.raises(AuthenticationError):
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4o",
-            )
+            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_overloaded_503(self, mock_credential, mock_client_class):
-        """Test 503 overloaded error is properly mapped."""
-        from azure.core.exceptions import HttpResponseError
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        error = HttpResponseError(message="Service overloaded")
-        error.status_code = 503
-        mock_client.complete.side_effect = error
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
-        with pytest.raises(OverloadedError):
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4o",
-            )
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_context_length_400(self, mock_credential, mock_client_class):
-        """Test context length error is properly mapped."""
-        from azure.core.exceptions import HttpResponseError
-
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        error = HttpResponseError(message="Maximum context length exceeded")
-        error.status_code = 400
-        mock_client.complete.side_effect = error
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
+    def test_context_length(self):
+        provider = self._provider_raising(Exception("context length exceeded"))
         with pytest.raises(ContextLengthError):
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4o",
-            )
+            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_generic_error(self, mock_credential, mock_client_class):
-        """Test generic errors are wrapped as ProviderError."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        mock_client = MagicMock()
-        mock_client.complete.side_effect = Exception("Network error")
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
-
+    def test_generic_error(self):
+        provider = self._provider_raising(Exception("something odd happened"))
         with pytest.raises(ProviderError):
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="gpt-4o",
-            )
+            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
+
+    def test_error_scrubs_secret(self):
+        """Provider errors must not leak API keys into the message."""
+        provider = self._provider_raising(Exception("500 error for key sk-leakedsecret12345"))
+        with pytest.raises(ProviderError) as exc_info:
+            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
+        assert "sk-leakedsecret12345" not in str(exc_info.value)
 
 
 # =============================================================================
-# Context Manager Tests
+# Context manager
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureContextManager:
-    """Test context manager functionality."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_close_client(self, mock_credential, mock_client_class):
-        """Test close() properly closes the client."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
+    def test_close_closes_client(self):
         mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
-        provider._client = mock_client
+        provider = _make_provider_with_client(mock_client)
+        _ = provider.client
 
         provider.close()
 
         mock_client.close.assert_called_once()
         assert provider._client is None
 
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_context_manager(self, mock_credential, mock_client_class):
-        """Test context manager protocol."""
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
+    def test_context_manager(self):
         mock_client = MagicMock()
-        mock_client_class.return_value = mock_client
+        provider = _make_provider_with_client(mock_client)
 
-        with AzureProvider(api_key="test-key", base_url="https://localhost/") as provider:
-            provider._client = mock_client
-            assert provider is not None
+        with provider as p:
+            assert p is provider
+            _ = p.client
 
-        mock_client.close.assert_called()
+        mock_client.close.assert_called_once()
+
+    def test_close_without_client_is_safe(self):
+        provider = AzureProvider(api_key="k", base_url=TEST_BASE_URL)
+        provider.close()  # must not raise
+
+    def test_rejected_base_url_leaves_instance_closable(self):
+        """A rejected base_url must not leave _client unset (close()/__del__ safety)."""
+        with pytest.raises(ValueError):
+            AzureProvider(api_key="k", base_url="http://169.254.169.254/openai/v1/")
 
 
 # =============================================================================
-# Factory Integration Tests
+# Factory integration
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestAzureFactoryIntegration:
-    """Test integration with provider factory."""
-
-    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
-    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
-    def test_get_provider_returns_azure(self, mock_credential, mock_client_class):
-        """Test get_provider returns AzureProvider."""
+    def test_factory_returns_azure_provider(self):
         from eq_chatbot_core.providers import get_provider
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
 
-        provider = get_provider(
-            "azure",
-            api_key="test-azure-key",
-            base_url="https://localhost/",
-        )
+        provider = get_provider("azure", api_key="test-key", base_url=TEST_BASE_URL)
 
         assert isinstance(provider, AzureProvider)
         assert provider.provider_name == "azure"
 
+    def test_factory_rejects_legacy_endpoint(self):
+        from eq_chatbot_core.providers import get_provider
 
-# =============================================================================
-# SSRF Guard (v1.17.2)
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestAzureSSRFGuard:
-    """base_url is always caller-supplied and must pass validate_url."""
-
-    def test_cloud_metadata_endpoint_rejected(self):
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        with pytest.raises(ValueError):
-            AzureProvider(api_key="test-key", base_url="http://169.254.169.254/models")
-
-    def test_non_http_scheme_rejected(self):
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        with pytest.raises(ValueError):
-            AzureProvider(api_key="test-key", base_url="ftp://localhost/models")
-
-    def test_localhost_base_url_accepted(self):
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = AzureProvider(api_key="test-key", base_url="https://localhost/models")
-        assert provider.base_url == "https://localhost/models"
+        with pytest.raises(ValueError, match="retired Azure AI Inference endpoint"):
+            get_provider("azure", api_key="test-key", base_url=LEGACY_BASE_URL)
