@@ -26,6 +26,7 @@ from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature,
     strip_provider_prefix,
 )
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 _logger = logging.getLogger(__name__)
 
@@ -561,13 +562,17 @@ class OpenRouterProvider(BaseLLMProvider):
         }
 
     def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:
-        """Convert HTTP errors to ProviderError types."""
+        """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.response.status_code
         try:
             error_data = error.response.json()
             message = error_data.get("error", {}).get("message", str(error))
         except (ValueError, KeyError):
             message = str(error)
+
+        # Gateway error bodies can echo request headers/credentials — mask before
+        # the message reaches a logger or an API caller.
+        message = scrub_secrets(message)
 
         if status == 429:
             return RateLimitError(
@@ -596,9 +601,9 @@ class OpenRouterProvider(BaseLLMProvider):
         )
 
     def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert general exceptions to ProviderError."""
+        """Convert general exceptions to ProviderError (secrets scrubbed)."""
         return ProviderError(
-            message=str(error),
+            message=scrub_secrets(str(error)),
             provider=self.provider_name,
         )
 

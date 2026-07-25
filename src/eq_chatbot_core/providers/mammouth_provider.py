@@ -29,6 +29,7 @@ from eq_chatbot_core.providers.temperature_constraints import (
 from eq_chatbot_core.providers.temperature_constraints import (
     get_temperature_constraints as _shared_get_temperature_constraints,
 )
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 _logger = logging.getLogger(__name__)
 
@@ -73,6 +74,10 @@ class MammouthProvider(BaseLLMProvider):
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
         """
+        # Initialize the client attribute BEFORE validation so close()/__del__
+        # stay safe if the SSRF guard below raises.
+        self._client: httpx.Client | None = None
+
         # SSRF guard: only a caller-supplied base_url is validated — the fixed
         # public default needs no DNS round-trip. Imported lazily to avoid an
         # import cycle.
@@ -82,7 +87,6 @@ class MammouthProvider(BaseLLMProvider):
             validate_url(base_url, allow_private_ranges=False)
 
         super().__init__(api_key, base_url or self.DEFAULT_BASE_URL, timeout, max_retries)
-        self._client: httpx.Client | None = None
 
     @property
     def provider_name(self) -> str:
@@ -397,7 +401,7 @@ class MammouthProvider(BaseLLMProvider):
             raise self._handle_error(e) from e
 
     def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:
-        """Convert HTTP errors to ProviderError types."""
+        """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.response.status_code
         try:
             # For streaming responses, content may not have been read yet
@@ -415,6 +419,10 @@ class MammouthProvider(BaseLLMProvider):
                 message = str(err_field)
         except (ValueError, KeyError, httpx.ResponseNotRead):
             message = str(error)
+
+        # Gateway error bodies can echo request headers/credentials — mask before
+        # the message reaches a logger or an API caller.
+        message = scrub_secrets(message)
 
         if status == 429:
             return RateLimitError(
@@ -450,9 +458,9 @@ class MammouthProvider(BaseLLMProvider):
         )
 
     def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert general exceptions to ProviderError."""
+        """Convert general exceptions to ProviderError (secrets scrubbed)."""
         return ProviderError(
-            message=str(error),
+            message=scrub_secrets(str(error)),
             provider=self.provider_name,
         )
 

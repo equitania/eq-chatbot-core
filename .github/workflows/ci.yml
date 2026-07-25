@@ -37,13 +37,27 @@ jobs:
       - name: Run ruff format check
         run: uv run ruff format --check src/ tests/
 
-      # mypy strict reveals ~108 pre-existing typing issues across 21 files (mostly
-       # missing annotations on legacy provider code). Marked advisory until that
-       # debt is cleaned up in a dedicated typing pass — failures are surfaced in
-       # logs but do not block CI.
-      - name: Run mypy (advisory)
-        run: uv run mypy src/
-        continue-on-error: true
+      # mypy strict reveals pre-existing typing issues across the legacy provider
+      # code. Clearing that debt is a dedicated typing pass, so existing errors do
+      # not block CI — but the count is ratcheted: a PR that ADDS errors fails.
+      # Lower MYPY_BASELINE whenever debt is paid down so the ratchet tightens.
+      # NOTE: the baseline is measured WITH the azure+vertex extras installed (as
+      # this job does); without them mypy reports ~12 fewer errors. Upgrading those
+      # SDKs can shift the count and may require adjusting the baseline.
+      - name: Run mypy (ratcheted against baseline)
+        env:
+          MYPY_BASELINE: "167"
+        run: |
+          uv run mypy src/ | tee mypy.log || true
+          count=$(grep -cE '^src/.*: error:' mypy.log || true)
+          echo "mypy errors: ${count} (baseline: ${MYPY_BASELINE})"
+          if [ "${count}" -gt "${MYPY_BASELINE}" ]; then
+            echo "::error::mypy errors increased from ${MYPY_BASELINE} to ${count}"
+            exit 1
+          fi
+          if [ "${count}" -lt "${MYPY_BASELINE}" ]; then
+            echo "::notice::mypy errors decreased to ${count} — lower MYPY_BASELINE to lock the gain in."
+          fi
 
   security:
     name: Dependency vulnerability audit
@@ -65,13 +79,13 @@ jobs:
       - name: Install package and dev extras
         run: uv pip install -e ".[dev,security,pdf,azure,vertex,server]"
 
-      # Scans installed dependencies against the PyPI Advisory DB.
-      # Advisory for now (continue-on-error) so a freshly disclosed CVE in a
-      # transitive dep does not hard-block unrelated PRs; findings are visible in
-      # the job log and should be triaged promptly.
+      # Scans installed dependencies against the PyPI Advisory DB. This is a HARD
+      # gate: a disclosed CVE in a (transitive) dependency must be triaged, not
+      # merged past. If a finding is genuinely not applicable and no fixed release
+      # exists yet, unblock deliberately with an explicit, commented exception:
+      #   uv run pip-audit --strict --ignore-vuln GHSA-xxxx-xxxx-xxxx
       - name: Run pip-audit
         run: uv run pip-audit --strict
-        continue-on-error: true
 
   test:
     name: Tests (Python ${{ matrix.python-version }})

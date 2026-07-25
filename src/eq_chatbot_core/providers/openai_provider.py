@@ -66,9 +66,21 @@ class OpenAIProvider(BaseLLMProvider):
         max_retries: int = 2,
         organization: str | None = None,
     ):
+        # Initialize the client attribute BEFORE validation so close()/__del__
+        # stay safe if the SSRF guard below raises.
+        self._client: Any = None  # Lazy initialization
+
+        # SSRF guard: only a caller-supplied base_url is validated — the fixed
+        # public default needs no DNS round-trip. Private ranges are rejected
+        # because OpenAI is a public cloud endpoint. Imported lazily to avoid an
+        # import cycle.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
         super().__init__(api_key, base_url, timeout, max_retries)
         self.organization = organization
-        self._client: Any = None  # Lazy initialization
 
     @property
     def provider_name(self) -> str:
@@ -451,30 +463,33 @@ class OpenAIProvider(BaseLLMProvider):
             raise self._handle_error(e) from e
 
     def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert OpenAI exceptions to ProviderError types."""
-        error_str = str(error).lower()
+        """Convert OpenAI exceptions to ProviderError types (secrets scrubbed)."""
+        from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+
+        message = scrub_secrets(str(error))
+        error_str = message.lower()
 
         if "rate limit" in error_str or "429" in error_str:
             return RateLimitError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
                 status_code=429,
             )
 
         if "authentication" in error_str or "401" in error_str:
             return AuthenticationError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
                 status_code=401,
             )
 
         if "context length" in error_str or "token" in error_str:
             return ContextLengthError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
             )
 
         return ProviderError(
-            message=str(error),
+            message=message,
             provider=self.provider_name,
         )

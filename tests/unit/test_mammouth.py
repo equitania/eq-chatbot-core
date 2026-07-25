@@ -656,6 +656,14 @@ class TestMammouthListModels:
 class TestMammouthErrorHandling:
     """Test error handling and mapping."""
 
+    def test_error_scrubs_secret(self):
+        """Provider errors must not leak API keys into the message."""
+        from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+
+        provider = MammouthProvider(api_key="mm-test-key")
+        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
+        assert "sk-leakedsecret12345" not in str(err)
+
     def test_rate_limit_error(self):
         """Test rate limit error is properly mapped."""
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:

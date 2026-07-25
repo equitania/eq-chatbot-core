@@ -766,6 +766,14 @@ class TestOpenRouterModelConstraints:
 class TestOpenRouterErrorHandling:
     """Test error handling and mapping."""
 
+    def test_error_scrubs_secret(self):
+        """Provider errors must not leak API keys into the message."""
+        from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+
+        provider = OpenRouterProvider(api_key="sk-or-test")
+        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
+        assert "sk-leakedsecret12345" not in str(err)
+
     def test_rate_limit_error(self):
         """Test rate limit error is properly mapped."""
         with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:

@@ -139,6 +139,12 @@ class LangDockProvider(BaseLLMProvider):
             reasoning_effort: For O1/O3/O4 models - 'low', 'medium', 'high'
             agent_id: LangDock Agent ID (required for backend='agent')
         """
+        # Initialize clients BEFORE validation to ensure __del__ works even when
+        # the SSRF guard below rejects the URL.
+        self._http_client: httpx.Client | None = None
+        self._openai_client: Any = None
+        self._anthropic_client: Any = None
+
         # SSRF guard: only a caller-supplied base_url is validated — the fixed
         # public default needs no DNS round-trip. Imported lazily to avoid an
         # import cycle.
@@ -148,11 +154,6 @@ class LangDockProvider(BaseLLMProvider):
             validate_url(base_url, allow_private_ranges=False)
 
         super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries)
-
-        # Initialize clients BEFORE validation to ensure __del__ works
-        self._http_client: httpx.Client | None = None
-        self._openai_client: Any = None
-        self._anthropic_client: Any = None
 
         self.region = region.lower()
         self.backend = backend.lower()

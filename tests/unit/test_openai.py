@@ -107,18 +107,37 @@ class TestOpenAIProviderInit:
 
     def test_init_with_custom_params(self):
         """Test initialization with custom parameters."""
+        # Loopback URL keeps the SSRF guard's validate_url hermetic (no DNS).
         provider = OpenAIProvider(
             api_key="sk-test-key",
-            base_url="https://custom.openai.com/v1",
+            base_url="http://localhost:8080/v1",
             timeout=120.0,
             max_retries=5,
             organization="org-test",
         )
 
-        assert provider.base_url == "https://custom.openai.com/v1"
+        assert provider.base_url == "http://localhost:8080/v1"
         assert provider.timeout == 120.0
         assert provider.max_retries == 5
         assert provider.organization == "org-test"
+
+    def test_ssrf_metadata_blocked(self):
+        with pytest.raises(ValueError):
+            OpenAIProvider(api_key="sk-test-key", base_url="http://169.254.169.254/v1")
+
+    def test_private_range_blocked(self):
+        with pytest.raises(ValueError):
+            OpenAIProvider(api_key="sk-test-key", base_url="http://10.0.0.5/v1")
+
+    def test_non_http_scheme_blocked(self):
+        with pytest.raises(ValueError):
+            OpenAIProvider(api_key="sk-test-key", base_url="file:///etc/passwd")
+
+    def test_rejected_base_url_leaves_instance_closable(self):
+        """A rejected base_url must not leave _client unset (close()/__del__ safety)."""
+        with pytest.raises(ValueError):
+            OpenAIProvider(api_key="sk-test-key", base_url="http://169.254.169.254/v1")
+        # No AttributeError may surface from garbage collection of the failed instance.
 
     def test_lazy_client_initialization(self):
         """Test that client is lazily initialized."""
@@ -627,6 +646,12 @@ class TestOpenAIModelConstraints:
 @pytest.mark.unit
 class TestOpenAIErrorHandling:
     """Test error handling in OpenAI provider."""
+
+    def test_error_scrubs_secret(self):
+        """Provider errors must not leak API keys into the message."""
+        provider = OpenAIProvider(api_key="sk-test")
+        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
+        assert "sk-leakedsecret12345" not in str(err)
 
     def test_rate_limit_error(self):
         """Test handling of rate limit errors."""

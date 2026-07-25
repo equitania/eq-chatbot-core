@@ -654,6 +654,21 @@ class TestAzureErrorHandling:
 
     @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
     @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
+    def test_error_scrubs_secret(self, mock_credential, mock_client_class):
+        """Provider errors must not leak API keys into the message."""
+        from azure.core.exceptions import HttpResponseError
+
+        from eq_chatbot_core.providers.azure_provider import AzureProvider
+
+        error = HttpResponseError(message="401 auth failed for key sk-leakedsecret12345")
+        error.status_code = 401
+
+        provider = AzureProvider(api_key="test-key", base_url="https://localhost/")
+        err = provider._handle_http_error(error)
+        assert "sk-leakedsecret12345" not in str(err)
+
+    @patch("eq_chatbot_core.providers.azure_provider.ChatCompletionsClient")
+    @patch("eq_chatbot_core.providers.azure_provider.AzureKeyCredential")
     def test_rate_limit_429(self, mock_credential, mock_client_class):
         """Test rate limit error is properly mapped."""
         from azure.core.exceptions import HttpResponseError

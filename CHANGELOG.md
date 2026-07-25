@@ -5,6 +5,44 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-07-25
+
+### Security
+
+- **SSRF guard closed on the remaining entry points**: `OpenAIProvider`, `AnthropicProvider`,
+  `OpenAIEmbedder` and `MeliousEmbedder` passed a caller-supplied `base_url` into the SDK client
+  unvalidated. Since the `[server]` sidecar forwards `ChatRequest.base_url` into `get_provider()`,
+  an authenticated caller could reach internal addresses (e.g. `169.254.169.254`). All four now
+  call `validate_url(base_url, allow_private_ranges=False)`.
+- **Secret scrubbing completed**: the `openai`, `anthropic`, `azure`, `openrouter`, `vertex` and
+  `mammouth` error paths now run `scrub_secrets()` like the other five providers already did.
+  `server/app.py` scrubs defensively in its own error responses rather than trusting upstream.
+- **CVE-excluding dependency floors**: `click>=8.3.3` (CVE-2026-7246), `cryptography>=46.0.7`
+  (CVE-2026-26007 / -39892 / -34073), `Pillow>=12.3.0` in `[image]` (CVE-2026-59205 — affects all
+  earlier releases, so the previous 12.2.0 floor did not exclude it). `pip-audit` is clean.
+
+### Fixed
+
+- **`AttributeError` during GC after a rejected `base_url`**: the SSRF check ran before the HTTP
+  client attribute was assigned in the LangDock, Mammouth, IONOS, LiteLLM and Melious providers,
+  so `__del__` raised on instances whose URL was rejected. Client attributes are initialized first.
+
+### Changed
+
+- **`OpenAICompatibleProvider` base class** (`providers/openai_compatible.py`): IONOS, Melious and
+  LiteLLM shared byte-identical request/response/error code. Subclasses now declare only their
+  constants; LiteLLM keeps its Audio API. Public API unchanged (class names, constructor
+  signatures and module-level `DEFAULT_BASE_URL`/`DEFAULT_MODEL` preserved).
+- **CI gates**: `pip-audit --strict` is a hard gate instead of advisory; `mypy` is ratcheted
+  against a measured baseline so the typing debt cannot grow.
+
+### Documentation
+
+- AGPL-3.0 notice for the `pymupdf` dependency behind the `[pdf]` / `[docs]` extras.
+
+> Note: entries for 1.18.0, 1.18.1 and 1.19.0 are documented in `RELEASE_NOTES.md`
+> but were never backfilled into this file.
+
 ## [1.17.2] - 2026-07-04
 
 ### Security

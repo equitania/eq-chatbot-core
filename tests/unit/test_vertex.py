@@ -636,6 +636,14 @@ class TestVertexErrorHandling:
 
     @patch("eq_chatbot_core.providers.vertex_provider.types")
     @patch("eq_chatbot_core.providers.vertex_provider.genai")
+    def test_error_scrubs_secret(self, mock_genai, mock_types):
+        """Provider errors must not leak API keys into the message."""
+        provider = _make_provider()
+        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
+        assert "sk-leakedsecret12345" not in str(err)
+
+    @patch("eq_chatbot_core.providers.vertex_provider.types")
+    @patch("eq_chatbot_core.providers.vertex_provider.genai")
     def test_rate_limit_error(self, mock_genai, mock_types):
         """Test 429 error maps to RateLimitError."""
         error = Exception("429 Resource Exhausted")

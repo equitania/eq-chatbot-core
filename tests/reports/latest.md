@@ -1,20 +1,20 @@
-# Test Report - 2026-07-11 19:24:03
+# Test Report - 2026-07-25 12:01:09
 
-**eq_chatbot_core v1.19.0** | 7.05s | Python 3.13.12 | macOS-26.5.2-arm64-arm-64bit-Mach-O
+**eq_chatbot_core v1.20.0** | 7.43s | Python 3.13.12 | macOS-26.5.2-arm64-arm-64bit-Mach-O
 
-> **Result: ALL PASSED - 1680 tests OK, 5 expected failures, 1 skipped**
+> **Result: ALL PASSED - 1738 tests OK, 5 expected failures, 1 skipped**
 
-Command: `/Users/picard/gitbase/PyPi-Projects/eq_chatbot_core/.venv/bin/pytest tests/unit/ -q`
+Command: `.venv/bin/pytest tests/unit -q --no-header -p no:cacheprovider`
 
 ## Summary
 
 | Status | Count |
 |--------|-------|
-| Passed | 1680 |
+| Passed | 1738 |
 | Failed | 0 |
 | Skipped | 1 |
 | XFailed (expected) | 5 |
-| **Total** | **1686** |
+| **Total** | **1744** |
 
 ## Configuration Status
 
@@ -55,32 +55,37 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 
 | Module | Test Model | Passed | Failed | Skipped | XFailed | Total | Duration |
 |--------|------------|--------|--------|---------|---------|-------|----------|
-| **Provider: OpenAI** | - | 41 | 0 | 0 | 0 | 41 | 0.04s |
-| **Provider: Anthropic** | - | 46 | 0 | 0 | 0 | 46 | <0.01s |
+| **Provider: OpenAI** | - | 46 | 0 | 0 | 0 | 46 | <0.01s |
+| **Provider: Anthropic** | - | 50 | 0 | 0 | 0 | 50 | <0.01s |
 | **Provider: LangDock** | - | 60 | 0 | 0 | 0 | 60 | 0.02s |
-| **Provider: OpenRouter** | - | 40 | 0 | 0 | 0 | 40 | 0.01s |
-| **Provider: Mammouth AI** | - | 41 | 0 | 0 | 0 | 41 | 0.01s |
-| **Provider: Google Vertex AI** | - | 44 | 0 | 0 | 0 | 44 | 0.02s |
+| **Provider: OpenRouter** | - | 41 | 0 | 0 | 0 | 41 | 0.01s |
+| **Provider: Mammouth AI** | - | 42 | 0 | 0 | 0 | 42 | 0.01s |
+| **Provider: Azure AI** | - | 42 | 0 | 0 | 0 | 42 | 0.02s |
+| **Provider: Google Vertex AI** | - | 45 | 0 | 0 | 0 | 45 | 0.01s |
 | **Provider: LiteLLM Gateway** | - | 30 | 0 | 0 | 0 | 30 | 0.01s |
 | **Provider: IONOS AI Model Hub** | - | 27 | 0 | 0 | 0 | 27 | 0.03s |
-| **Provider: Melious.ai (sovereign EU)** | - | 28 | 0 | 0 | 0 | 28 | 0.03s |
-| **Provider: Local (LM Studio / Ollama)** | - | 35 | 0 | 0 | 0 | 35 | 0.07s |
+| **Provider: Melious.ai (sovereign EU)** | - | 28 | 0 | 0 | 0 | 28 | 0.04s |
+| **Provider: Local (LM Studio / Ollama)** | - | 35 | 0 | 0 | 0 | 35 | 0.03s |
 | **Security** | - | 423 | 0 | 0 | 5 | 428 | 0.05s |
-| **RAG Pipeline** | - | 117 | 0 | 0 | 0 | 117 | 0.34s |
-| **Services & Core** | - | 192 | 0 | 0 | 0 | 192 | 0.19s |
-| **MCP Client** | - | 99 | 0 | 0 | 0 | 99 | 1.56s |
-| **Other** | - | 457 | 0 | 1 | 0 | 458 | 2.12s |
+| **RAG Pipeline** | - | 117 | 0 | 0 | 0 | 117 | 0.27s |
+| **Services & Core** | - | 193 | 0 | 0 | 0 | 193 | 0.05s |
+| **MCP Client** | - | 99 | 0 | 0 | 0 | 99 | 1.58s |
+| **Other** | - | 460 | 0 | 1 | 0 | 461 | 2.48s |
 
 ## Detailed Results
 
-### Unit Tests (1679 passed, 1 skipped, 5 xfailed)
+### Unit Tests (1737 passed, 1 skipped, 5 xfailed)
 
-#### Provider: OpenAI (41 passed) - 0.04s
+#### Provider: OpenAI (46 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
 | `unit/test_openai.py::TestOpenAIProviderInit::test_basic_init` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderInit::test_init_with_custom_params` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderInit::test_ssrf_metadata_blocked` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderInit::test_private_range_blocked` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderInit::test_non_http_scheme_blocked` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIProviderInit::test_rejected_base_url_leaves_instance_closable` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderInit::test_lazy_client_initialization` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderInit::test_client_property_creates_client` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderInit::test_client_reuses_instance` | PASSED | <0.01s |
@@ -93,7 +98,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_extra_kwargs` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_reasoning_model_no_temperature` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIChatCompletion::test_completion_gpt41_temperature_clamped` | PASSED | <0.01s |
-| `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_completion` | PASSED | 0.03s |
+| `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_completion` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_includes_usage` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_with_max_tokens` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIStreamCompletion::test_stream_tool_calls` | PASSED | <0.01s |
@@ -107,6 +112,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openai.py::TestOpenAIModelConstraints::test_gpt_model_constraints` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIModelConstraints::test_vision_support_detection` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIModelConstraints::test_context_length_detection` | PASSED | <0.01s |
+| `unit/test_openai.py::TestOpenAIErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIErrorHandling::test_authentication_error` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIErrorHandling::test_context_length_error` | PASSED | <0.01s |
@@ -121,12 +127,15 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_reasoning_model_no_temperature` | PASSED | <0.01s |
 | `unit/test_openai.py::TestOpenAIProviderProperties::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
 
-#### Provider: Anthropic (46 passed) - <0.01s
+#### Provider: Anthropic (50 passed) - <0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_basic_init` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_init_with_custom_params` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicProviderInit::test_ssrf_metadata_blocked` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicProviderInit::test_private_range_blocked` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicProviderInit::test_non_http_scheme_blocked` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_lazy_client_initialization` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_client_property_creates_client` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicProviderInit::test_client_reuses_instance` | PASSED | <0.01s |
@@ -160,6 +169,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_anthropic.py::TestAnthropicModelConstraints::test_opus3_constraints` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicModelConstraints::test_haiku_constraints` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicModelConstraints::test_temperature_range` | PASSED | <0.01s |
+| `unit/test_anthropic.py::TestAnthropicErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicErrorHandling::test_authentication_error` | PASSED | <0.01s |
 | `unit/test_anthropic.py::TestAnthropicErrorHandling::test_context_length_error` | PASSED | <0.01s |
@@ -237,7 +247,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_langdock.py::TestLangDockSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
 | `unit/test_langdock.py::TestLangDockSSRFGuard::test_default_base_url_skips_validation` | PASSED | <0.01s |
 
-#### Provider: OpenRouter (40 passed) - 0.01s
+#### Provider: OpenRouter (41 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -270,6 +280,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openrouter.py::TestOpenRouterModelConstraints::test_reasoning_model_constraints` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterModelConstraints::test_pricing_extraction` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterModelConstraints::test_pricing_with_missing_values` | PASSED | <0.01s |
+| `unit/test_openrouter.py::TestOpenRouterErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterErrorHandling::test_authentication_error` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterErrorHandling::test_context_length_error` | PASSED | <0.01s |
@@ -282,7 +293,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_openrouter.py::TestOpenRouterSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
 | `unit/test_openrouter.py::TestOpenRouterSSRFGuard::test_default_base_url_skips_validation` | PASSED | <0.01s |
 
-#### Provider: Mammouth AI (41 passed) - 0.01s
+#### Provider: Mammouth AI (42 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -315,6 +326,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mammouth.py::TestMammouthListModels::test_list_models_includes_metadata` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthListModels::test_list_models_includes_pricing` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthListModels::test_list_models_sorted` | PASSED | <0.01s |
+| `unit/test_mammouth.py::TestMammouthErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthErrorHandling::test_authentication_error` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthErrorHandling::test_overloaded_error` | PASSED | <0.01s |
@@ -328,7 +340,54 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mammouth.py::TestMammouthSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
 | `unit/test_mammouth.py::TestMammouthSSRFGuard::test_default_base_url_skips_validation` | PASSED | <0.01s |
 
-#### Provider: Google Vertex AI (44 passed) - 0.02s
+#### Provider: Azure AI (42 passed) - 0.02s
+
+| Test | Status | Duration |
+|------|--------|----------|
+| `unit/test_azure.py::TestAzureProviderInit::test_basic_init` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_endpoint` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_missing_endpoint_raises` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_missing_sdk_raises` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderInit::test_custom_timeout` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderProperties::test_provider_name` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureProviderProperties::test_default_model` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_reasoning_model_no_temperature` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_gpt41_temperature_passthrough` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_legacy_model_passthrough` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_claude_max_temperature_clamped` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureTemperatureConstraints::test_unknown_model_uses_defaults` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_o1_o3_o4_detected` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureReasoningModels::test_gpt_claude_not_detected` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMessageConversion::test_system_message` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMessageConversion::test_user_message` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMessageConversion::test_assistant_message` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMessageConversion::test_tool_message` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureMessageConversion::test_unknown_role_fallback` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_simple_completion` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_temperature_passthrough_gpt41` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_no_temperature_reasoning` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_max_tokens` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureChatCompletion::test_completion_with_tools` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_basic_streaming` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureStreamCompletion::test_streaming_temperature_passthrough_gpt41` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_returns_all` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_includes_metadata` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_sorted` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureListModels::test_list_models_temperature_constraints` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_rate_limit_429` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_auth_401` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_overloaded_503` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_context_length_400` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureErrorHandling::test_generic_error` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureContextManager::test_close_client` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureContextManager::test_context_manager` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureFactoryIntegration::test_get_provider_returns_azure` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_cloud_metadata_endpoint_rejected` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_non_http_scheme_rejected` | PASSED | <0.01s |
+| `unit/test_azure.py::TestAzureSSRFGuard::test_localhost_base_url_accepted` | PASSED | <0.01s |
+
+#### Provider: Google Vertex AI (45 passed) - 0.01s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -365,6 +424,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_vertex.py::TestVertexListModels::test_list_models_returns_known_models` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexListModels::test_list_models_sorted` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexListModels::test_list_models_metadata` | PASSED | <0.01s |
+| `unit/test_vertex.py::TestVertexErrorHandling::test_error_scrubs_secret` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexErrorHandling::test_rate_limit_error` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexErrorHandling::test_auth_error` | PASSED | <0.01s |
 | `unit/test_vertex.py::TestVertexErrorHandling::test_overloaded_error` | PASSED | <0.01s |
@@ -444,7 +504,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_ionos.py::TestIonosContextManager::test_close_closes_client` | PASSED | <0.01s |
 | `unit/test_ionos.py::TestIonosContextManager::test_context_manager` | PASSED | <0.01s |
 
-#### Provider: Melious.ai (sovereign EU) (28 passed) - 0.03s
+#### Provider: Melious.ai (sovereign EU) (28 passed) - 0.04s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -477,12 +537,12 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_melious.py::TestMeliousContextManager::test_close_closes_client` | PASSED | <0.01s |
 | `unit/test_melious.py::TestMeliousContextManager::test_context_manager` | PASSED | <0.01s |
 
-#### Provider: Local (LM Studio / Ollama) (35 passed) - 0.07s
+#### Provider: Local (LM Studio / Ollama) (35 passed) - 0.03s
 
 | Test | Status | Duration |
 |------|--------|----------|
 | `unit/test_local.py::TestLocalLLMProviderInit::test_default_initialization` | PASSED | <0.01s |
-| `unit/test_local.py::TestLocalLLMProviderInit::test_custom_base_url` | PASSED | 0.05s |
+| `unit/test_local.py::TestLocalLLMProviderInit::test_custom_base_url` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderInit::test_ollama_url` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderInit::test_lm_studio_url` | PASSED | <0.01s |
 | `unit/test_local.py::TestLocalLLMProviderInit::test_custom_timeout` | PASSED | <0.01s |
@@ -950,7 +1010,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_rate_limit.py::TestEnforceRateLimit::test_non_atomic_records_usage_when_allowed` | PASSED | <0.01s |  |
 | `unit/test_rate_limit.py::TestEnforceRateLimit::test_non_atomic_does_not_record_when_denied` | PASSED | <0.01s |  |
 
-#### RAG Pipeline (117 passed) - 0.34s
+#### RAG Pipeline (117 passed) - 0.27s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1028,7 +1088,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_export_to_langdock_filenames_cannot_escape_temp_dir` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestKnowledgeExporter::test_empty_records` | PASSED | <0.01s |
 | `unit/test_knowledge_service.py::TestExportRecord::test_create_export_record` | PASSED | <0.01s |
-| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.32s |
+| `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_returns_retrieval_results` | PASSED | 0.26s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_maps_payload_fields_correctly` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_embedder_with_query` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestRetrieveSuccess::test_retrieve_calls_qdrant_search` | PASSED | <0.01s |
@@ -1072,7 +1132,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_retriever.py::TestUpsert::test_upsert_qdrant_failure_raises_connection_error` | PASSED | <0.01s |
 | `unit/test_retriever.py::TestUpsert::test_upsert_handles_missing_optional_fields` | PASSED | <0.01s |
 
-#### Services & Core (192 passed) - 0.19s
+#### Services & Core (193 passed) - 0.05s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1206,16 +1266,17 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_openrouter_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_azure_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_get_vertex_provider` | PASSED | <0.01s |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_ionos_provider` | PASSED | 0.07s |
-| `unit/test_factory.py::TestFactoryCloudProviders::test_get_melious_provider` | PASSED | 0.04s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_ionos_provider` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_get_melious_provider` | PASSED | 0.02s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_provider_name_case_insensitive` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryCloudProviders::test_custom_base_url` | PASSED | <0.01s |
+| `unit/test_factory.py::TestFactoryCloudProviders::test_custom_base_url_ssrf_blocked` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_get_local_provider_default_api_key` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_get_lm_studio_alias` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_get_lmstudio_alias` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_get_ollama_alias` | PASSED | <0.01s |
-| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_custom_base_url_override` | PASSED | 0.05s |
+| `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_custom_base_url_override` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_local_provider_with_api_key` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryLocalProviders::test_local_alias_case_insensitive` | PASSED | <0.01s |
 | `unit/test_factory.py::TestFactoryErrors::test_unknown_provider_raises_error` | PASSED | <0.01s |
@@ -1269,7 +1330,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_o3_returns_none` | PASSED | <0.01s |
 | `unit/test_temperature_constraints.py::TestClampWithPrefixStrip::test_openrouter_unknown_passthrough` | PASSED | <0.01s |
 
-#### MCP Client (99 passed) - 1.56s
+#### MCP Client (99 passed) - 1.58s
 
 | Test | Status | Duration |
 |------|--------|----------|
@@ -1296,7 +1357,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestMCPClientRequests::test_send_request_increments_id` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_success` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_list_tools_empty` | PASSED | 0.05s |
-| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.05s |
+| `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_success` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_call_tool_error` | PASSED | 0.06s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_found` | PASSED | 0.05s |
 | `unit/test_mcp.py::TestMCPClientToolOperations::test_get_tool_schema_not_found` | PASSED | 0.06s |
@@ -1367,13 +1428,13 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_returns_resolved_ips` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_rejects_unresolvable_in_strict_mode` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_validate_url_allows_unresolvable_in_lan_mode` | PASSED | <0.01s |
-| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.04s |
+| `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_rejects_rebinding` | PASSED | 0.03s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_passes_when_resolution_matches` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_pinned_transport_skips_check_for_unpinned_hosts` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_base_url_on_init` | PASSED | <0.01s |
 | `unit/test_mcp.py::TestDNSRebindingProtection::test_mcpclient_pins_endpoint_from_sse_event` | PASSED | <0.01s |
 
-#### Other (456 passed, 1 skipped) - 2.12s
+#### Other (459 passed, 1 skipped) - 2.48s
 
 | Test | Status | Duration | Detail |
 |------|--------|----------|--------|
@@ -1580,7 +1641,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/realtime/test_realtime_openai.py::TestConnectLifecycle::test_implements_contract` | PASSED | <0.01s |  |
 | `unit/realtime/test_realtime_openai.py::TestCloseLifecycle::test_close_does_not_raise_when_not_connected` | PASSED | <0.01s |  |
 | `unit/realtime/test_websocket_client.py::test_connect_with_backoff_3_failures_then_success` | PASSED | <0.01s |  |
-| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 1.90s |  |
+| `unit/realtime/test_websocket_client.py::test_connect_with_backoff_all_failures_raises` | PASSED | 2.31s |  |
 | `unit/realtime/test_websocket_client.py::test_realtime_closed_error_fields` | PASSED | <0.01s |  |
 | `unit/realtime/test_websocket_client.py::test_realtime_rate_limit_error` | PASSED | <0.01s |  |
 | `unit/realtime/test_websocket_client.py::test_error_hierarchy` | PASSED | <0.01s |  |
@@ -1670,7 +1731,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_cli_image.py::TestImageCommand::test_prompt_file` | PASSED | <0.01s |  |
 | `unit/test_cli_image.py::TestImageCommand::test_custom_model_forwarded` | PASSED | <0.01s |  |
 | `unit/test_cli_image.py::TestImageCommand::test_openrouter_provider_accepted` | PASSED | <0.01s |  |
-| `unit/test_cli_image.py::TestImageCommand::test_fit_option_resizes_image` | PASSED | 0.02s |  |
+| `unit/test_cli_image.py::TestImageCommand::test_fit_option_resizes_image` | PASSED | <0.01s |  |
 | `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_successful_batch_creates_files` | PASSED | <0.01s |  |
 | `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_dest_defaults_to_recipe_directory` | PASSED | <0.01s |  |
 | `unit/test_cli_listing_assets.py::TestListingAssetsCommand::test_provider_called_once_for_batch` | PASSED | <0.01s |  |
@@ -1742,6 +1803,9 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_embedder.py::TestLangDockEmbedder::test_default_region_is_eu` | PASSED | <0.01s |  |
 | `unit/test_embedder.py::TestMeliousEmbedder::test_default_base_url` | PASSED | <0.01s |  |
 | `unit/test_embedder.py::TestMeliousEmbedder::test_base_url_override` | PASSED | <0.01s |  |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_ssrf_metadata_blocked` | PASSED | <0.01s |  |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_private_range_blocked` | PASSED | <0.01s |  |
+| `unit/test_embedder.py::TestMeliousEmbedder::test_non_http_scheme_blocked` | PASSED | <0.01s |  |
 | `unit/test_embedder.py::TestMeliousEmbedder::test_default_dimensions` | PASSED | <0.01s |  |
 | `unit/test_embedder.py::TestMeliousEmbedder::test_configurable_dimensions` | PASSED | <0.01s |  |
 | `unit/test_embedder.py::TestMeliousEmbedder::test_skips_static_model_validation` | PASSED | <0.01s |  |
@@ -1807,7 +1871,7 @@ Resolved live from `tests/model_registry.py` against each provider's `list_model
 | `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_verified_true_with_magic` | PASSED | <0.01s |  |
 | `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_mime_not_verified_when_magic_disabled` | PASSED | <0.01s |  |
 | `unit/test_security_hardening.py::TestFileValidatorFailClosed::test_require_magic_raises_when_unavailable` | PASSED | <0.01s |  |
-| `unit/test_security_hardening.py::TestPdfLimits::test_oversized_pdf_raises` | PASSED | 0.08s |  |
+| `unit/test_security_hardening.py::TestPdfLimits::test_oversized_pdf_raises` | PASSED | 0.05s |  |
 | `unit/test_security_hardening.py::TestPdfLimits::test_invalid_format_raises` | PASSED | <0.01s |  |
 | `unit/test_utils_image.py::TestParseSize::test_basic` | PASSED | <0.01s |  |
 | `unit/test_utils_image.py::TestParseSize::test_square` | PASSED | <0.01s |  |

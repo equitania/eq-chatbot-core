@@ -113,16 +113,29 @@ class TestAnthropicProviderInit:
 
     def test_init_with_custom_params(self):
         """Test initialization with custom parameters."""
+        # Loopback URL keeps the SSRF guard's validate_url hermetic (no DNS).
         provider = AnthropicProvider(
             api_key="sk-ant-test-key",
-            base_url="https://custom.anthropic.com",
+            base_url="http://localhost:8080",
             timeout=120.0,
             max_retries=5,
         )
 
-        assert provider.base_url == "https://custom.anthropic.com"
+        assert provider.base_url == "http://localhost:8080"
         assert provider.timeout == 120.0
         assert provider.max_retries == 5
+
+    def test_ssrf_metadata_blocked(self):
+        with pytest.raises(ValueError):
+            AnthropicProvider(api_key="sk-ant-test-key", base_url="http://169.254.169.254")
+
+    def test_private_range_blocked(self):
+        with pytest.raises(ValueError):
+            AnthropicProvider(api_key="sk-ant-test-key", base_url="http://10.0.0.5")
+
+    def test_non_http_scheme_blocked(self):
+        with pytest.raises(ValueError):
+            AnthropicProvider(api_key="sk-ant-test-key", base_url="file:///etc/passwd")
 
     def test_lazy_client_initialization(self):
         """Test that client is lazily initialized."""
@@ -707,6 +720,12 @@ class TestAnthropicModelConstraints:
 @pytest.mark.unit
 class TestAnthropicErrorHandling:
     """Test error handling in Anthropic provider."""
+
+    def test_error_scrubs_secret(self):
+        """Provider errors must not leak API keys into the message."""
+        provider = AnthropicProvider(api_key="sk-ant-test")
+        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
+        assert "sk-leakedsecret12345" not in str(err)
 
     def test_rate_limit_error(self):
         """Test handling of rate limit errors."""

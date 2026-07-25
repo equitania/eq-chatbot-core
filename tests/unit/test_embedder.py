@@ -52,8 +52,21 @@ class TestMeliousEmbedder:
         assert emb.base_url == "https://api.melious.ai/v1"
 
     def test_base_url_override(self):
-        emb = MeliousEmbedder(api_key="k", model="m", base_url="https://proxy.example.com/v1")
-        assert emb.base_url == "https://proxy.example.com/v1"
+        # Loopback URL keeps the SSRF guard's validate_url hermetic (no DNS).
+        emb = MeliousEmbedder(api_key="k", model="m", base_url="http://localhost:9000/v1")
+        assert emb.base_url == "http://localhost:9000/v1"
+
+    def test_ssrf_metadata_blocked(self):
+        with pytest.raises(ValueError):
+            MeliousEmbedder(api_key="k", model="m", base_url="http://169.254.169.254/v1")
+
+    def test_private_range_blocked(self):
+        with pytest.raises(ValueError):
+            MeliousEmbedder(api_key="k", model="m", base_url="http://10.0.0.5/v1")
+
+    def test_non_http_scheme_blocked(self):
+        with pytest.raises(ValueError):
+            MeliousEmbedder(api_key="k", model="m", base_url="file:///etc/passwd")
 
     def test_default_dimensions(self):
         emb = MeliousEmbedder(api_key="k", model="m")

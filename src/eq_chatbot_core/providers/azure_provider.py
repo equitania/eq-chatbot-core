@@ -25,6 +25,7 @@ from eq_chatbot_core.providers.temperature_constraints import (
 from eq_chatbot_core.providers.temperature_constraints import (
     get_temperature_constraints as _shared_get_temperature_constraints,
 )
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 _logger = logging.getLogger(__name__)
 
@@ -315,7 +316,7 @@ class AzureProvider(BaseLLMProvider):
 
         except ClientAuthenticationError as e:
             raise AuthenticationError(
-                message=str(e),
+                message=scrub_secrets(str(e)),
                 provider=self.provider_name,
                 status_code=401,
             ) from e
@@ -325,7 +326,7 @@ class AzureProvider(BaseLLMProvider):
             raise
         except Exception as e:
             raise ProviderError(
-                message=str(e),
+                message=scrub_secrets(str(e)),
                 provider=self.provider_name,
             ) from e
 
@@ -440,7 +441,7 @@ class AzureProvider(BaseLLMProvider):
 
         except ClientAuthenticationError as e:
             raise AuthenticationError(
-                message=str(e),
+                message=scrub_secrets(str(e)),
                 provider=self.provider_name,
                 status_code=401,
             ) from e
@@ -450,7 +451,7 @@ class AzureProvider(BaseLLMProvider):
             raise
         except Exception as e:
             raise ProviderError(
-                message=str(e),
+                message=scrub_secrets(str(e)),
                 provider=self.provider_name,
             ) from e
 
@@ -489,9 +490,9 @@ class AzureProvider(BaseLLMProvider):
         return models
 
     def _handle_http_error(self, error: "HttpResponseError") -> ProviderError:
-        """Convert Azure HTTP errors to ProviderError types."""
+        """Convert Azure HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.status_code or 500
-        message = str(error.message) if error.message else str(error)
+        message = scrub_secrets(str(error.message) if error.message else str(error))
 
         if status == 429:
             return RateLimitError(

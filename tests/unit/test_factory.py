@@ -120,10 +120,16 @@ class TestFactoryCloudProviders:
 
     def test_custom_base_url(self):
         """Test provider with custom base URL."""
-        custom_url = "https://custom-api.example.com/v1"
+        # Loopback URL keeps the SSRF guard's validate_url hermetic (no DNS).
+        custom_url = "http://localhost:8080/v1"
         provider = get_provider("openai", api_key="test", base_url=custom_url)
 
         assert provider.base_url == custom_url
+
+    def test_custom_base_url_ssrf_blocked(self):
+        """The factory must not let a caller-supplied base_url reach internal targets."""
+        with pytest.raises(ValueError):
+            get_provider("openai", api_key="test", base_url="http://169.254.169.254/v1")
 
 
 # =============================================================================

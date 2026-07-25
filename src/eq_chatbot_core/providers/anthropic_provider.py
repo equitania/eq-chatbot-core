@@ -52,8 +52,20 @@ class AnthropicProvider(BaseLLMProvider):
         timeout: float = 60.0,
         max_retries: int = 2,
     ):
-        super().__init__(api_key, base_url, timeout, max_retries)
+        # Initialize the client attribute BEFORE validation so close()/__del__
+        # stay safe if the SSRF guard below raises.
         self._client: Any = None
+
+        # SSRF guard: only a caller-supplied base_url is validated — the fixed
+        # public default needs no DNS round-trip. Private ranges are rejected
+        # because Anthropic is a public cloud endpoint. Imported lazily to avoid
+        # an import cycle.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
+        super().__init__(api_key, base_url, timeout, max_retries)
 
     def _should_retry_error(self, error: Exception) -> bool:
         """Check if an error is retryable (overloaded, temporary failures)."""
@@ -572,13 +584,16 @@ class AnthropicProvider(BaseLLMProvider):
             raise self._handle_error(e) from e
 
     def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert Anthropic exceptions to ProviderError types."""
-        error_str = str(error).lower()
+        """Convert Anthropic exceptions to ProviderError types (secrets scrubbed)."""
+        from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+
+        message = scrub_secrets(str(error))
+        error_str = message.lower()
 
         # Check for overloaded error (transient, retryable)
         if "overloaded" in error_str or "529" in error_str:
             return OverloadedError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
                 status_code=529,
                 retry_after=5,  # Suggest 5 second wait
@@ -586,25 +601,25 @@ class AnthropicProvider(BaseLLMProvider):
 
         if "rate limit" in error_str or "429" in error_str:
             return RateLimitError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
                 status_code=429,
             )
 
         if "authentication" in error_str or "401" in error_str:
             return AuthenticationError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
                 status_code=401,
             )
 
         if "context" in error_str or "token" in error_str:
             return ContextLengthError(
-                message=str(error),
+                message=message,
                 provider=self.provider_name,
             )
 
         return ProviderError(
-            message=str(error),
+            message=message,
             provider=self.provider_name,
         )

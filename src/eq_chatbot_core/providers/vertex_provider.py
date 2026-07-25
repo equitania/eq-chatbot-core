@@ -30,6 +30,7 @@ from eq_chatbot_core.providers.temperature_constraints import (
 from eq_chatbot_core.providers.temperature_constraints import (
     get_temperature_constraints as _shared_get_temperature_constraints,
 )
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 _logger = logging.getLogger(__name__)
 
@@ -477,12 +478,12 @@ class VertexProvider(BaseLLMProvider):
         return models
 
     def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert google-genai errors to ProviderError types."""
+        """Convert google-genai errors to ProviderError types (secrets scrubbed)."""
         # Re-raise if already a ProviderError
         if isinstance(error, ProviderError):
             return error
 
-        message = str(error)
+        message = scrub_secrets(str(error))
         status_code = getattr(error, "code", None) or getattr(error, "status_code", None)
 
         # Try to extract HTTP status from error

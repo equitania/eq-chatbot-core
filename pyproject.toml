@@ -36,10 +36,13 @@ dependencies = [
     "anthropic>=0.90.0,<2.0.0",
     "qdrant-client>=1.12.0,<2.0.0",
     "tiktoken>=0.9.0,<1.0.0",
-    "cryptography>=44.0.0,<50.0.0",
+    # Floor 46.0.7 excludes CVE-2026-26007 / CVE-2026-39892 / CVE-2026-34073
+    # (wildcard SAN name-constraint bypass); still supports Python 3.10.
+    "cryptography>=46.0.7,<50.0.0",
     "httpx>=0.27.0,<1.0.0",
     "pydantic>=2.11.0,<3.0.0",
-    "click>=8.1.0,<9.0.0",
+    # Floor 8.3.3 excludes CVE-2026-7246 (command injection in click.edit()).
+    "click>=8.3.3,<9.0.0",
     "tomli>=2.0.0; python_version < '3.11'",  # CLI config file parsing (tomllib is stdlib from 3.11)
 ]
 
@@ -65,6 +68,11 @@ security = [
     "puremagic>=1.10,<3.0",
 ]
 pdf = [
+    # NOTE: pymupdf is AGPL-3.0-or-later (commercial license available from
+    # Artifex). This project is MIT; the dependency is kept OPTIONAL so the core
+    # library stays permissively licensed. Installing this extra subjects the
+    # resulting distribution to AGPL obligations unless a commercial PyMuPDF
+    # license is held. The same applies to the [docs] extra below.
     "pymupdf>=1.26.0,<2.0.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
 ]
 docs = [
@@ -80,7 +88,9 @@ vertex = [
     "google-genai>=1.0.0,<2.0.0",
 ]
 image = [
-    "Pillow>=12.2.0,<13.0",
+    # Floor 12.3.0 excludes CVE-2026-59205 (ImageCmsTransform buffer overflow),
+    # which affects every earlier Pillow release.
+    "Pillow>=12.3.0,<13.0",
 ]
 realtime = [
     "websockets>=13.0,<17.0",

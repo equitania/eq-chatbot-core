@@ -42,6 +42,7 @@ from eq_chatbot_core.server.models import (
     ProviderInfo,
 )
 from eq_chatbot_core.server.streaming import stream_chunk_to_sse_events
+from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 from eq_chatbot_core.version import __version__
 
 
@@ -146,9 +147,11 @@ def create_app(auth_token: str) -> FastAPI:
             except ProviderError as exc:
                 yield {"event": "error", "data": _provider_error_to_json(exc)}
             except Exception as exc:  # noqa: BLE001 — surface unexpected errors to client
+                # Defense-in-depth: unexpected exceptions bypass the providers'
+                # own scrubbing, so mask credential shapes here as well.
                 yield {
                     "event": "error",
-                    "data": json.dumps({"error": str(exc), "type": type(exc).__name__}),
+                    "data": json.dumps({"error": scrub_secrets(str(exc)), "type": type(exc).__name__}),
                 }
 
         return EventSourceResponse(event_iterator())
@@ -188,10 +191,12 @@ def _provider_error_to_http(exc: ProviderError) -> HTTPException:
     else:
         code = status.HTTP_502_BAD_GATEWAY
 
+    # Defense-in-depth: providers scrub their own messages, but this response
+    # goes straight to an API caller — do not rely on that alone.
     return HTTPException(
         status_code=code,
         detail={
-            "error": str(exc),
+            "error": scrub_secrets(str(exc)),
             "type": type(exc).__name__,
             "provider": exc.provider,
             "retry_after": exc.retry_after,
@@ -202,7 +207,7 @@ def _provider_error_to_http(exc: ProviderError) -> HTTPException:
 def _provider_error_to_json(exc: ProviderError) -> str:
     return json.dumps(
         {
-            "error": str(exc),
+            "error": scrub_secrets(str(exc)),
             "type": type(exc).__name__,
             "provider": exc.provider,
             "retry_after": exc.retry_after,

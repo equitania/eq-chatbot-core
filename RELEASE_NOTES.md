@@ -1,5 +1,75 @@
 # Release Notes
 
+## Version 1.20.0 (25.07.2026)
+
+### Security
+
+- **[FIX] SSRF guard closed on the remaining network entry points** — `OpenAIProvider`,
+  `AnthropicProvider`, `OpenAIEmbedder` and `MeliousEmbedder` accepted a caller-supplied
+  `base_url` and passed it straight into the SDK client without validation, while every
+  other cloud provider already called `validate_url()`. Because the `[server]` sidecar
+  forwards the client-supplied `ChatRequest.base_url` into `get_provider()`, an
+  authenticated caller could steer requests at internal addresses (e.g. the
+  `169.254.169.254` cloud-metadata endpoint). All four now run
+  `validate_url(base_url, allow_private_ranges=False)`. Only caller-supplied URLs are
+  validated — fixed built-in defaults are trusted and skip the DNS round-trip.
+- **[FIX] Secret scrubbing completed across all providers** — `openai`, `anthropic`,
+  `azure`, `openrouter`, `vertex` and `mammouth` built `ProviderError(message=str(error))`
+  without `scrub_secrets()`, unlike the other five providers. For the HTTP-based providers
+  the message is parsed out of the gateway error body, which can echo request credentials.
+  All provider error paths now scrub.
+- **[FIX] Server error responses scrub defensively** — `server/app.py`'s
+  `_provider_error_to_http`, `_provider_error_to_json` and the streaming catch-all handler
+  now apply `scrub_secrets()` themselves instead of relying on every provider to have done
+  so upstream.
+- **[CHG] Dependency floors raised to exclude known CVEs** — `click>=8.3.3`
+  (CVE-2026-7246, command injection in `click.edit()`), `cryptography>=46.0.7`
+  (CVE-2026-26007 / CVE-2026-39892 / CVE-2026-34073), and `Pillow>=12.3.0` in the
+  `[image]` extra (CVE-2026-59205, ImageCmsTransform buffer overflow — affects *every*
+  earlier release, so the previous `>=12.2.0` floor did not exclude it). Lock refreshed;
+  `pip-audit` is clean.
+
+### Fixed
+
+- **[FIX] `AttributeError` during GC after a rejected `base_url`** — the SSRF check ran
+  *before* the HTTP-client attribute was assigned in `LangDockProvider`, `MammouthProvider`,
+  `IonosProvider`, `LiteLLMProvider` and `MeliousProvider` (in LangDock's case directly
+  contradicting its own "Initialize clients BEFORE validation" comment). A rejected URL left
+  the instance without `_client`/`_http_client`, so garbage collection raised inside
+  `__del__`. Client attributes are now initialized first in every provider.
+
+### Changed
+
+- **[CHG] New `OpenAICompatibleProvider` base class** (`providers/openai_compatible.py`) —
+  `IonosProvider`, `MeliousProvider` and `LiteLLMProvider` carried byte-identical copies of
+  `chat_completion`, `stream_completion`, `list_models`, `_handle_error`, `close` and the
+  context-manager protocol (ionos vs. melious differed only in docstrings, constants and the
+  class name). That duplication is why the two fixes above had to be applied N times and were
+  applied inconsistently. Subclasses now declare `PROVIDER_NAME`, `DEFAULT_BASE_URL`,
+  `DEFAULT_MODEL` and `ALLOW_PRIVATE_RANGES`; LiteLLM additionally keeps its Audio API
+  (`text_to_speech`, `transcribe`). **Public API is unchanged** — class names, constructor
+  signatures and the module-level `DEFAULT_BASE_URL` / `DEFAULT_MODEL` constants are
+  preserved. ~600 lines of duplication removed.
+- **[CHG] CI gates tightened** (`.github/workflows/ci.yml`) — `pip-audit --strict` is now a
+  hard gate instead of advisory (this is what let the vulnerable `click` pin sit in the lock).
+  `mypy` stays advisory for pre-existing debt but is now *ratcheted*: a change that increases
+  the error count fails the job. The stale comment claiming "~108 issues across 21 files" is
+  replaced by a measured baseline.
+
+### Documentation
+
+- **[CHG] AGPL notice for `pymupdf`** (`pyproject.toml`) — the `[pdf]` and `[docs]` extras pull
+  in an AGPL-3.0-or-later dependency into an otherwise MIT-licensed library. Keeping it optional
+  limits the blast radius, but the obligation was previously undocumented.
+
+### Tests
+
+- SSRF regression tests (metadata IP, private range, non-HTTP scheme) for `OpenAIProvider`,
+  `AnthropicProvider`, `MeliousEmbedder` and the provider factory; secret-scrubbing regression
+  tests for all six newly-hardened providers. Four existing tests used unresolvable placeholder
+  hostnames (`custom.openai.com`) and were switched to loopback URLs, matching the hermetic
+  convention already used by the ionos/melious/litellm suites. 1738 unit tests pass.
+
 ## Version 1.19.0 (11.07.2026)
 
 ### Added

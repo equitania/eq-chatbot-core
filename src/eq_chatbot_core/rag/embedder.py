@@ -53,11 +53,23 @@ class OpenAIEmbedder(BaseEmbedder):
             api_key: OpenAI API key
             model: Embedding model name
             base_url: Optional custom base URL (for LangDock)
+
+        Raises:
+            ValueError: If ``base_url`` fails URL validation, or ``model`` is unknown.
         """
         self.api_key = api_key
         self.model = model
-        self.base_url = base_url
         self._client: Any = None
+
+        # SSRF guard: only a caller-supplied base_url is validated — fixed public
+        # defaults set by subclasses are trusted and need no DNS round-trip.
+        # Imported lazily to avoid an import cycle.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
+        self.base_url = base_url
 
         if model not in self.MODELS:
             raise ValueError(f"Unknown model: {model}. Available: {', '.join(self.MODELS.keys())}")
@@ -116,8 +128,11 @@ class LangDockEmbedder(OpenAIEmbedder):
             model: Embedding model name
             region: API region ('eu' or 'us')
         """
-        base_url = self.BASE_URLS.get(region, self.BASE_URLS["eu"])
-        super().__init__(api_key, model, base_url)
+        # The region endpoints are fixed, built-in public URLs — assign after the
+        # super() call so the SSRF guard's DNS round-trip is not paid for a URL
+        # the caller cannot influence.
+        super().__init__(api_key, model, None)
+        self.base_url = self.BASE_URLS.get(region, self.BASE_URLS["eu"])
         self.region = region
 
 
@@ -153,17 +168,28 @@ class MeliousEmbedder(OpenAIEmbedder):
             dimensions: Vector dimensions produced by the chosen model
                 (must match the Qdrant collection's vector size).
 
+        Raises:
+            ValueError: If ``base_url`` fails URL validation.
+
         Note:
             ``OpenAIEmbedder.__init__`` is intentionally bypassed because it
             validates ``model`` against a static catalog that does not cover
-            Melious' dynamic model ids.
+            Melious' dynamic model ids. The SSRF guard is therefore applied here.
         """
         # Set attributes directly (skip the OpenAIEmbedder MODELS validation).
         self.api_key = api_key
         self.model = model
-        self.base_url = base_url or self.DEFAULT_BASE_URL
         self._client: Any = None
         self._dimensions = dimensions
+
+        # SSRF guard: only a caller-supplied base_url is validated — the fixed
+        # public default needs no DNS round-trip.
+        if base_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
+
+            validate_url(base_url, allow_private_ranges=False)
+
+        self.base_url = base_url or self.DEFAULT_BASE_URL
 
     @property
     def dimensions(self) -> int:
