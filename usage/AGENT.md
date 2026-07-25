@@ -9,7 +9,7 @@
 
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
-- **Version:** 1.15.0
+- **Version:** 2.0.0
 - **Framework:** Click  ·  **Human docs:** `docs/` (cli.md, providers.md, server-mode.md)
 
 ## Capabilities at a glance
@@ -95,6 +95,8 @@ Needs the `[server]` extra. `--port 0` picks a free port. All endpoints except `
 - **`chat` blocks on stdin** — it always reads a JSON payload from stdin; never invoke it without piping input or it will hang. Payload cap is 1 MB. It is one-shot: no streaming, no loop.
 - **`serve` requires `[server]` extra** — missing → a clear ClickException telling you to install it. Token passed via `--auth-token` is visible in `argv`/`ps`; prefer `--auth-token-fd` or `EQ_CHATBOT_AUTH_TOKEN`.
 - **`--base-url`/`-u` is SSRF-validated** — non-HTTP schemes and cloud-metadata/link-local targets are rejected; in strict mode an unresolvable host is refused (local providers allow private LAN ranges).
+- **Azure needs the OpenAI `/v1` endpoint (v2.0.0+)** — `--base-url https://<resource>.openai.azure.com/openai/v1/`. It is REQUIRED (no default). The old `https://<resource>.services.ai.azure.com/models` form is rejected up front with a migration hint; do not construct it. No `[azure]` extra is needed any more, and `api_version` is obsolete.
+- **`litellm` also requires an explicit `--base-url`** — there is intentionally no default gateway address.
 - **Output is not pretty-printed for humans** — `chat` and `--json` are designed to be machine-parsed.
 - **Destructive:** none. All commands are read-only or write into an explicit `--output-dir`/`--dest`/`--output`; image commands overwrite same-named files in that dir without prompting.
 

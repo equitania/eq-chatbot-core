@@ -7,9 +7,10 @@
 | Sprint 1: Security Fixes | DONE | 100% |
 | Sprint 2: Provider Bug Fixes | DONE | 100% |
 | Sprint 3: RAG & Service Hardening | DONE | 100% |
-| Sprint 4: Infrastructure & Polish | IN PROGRESS | 75% |
+| Sprint 4: Infrastructure & Polish | IN PROGRESS | 90% |
+| Sprint 5: Security Remediation & Provider Dedup | DONE | 100% |
 
-**Test Suite**: 1051 passed, 0 failed, 5 xfailed
+**Test Suite**: 1748 passed, 0 failed, 5 xfailed
 **Linting**: Clean (ruff)
 
 ---
@@ -46,7 +47,24 @@
 - [x] Cost service: Updated pricing (Feb 2025, added Claude 4.x, o3, gpt-4o updated)
 - [x] TASKS.md tracking document
 - [ ] GitLab CI/CD pipeline (`.gitlab-ci.yml`)
-- [ ] Ruff config modernization (`pyproject.toml` lint section)
+- [x] Ruff config modernization (`pyproject.toml` `[tool.ruff.lint]` section: E,W,F,I,B,C4,UP)
+
+## Sprint 5: Security Remediation & Provider Dedup (DONE — v1.20.0 / v2.0.0)
+
+- [x] SSRF guard closed on OpenAI/Anthropic providers and the OpenAI/Melious embedders
+      (the `[server]` sidecar forwards a client-supplied `base_url` into `get_provider()`)
+- [x] `scrub_secrets()` completed across openai/anthropic/azure/openrouter/vertex/mammouth
+      error paths and the `server/app.py` responses
+- [x] Fixed `AttributeError` during GC when a `base_url` was rejected before the HTTP-client
+      attribute was assigned (LangDock/Mammouth/IONOS/LiteLLM/Melious)
+- [x] `OpenAICompatibleProvider` base class — removed ~600 lines of byte-identical duplication
+      across IONOS/Melious/LiteLLM (and now Azure); public API unchanged
+- [x] Azure migrated off the retired `azure-ai-inference` SDK onto the OpenAI `/v1` endpoint
+      (Microsoft retirement 2026-08-26)
+- [x] CVE floors: `click>=8.3.3`, `cryptography>=46.0.7`, `Pillow>=12.3.0`, `python-dotenv>=1.2.2`
+- [x] `pip-audit --strict` promoted to a hard CI gate; mypy ratcheted against a measured baseline
+- [x] CI repaired (was red since at least 2026-07-09): `tomllib` import broke collection on
+      Python 3.10; the `[image]` extra was never installed so the Pillow code paths were untested
 
 ---
 

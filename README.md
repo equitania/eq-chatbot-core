@@ -30,6 +30,11 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
 
+> **Breaking in v2.0.0 — Azure users:** the Azure provider moved off the retired `azure-ai-inference`
+> SDK (Microsoft retires it on 2026-08-26) onto the core `openai` SDK. Change `base_url` from
+> `https://<resource>.services.ai.azure.com/models` to `https://<resource>.openai.azure.com/openai/v1/`.
+> The old form is rejected with a migration hint. The `[azure]` extra is no longer needed.
+
 ### Installation
 
 ```bash
@@ -207,6 +212,12 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
 
+> **Breaking in v2.0.0 — für Azure-Nutzer:** Der Azure-Provider nutzt nicht mehr das eingestellte
+> `azure-ai-inference`-SDK (Microsoft stellt es zum 26.08.2026 ein), sondern das Core-`openai`-SDK.
+> `base_url` ändert sich von `https://<resource>.services.ai.azure.com/models` zu
+> `https://<resource>.openai.azure.com/openai/v1/`. Die alte Form wird mit Migrationshinweis
+> abgelehnt. Das `[azure]`-Extra wird nicht mehr benötigt.
+
 ### Installation
 
 ```bash
@@ -289,7 +300,7 @@ Weitere Härtungshinweise:
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 1.17.1 |
+| **Version** | 2.0.0 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |
