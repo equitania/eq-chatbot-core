@@ -247,6 +247,7 @@ This is automatic — pass `temperature=0.7` and the library passes through what
 
 ### See also
 
+- [Reasoning & thinking modes](reasoning.md#english) — the four mechanisms per provider, trace handling, capability catalog
 - [CLI reference](cli.md#english) — `eq-chatbot test-provider` and `eq-chatbot list-models`
 - [Server mode](server-mode.md#english) — expose providers over HTTP/SSE
 - [RAG pipeline](rag.md#english) — providers also power the embedder
@@ -501,6 +502,7 @@ Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht d
 
 ### Siehe auch
 
+- [Reasoning- & Thinking-Modi](reasoning.md#deutsch) — die vier Mechanismen je Provider, Trace-Handling, Capability-Katalog
 - [CLI-Referenz](cli.md#deutsch) — `eq-chatbot test-provider` und `eq-chatbot list-models`
 - [Server-Mode](server-mode.md#deutsch) — Provider über HTTP/SSE exponieren
 - [RAG-Pipeline](rag.md#deutsch) — Provider werden auch vom Embedder verwendet

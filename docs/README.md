@@ -11,6 +11,7 @@ Topic-specific guides for `eq-chatbot-core`. Start with the [project README](../
 | Topic | Documentation |
 |-------|---------------|
 | Multi-provider integration (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, local) | [providers.md](providers.md#english) |
+| Reasoning / thinking modes (four mechanisms, traces, capability catalog) | [reasoning.md](reasoning.md#english) |
 | CLI commands (`info`, `test-provider`, `list-models`, `chat`, `serve`) | [cli.md](cli.md#english) |
 | HTTP/SSE server mode (sidecar pattern, bearer auth, watchdog) | [server-mode.md](server-mode.md#english) |
 | Security (encryption, prompt-injection detection, rate limit, file validation) | [security.md](security.md#english) |
@@ -37,6 +38,7 @@ Topic-spezifische Anleitungen für `eq-chatbot-core`. Beginne mit dem [Projekt-R
 | Thema | Dokumentation |
 |-------|---------------|
 | Multi-Provider-Integration (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, lokal) | [providers.md](providers.md#deutsch) |
+| Reasoning-/Thinking-Modi (vier Mechanismen, Traces, Capability-Katalog) | [reasoning.md](reasoning.md#deutsch) |
 | CLI-Befehle (`info`, `test-provider`, `list-models`, `chat`, `serve`) | [cli.md](cli.md#deutsch) |
 | HTTP/SSE-Server-Mode (Sidecar-Pattern, Bearer-Auth, Watchdog) | [server-mode.md](server-mode.md#deutsch) |
 | Security (Verschlüsselung, Prompt-Injection-Erkennung, Rate-Limit, File-Validation) | [security.md](security.md#deutsch) |
