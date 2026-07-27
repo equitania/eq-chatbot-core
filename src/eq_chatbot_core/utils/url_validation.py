@@ -15,6 +15,33 @@ _logger = logging.getLogger(__name__)
 
 _LOCALHOST_NAMES = ("localhost", "127.0.0.1", "::1")
 
+# RFC 6052 well-known prefix used by DNS64 resolvers to synthesize AAAA records
+# for IPv4-only hosts. Network-specific prefixes are not detectable from here.
+_NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _effective_address(
+    ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
+) -> ipaddress.IPv4Address | ipaddress.IPv6Address:
+    """Return the address that actually determines where a connection lands.
+
+    IPv4-mapped (``::ffff:0:0/96``) and DNS64-synthesized NAT64 addresses
+    (``64:ff9b::/96``) are IPv6 wrappers around an IPv4 target. Both prefixes sit
+    inside ``::/8``, which Python flags as ``is_reserved`` — so classifying the
+    wrapper itself would reject every IPv4-only endpoint on a NAT64 network,
+    public API hosts included.
+
+    Classifying the embedded IPv4 instead keeps the guard honest in both
+    directions: ``64:ff9b::a9fe:a9fe`` unwraps to 169.254.169.254 and stays
+    blocked as the cloud-metadata endpoint it is.
+    """
+    if isinstance(ip, ipaddress.IPv6Address):
+        if ip.ipv4_mapped is not None:
+            return ip.ipv4_mapped
+        if ip in _NAT64_WELL_KNOWN_PREFIX:
+            return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    return ip
+
 
 def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[str]:
     """Validate a URL for SSRF protection and return its currently-resolved IPs.
@@ -73,7 +100,10 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
 
     for addr_info in addr_infos:
         ip_str = str(addr_info[4][0])
-        ip = ipaddress.ip_address(ip_str)
+        # Classify the embedded IPv4 for NAT64/IPv4-mapped forms, but keep pinning
+        # the address as resolved — the connection may still take the IPv6 route.
+        ip = _effective_address(ipaddress.ip_address(ip_str))
+        shown = ip_str if str(ip) == ip_str else f"{ip_str} (embeds {ip})"
 
         if allow_private_ranges:
             # LAN mode: loopback and private ranges are legitimate for local model
@@ -82,7 +112,7 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
             if ip.is_loopback:
                 pass  # 127.0.0.1 / ::1 — explicitly allowed
             elif ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
-                raise ValueError(f"URL resolves to disallowed IP {ip} (cloud-metadata / reserved range).")
+                raise ValueError(f"URL resolves to disallowed IP {shown} (cloud-metadata / reserved range).")
         else:
             if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
                 # Allow localhost explicitly for local development.
@@ -90,7 +120,7 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
                     resolved_ips.add(ip_str)
                     continue
                 raise ValueError(
-                    f"URL resolves to private/reserved IP {ip}. "
+                    f"URL resolves to private/reserved IP {shown}. "
                     "Internal network access is not allowed for security reasons."
                 )
         resolved_ips.add(ip_str)

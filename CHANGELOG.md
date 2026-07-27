@@ -5,6 +5,28 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-07-27
+
+### Fixed
+
+- **SSRF guard no longer rejects IPv4-only endpoints on DNS64/NAT64 networks.**
+  A DNS64 resolver synthesizes an AAAA record inside the RFC 6052 well-known
+  prefix `64:ff9b::/96` for hosts that only publish an A record. That prefix sits
+  inside `::/8`, which Python flags as `is_reserved`, so `validate_url()` rejected
+  the synthesized address — and with it every provider without native IPv6
+  (Melious, OpenAI, …) with "URL resolves to private/reserved IP". IPv4-mapped
+  addresses (`::ffff:0:0/96`) shared the same misclassification.
+  `validate_url()` now classifies the embedded IPv4 for both prefixes while still
+  pinning the address as resolved, so DNS-rebinding protection is unaffected.
+  Rejection messages name both forms: `64:ff9b::a9fe:a9fe (embeds 169.254.169.254)`.
+
+### Security
+
+- NAT64 unwrapping classifies the embedded IPv4 rather than allowing the prefix:
+  `64:ff9b::a9fe:a9fe` unwraps to the cloud-metadata endpoint 169.254.169.254 and
+  stays blocked in both strict and LAN mode. Covered by regression tests in
+  `tests/unit/test_url_validation.py`.
+
 ## [2.0.0] - 2026-07-25
 
 ### Changed

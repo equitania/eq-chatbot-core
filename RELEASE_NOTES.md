@@ -1,5 +1,29 @@
 # Release Notes
 
+## Version 2.0.1 (27.07.2026)
+
+### 🐛 Fixed
+
+- **[FIX] SSRF guard rejected every IPv4-only provider on DNS64/NAT64 networks.**
+  On a network with a DNS64 resolver, hosts that publish only an A record also get
+  a synthesized AAAA record inside the RFC 6052 well-known prefix `64:ff9b::/96` —
+  `api.melious.ai`, for example, resolves to both `162.19.136.184` and
+  `64:ff9b::a213:88b8`. That prefix lies inside `::/8`, which Python classifies as
+  `is_reserved`, so `validate_url()` refused the URL with *"URL resolves to
+  private/reserved IP"* even though the embedded IPv4 is publicly routable. Every
+  provider without native IPv6 was affected (Melious, OpenAI, …); hosts with real
+  AAAA records such as Anthropic were not.
+
+  `validate_url()` now classifies the **embedded** IPv4 for NAT64 and IPv4-mapped
+  (`::ffff:0:0/96`) addresses. The synthesized form is still returned for IP
+  pinning, so DNS-rebinding protection is unchanged, and rejection messages now
+  name both forms — `64:ff9b::a9fe:a9fe (embeds 169.254.169.254)`.
+
+  **Security note:** the prefix is unwrapped, never waved through.
+  `64:ff9b::a9fe:a9fe` resolves to the cloud-metadata endpoint 169.254.169.254 and
+  stays blocked in strict *and* LAN mode; embedded loopback and private ranges
+  likewise. 14 regression tests in `tests/unit/test_url_validation.py` pin this down.
+
 ## Version 2.0.0 (25.07.2026)
 
 ### ⚠️ Breaking
