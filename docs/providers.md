@@ -223,7 +223,8 @@ Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps 
 | Model family | Range | Behavior |
 |--------------|-------|----------|
 | GPT-4.1 | 0–2 | Clamped to `[0, 2]` |
-| Claude (3, 3.5, 4) | 0–1 | Clamped to `[0, 1]` |
+| Claude (3, 3.5, 4 up to Opus 4.6 / Sonnet 4.6) | 0–1 | Clamped to `[0, 1]` |
+| Claude Opus 4.7 and later, Claude 5 family | — | Temperature parameter dropped (removed from the API) |
 | Gemini 2.x | 0–2 | Clamped to `[0, 2]` |
 | Reasoning (o1, o3, o4) | — | Temperature parameter dropped (not supported) |
 
@@ -478,7 +479,8 @@ Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clam
 | Modell-Familie | Range | Verhalten |
 |----------------|-------|-----------|
 | GPT-4.1 | 0–2 | Auf `[0, 2]` geclampt |
-| Claude (3, 3.5, 4) | 0–1 | Auf `[0, 1]` geclampt |
+| Claude (3, 3.5, 4 bis Opus 4.6 / Sonnet 4.6) | 0–1 | Auf `[0, 1]` geclampt |
+| Claude Opus 4.7 und neuer, Claude-5-Familie | — | Temperature-Parameter wird verworfen (aus der API entfernt) |
 | Gemini 2.x | 0–2 | Auf `[0, 2]` geclampt |
 | Reasoning (o1, o3, o4) | — | Temperature-Parameter wird verworfen (nicht unterstützt) |
 

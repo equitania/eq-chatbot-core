@@ -1,5 +1,31 @@
 # Release Notes
 
+## Version 2.0.2 (06.08.2026)
+
+### 🐛 Fixed
+
+- **[FIX] Temperature was sent to Claude models that reject it.**
+  Anthropic removed the `temperature` parameter on Claude Opus 4.7 and every
+  model after it; a request carrying it is answered with
+  `400 invalid_request_error: "temperature is deprecated for this model"`.
+  `MODEL_TEMPERATURE_CONSTRAINTS` held a single `"claude"` prefix entry
+  declaring `supports_temperature: True`, which matched the whole family — so
+  `clamp_temperature()` returned a value and the providers passed it on.
+  Callers that set a temperature saw every request to those models fail.
+  Found through `eq_ai_translate`, where the website page translation sets a
+  temperature per text block: on `claude-sonnet-5` every block of a page
+  failed, which is the whole page.
+
+  Explicit entries now precede the generic prefix (longest-prefix match gives
+  them priority, including dated variants such as
+  `claude-opus-4-7-20260101`): `claude-fable-5`, `claude-mythos-5`,
+  `claude-mythos-preview`, `claude-opus-5`, `claude-opus-4-8`,
+  `claude-opus-4-7` and `claude-sonnet-5`. For those,
+  `clamp_temperature()` returns `None` and the providers omit the parameter,
+  which is what they already do for the OpenAI reasoning models. Claude Opus
+  4.6, Sonnet 4.6 and older keep their `0.0-1.0` range — the removal starts at
+  Opus 4.7.
+
 ## Version 2.0.1 (27.07.2026)
 
 ### 🐛 Fixed

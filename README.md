@@ -300,7 +300,7 @@ Weitere Härtungshinweise:
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 2.0.0 |
+| **Version** | 2.0.2 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |

@@ -37,7 +37,20 @@ MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "gpt-4o": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4o-mini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4-turbo": {"min": 0.0, "max": 2.0, "supports_temperature": True},
-    # Anthropic: 0.0-1.0 (prefix match covers all Claude variants)
+    # Anthropic Claude 5 family and Opus 4.7+: temperature was removed from the
+    # API and a request carrying it is rejected with
+    # "400 invalid_request_error: `temperature` is deprecated for this model".
+    # Listed before the generic "claude" prefix below, which would otherwise
+    # match them (longest-prefix wins, so the explicit ids take precedence).
+    "claude-fable-5": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-mythos-5": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-mythos-preview": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-opus-5": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-opus-4-8": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-opus-4-7": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "claude-sonnet-5": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    # Anthropic up to Opus 4.6 / Sonnet 4.6: 0.0-1.0
+    # (prefix match covers the remaining Claude variants)
     "claude": {"min": 0.0, "max": 1.0, "supports_temperature": True},
     # Google Gemini: 0.0-2.0
     "gemini": {"min": 0.0, "max": 2.0, "supports_temperature": True},

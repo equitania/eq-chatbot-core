@@ -56,6 +56,38 @@ class TestGetTemperatureConstraints:
         constraints = get_temperature_constraints("claude-opus-4-5-20251101")
         assert constraints["max"] == 1.0
 
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "claude-fable-5",
+            "claude-mythos-5",
+            "claude-mythos-preview",
+            "claude-opus-5",
+            "claude-opus-4-8",
+            "claude-opus-4-7",
+            "claude-sonnet-5",
+        ],
+    )
+    def test_claude_models_without_temperature(self, model):
+        """Newer Claude models reject a request that carries a temperature.
+
+        The API answers with 400 "`temperature` is deprecated for this model",
+        so the generic "claude" prefix must not claim support for them.
+        """
+        assert get_temperature_constraints(model)["supports_temperature"] is False
+        assert clamp_temperature(model, 0.2) is None
+
+    def test_dated_variant_inherits_the_explicit_entry(self):
+        """A dated id must resolve to its own entry, not the generic prefix."""
+        constraints = get_temperature_constraints("claude-opus-4-7-20260101")
+        assert constraints["supports_temperature"] is False
+
+    def test_older_claude_models_keep_temperature(self):
+        """The removal starts at Opus 4.7 - earlier models are unaffected."""
+        for model in ("claude-opus-4-6", "claude-sonnet-4-6", "claude-opus-4-5"):
+            assert get_temperature_constraints(model)["supports_temperature"] is True
+            assert clamp_temperature(model, 0.2) == 0.2
+
     def test_prefix_match_gemini(self):
         """Test prefix match for Gemini variants → max=2.0."""
         constraints = get_temperature_constraints("gemini-2.5-pro-latest")

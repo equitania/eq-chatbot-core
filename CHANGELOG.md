@@ -5,6 +5,21 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-08-06
+
+### Fixed
+
+- Do not send `temperature` to Claude models that reject it. Anthropic removed
+  the parameter on Claude Opus 4.7 and later; a request carrying it fails with
+  `400 "temperature is deprecated for this model"`. The single `"claude"`
+  prefix entry in `MODEL_TEMPERATURE_CONSTRAINTS` claimed support for the whole
+  family, so every temperature-setting call to those models failed. Explicit
+  entries now cover `claude-fable-5`, `claude-mythos-5`,
+  `claude-mythos-preview`, `claude-opus-5`, `claude-opus-4-8`,
+  `claude-opus-4-7` and `claude-sonnet-5`; `clamp_temperature()` returns `None`
+  for them and the providers omit the parameter. Opus 4.6, Sonnet 4.6 and older
+  are unchanged.
+
 ## [2.0.1] - 2026-07-27
 
 ### Fixed
