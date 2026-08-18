@@ -23,6 +23,7 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature as _shared_clamp_temperature,
 )
@@ -239,7 +240,7 @@ class MammouthProvider(BaseLLMProvider):
                 final_output_tokens = 0
 
                 # Accumulate tool calls from deltas
-                accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+                tool_calls_acc = ToolCallAccumulator()
 
                 for line in response.iter_lines():
                     if not line:
@@ -295,30 +296,10 @@ class MammouthProvider(BaseLLMProvider):
                                 },
                             }
 
-                            # Accumulate tool call data
-                            if idx not in accumulated_tool_calls:
-                                accumulated_tool_calls[idx] = {
-                                    "id": tc.get("id") or "",
-                                    "type": "function",
-                                    "function": {
-                                        "name": "",
-                                        "arguments": "",
-                                    },
-                                }
-
-                            if tc.get("id"):
-                                accumulated_tool_calls[idx]["id"] = tc["id"]
-                            if func.get("name"):
-                                accumulated_tool_calls[idx]["function"]["name"] += func["name"]
-                            if func.get("arguments"):
-                                accumulated_tool_calls[idx]["function"]["arguments"] += func["arguments"]
+                        tool_calls_acc.add(delta["tool_calls"])
 
                     # On final chunk, include accumulated tool calls
-                    complete_tool_calls = None
-                    if is_final and accumulated_tool_calls:
-                        complete_tool_calls = [
-                            accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())
-                        ]
+                    complete_tool_calls = tool_calls_acc.result() if is_final else None
 
                     yield StreamChunk(
                         content=content,

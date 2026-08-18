@@ -25,6 +25,7 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
 logger = logging.getLogger(__name__)
@@ -349,7 +350,7 @@ class LocalLLMProvider(BaseLLMProvider):
                 # chunk can expose complete tool_calls (mirrors openai_provider).
                 # Without this, stream.py (which reads chunk.tool_calls) never sees
                 # any tool call and the IHA tool loop never runs for local models.
-                accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+                tool_calls_acc = ToolCallAccumulator()
 
                 for line in response.iter_lines():
                     if not line:
@@ -362,11 +363,7 @@ class LocalLLMProvider(BaseLLMProvider):
                         # Handle stream end marker
                         if data_str.strip() == "[DONE]":
                             # Yield final chunk (include any accumulated tool calls)
-                            complete_tool_calls = None
-                            if accumulated_tool_calls:
-                                complete_tool_calls = [
-                                    accumulated_tool_calls[i] for i in sorted(accumulated_tool_calls.keys())
-                                ]
+                            complete_tool_calls = tool_calls_acc.result()
                             yield StreamChunk(
                                 content="",
                                 is_final=True,
@@ -401,30 +398,12 @@ class LocalLLMProvider(BaseLLMProvider):
                             tool_call_delta = None
                             if delta.get("tool_calls"):
                                 tool_call_delta = delta["tool_calls"]
-                                for tc in delta["tool_calls"]:
-                                    idx = tc.get("index", 0)
-                                    if idx not in accumulated_tool_calls:
-                                        accumulated_tool_calls[idx] = {
-                                            "id": tc.get("id") or "",
-                                            "type": "function",
-                                            "function": {"name": "", "arguments": ""},
-                                        }
-                                    if tc.get("id"):
-                                        accumulated_tool_calls[idx]["id"] = tc["id"]
-                                    fn = tc.get("function") or {}
-                                    if fn.get("name"):
-                                        accumulated_tool_calls[idx]["function"]["name"] += fn["name"]
-                                    if fn.get("arguments"):
-                                        accumulated_tool_calls[idx]["function"]["arguments"] += fn["arguments"]
+                                tool_calls_acc.add(delta["tool_calls"])
 
                             is_final = finish_reason is not None
 
                             # On the final chunk, expose the fully accumulated tool calls.
-                            complete_tool_calls = None
-                            if is_final and accumulated_tool_calls:
-                                complete_tool_calls = [
-                                    accumulated_tool_calls[i] for i in sorted(accumulated_tool_calls.keys())
-                                ]
+                            complete_tool_calls = tool_calls_acc.result() if is_final else None
 
                             yield StreamChunk(
                                 content=content,

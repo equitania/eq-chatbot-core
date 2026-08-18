@@ -120,6 +120,22 @@
 - **[CHG] `websockets` ceiling raised to `<18.0`.** Note that `google-genai`
   caps it at `<17.0`, so an install combining `[realtime,vertex]` still resolves
   to 16.x — the wider bound only takes effect without the `[vertex]` extra.
+- **[CHG] The streamed tool-call fold is shared instead of copied six times.**
+  A streamed tool call arrives in fragments — id and function name first,
+  argument text appended across later deltas — and every provider folded them
+  back together inline. That fold is why `stream_completion` was the longest
+  method in each of them. It now lives in
+  `providers/stream_accumulator.ToolCallAccumulator`, normalizing both delta
+  flavours (typed SDK objects from the openai/anthropic clients, parsed-JSON
+  dicts from the raw-SSE providers). Net -125 lines across `openai`,
+  `openai_compatible`, `mammouth`, `openrouter`, `local` and the LangDock OpenAI
+  path, with the new module at 100% coverage.
+
+  Each provider still builds its own `tool_call_delta` payload: those differ
+  deliberately (some emit one normalized dict per delta, others pass the raw
+  list through) and unifying them would change what consumers receive. The
+  LangDock *Anthropic* path also keeps its own accumulation — it is
+  content-block based, not an OpenAI-style delta stream.
 - **[CHG] `utils/pricing.py` documented as a deliberate compatibility shim** and
   covered by tests, instead of remaining an unexplained module at 0% coverage.
 - **[CHG] `twine` floor raised to 7.0.0.** Current hatchling emits

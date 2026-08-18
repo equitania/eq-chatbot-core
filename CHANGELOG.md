@@ -87,6 +87,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   manager classes — it is what surfaced the two bugs above.
 - `utils/url_validation.build_validating_transport()` — SSRF-checks every host,
   for targets that are not one fixed endpoint.
+- `providers/stream_accumulator.ToolCallAccumulator` — the streamed tool-call
+  fold that six providers each implemented inline, now shared and tested. It
+  normalizes both delta flavours (typed SDK objects and parsed-JSON dicts), so
+  the providers keep their own `tool_call_delta` payloads, which differ on
+  purpose. Net -125 lines across the six.
 
 ### Changed
 

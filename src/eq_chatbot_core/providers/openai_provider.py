@@ -15,6 +15,7 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature,
     get_temperature_constraints,
@@ -234,9 +235,7 @@ class OpenAIProvider(BaseLLMProvider):
             final_input_tokens = 0
             final_output_tokens = 0
 
-            # Accumulate tool calls from deltas
-            # Key: tool call index, Value: accumulated tool call data
-            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+            tool_calls = ToolCallAccumulator()
 
             for chunk in stream:
                 # Check for usage data (sent in final chunk with stream_options)
@@ -256,41 +255,18 @@ class OpenAIProvider(BaseLLMProvider):
                 tool_call_delta = None
                 if delta.tool_calls:
                     for tc in delta.tool_calls:
-                        idx = tc.index
                         tool_call_delta = {
-                            "index": idx,
+                            "index": tc.index,
                             "id": tc.id,
                             "function": {
                                 "name": tc.function.name if tc.function else None,
                                 "arguments": tc.function.arguments if tc.function else None,
                             },
                         }
+                    tool_calls.add(delta.tool_calls)
 
-                        # Accumulate tool call data
-                        if idx not in accumulated_tool_calls:
-                            accumulated_tool_calls[idx] = {
-                                "id": tc.id or "",
-                                "type": "function",
-                                "function": {
-                                    "name": "",
-                                    "arguments": "",
-                                },
-                            }
-
-                        # Update with new data (deltas send partial data)
-                        if tc.id:
-                            accumulated_tool_calls[idx]["id"] = tc.id
-                        if tc.function:
-                            if tc.function.name:
-                                accumulated_tool_calls[idx]["function"]["name"] += tc.function.name
-                            if tc.function.arguments:
-                                accumulated_tool_calls[idx]["function"]["arguments"] += tc.function.arguments
-
-                # On final chunk, include accumulated tool calls
-                complete_tool_calls = None
-                if is_final and accumulated_tool_calls:
-                    # Convert dict to sorted list by index
-                    complete_tool_calls = [accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())]
+                # On the final chunk, expose the fully accumulated tool calls.
+                complete_tool_calls = tool_calls.result() if is_final else None
 
                 yield StreamChunk(
                     content=content,

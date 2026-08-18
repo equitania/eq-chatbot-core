@@ -30,6 +30,7 @@ from eq_chatbot_core.providers.base import (
     RateLimitError,
     StreamChunk,
 )
+from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
@@ -243,7 +244,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             final_input_tokens = 0
             final_output_tokens = 0
             finish_reason: str | None = None
-            accumulated_tool_calls: dict[int, dict[str, Any]] = {}
+            tool_calls_acc = ToolCallAccumulator()
 
             # Content / tool deltas are streamed as they arrive (never marked
             # final). The authoritative final chunk is emitted AFTER the loop so
@@ -271,33 +272,15 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 tool_call_delta = None
                 if delta.tool_calls:
                     for tc in delta.tool_calls:
-                        idx = tc.index
                         tool_call_delta = {
-                            "index": idx,
+                            "index": tc.index,
                             "id": tc.id,
                             "function": {
                                 "name": tc.function.name if tc.function else None,
                                 "arguments": tc.function.arguments if tc.function else None,
                             },
                         }
-
-                        if idx not in accumulated_tool_calls:
-                            accumulated_tool_calls[idx] = {
-                                "id": tc.id or "",
-                                "type": "function",
-                                "function": {
-                                    "name": "",
-                                    "arguments": "",
-                                },
-                            }
-
-                        if tc.id:
-                            accumulated_tool_calls[idx]["id"] = tc.id
-                        if tc.function:
-                            if tc.function.name:
-                                accumulated_tool_calls[idx]["function"]["name"] += tc.function.name
-                            if tc.function.arguments:
-                                accumulated_tool_calls[idx]["function"]["arguments"] += tc.function.arguments
+                    tool_calls_acc.add(delta.tool_calls)
 
                 if content or tool_call_delta is not None:
                     yield StreamChunk(
@@ -307,9 +290,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                         tool_call_delta=tool_call_delta,
                     )
 
-            complete_tool_calls = None
-            if accumulated_tool_calls:
-                complete_tool_calls = [accumulated_tool_calls[idx] for idx in sorted(accumulated_tool_calls.keys())]
+            complete_tool_calls = tool_calls_acc.result()
 
             yield StreamChunk(
                 content="",
