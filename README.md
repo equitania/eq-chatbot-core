@@ -30,6 +30,18 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
 
+> **Breaking in v2.1.0 — two changes:**
+> 1. **Minimum Python is now 3.12** (was 3.10), aligned with the interpreter used for Odoo 16.
+>    Python 3.10 reaches end of life on 2026-10-31; 3.11 is dropped in the same step so there is
+>    one supported baseline. Installs on 3.10/3.11 now fail at resolution time.
+> 2. **`openai` floor raised to `>=3.0.0`.** This library's networking moved to `httpx2`
+>    (Pydantic's maintained continuation of httpx), which openai 3.x also uses. `httpx` stays a
+>    dependency and is not redundant: the Anthropic SDK still requires `httpx<1`, so that one
+>    provider keeps using it. Pin `eq-chatbot-core>=2.1.0` only where openai 3.x is acceptable.
+>
+> **Security:** v2.1.0 closes a DNS-rebinding hole that affected every LLM provider — see
+> RELEASE_NOTES.md. Upgrading is recommended for anyone who lets callers supply a `base_url`.
+
 > **Breaking in v2.0.0 — Azure users:** the Azure provider moved off the retired `azure-ai-inference`
 > SDK (Microsoft retires it on 2026-08-26) onto the core `openai` SDK. Change `base_url` from
 > `https://<resource>.services.ai.azure.com/models` to `https://<resource>.openai.azure.com/openai/v1/`.
@@ -211,6 +223,20 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **CLI-Tool** — Provider-Tests, Modell-Discovery, programmatische JSON-I/O-Chat-Calls
 - **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
+
+> **Breaking in v2.1.0 — zwei Änderungen:**
+> 1. **Mindest-Python ist jetzt 3.12** (vorher 3.10), abgestimmt auf den unter Odoo 16 verwendeten
+>    Interpreter. Python 3.10 erreicht am 31.10.2026 sein Lebensende; 3.11 entfällt im selben
+>    Schritt, damit es genau eine unterstützte Basis gibt. Installationen auf 3.10/3.11 schlagen
+>    jetzt bereits bei der Auflösung fehl.
+> 2. **`openai`-Untergrenze auf `>=3.0.0` angehoben.** Das Networking dieser Bibliothek läuft jetzt
+>    über `httpx2` (Pydantics gepflegte Fortführung von httpx), das auch openai 3.x nutzt. `httpx`
+>    bleibt als Abhängigkeit bestehen und ist nicht überflüssig: Das Anthropic-SDK verlangt weiterhin
+>    `httpx<1`, dieser eine Provider nutzt es also weiter. `eq-chatbot-core>=2.1.0` nur dort pinnen,
+>    wo openai 3.x akzeptabel ist.
+>
+> **Sicherheit:** v2.1.0 schließt eine DNS-Rebinding-Lücke, die alle LLM-Provider betraf — Details in
+> RELEASE_NOTES.md. Ein Upgrade ist für alle empfohlen, die Aufrufer eine `base_url` setzen lassen.
 
 > **Breaking in v2.0.0 — für Azure-Nutzer:** Der Azure-Provider nutzt nicht mehr das eingestellte
 > `azure-ai-inference`-SDK (Microsoft stellt es zum 26.08.2026 ein), sondern das Core-`openai`-SDK.

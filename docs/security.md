@@ -10,7 +10,7 @@
 
 The `eq_chatbot_core.security` package provides four building blocks for hardening LLM-backed applications: encrypted API-key storage (`encryption`), prompt-injection detection (`injection`), in-memory token-bucket rate limiting (`rate_limit`), and MIME-type-based file-upload validation (`file_validator`).
 
-DNS-rebinding and SSRF protection for the MCP transport live in a sibling package — see [mcp.md](mcp.md).
+SSRF protection covers the MCP transport *and* every LLM provider. The MCP specifics are in [mcp.md](mcp.md); the provider side is described under *Provider base_url validation* below.
 
 ### Encryption (`security.encryption`)
 
@@ -129,7 +129,9 @@ Standalone HTTP calls inside cloud providers (`mammouth`, `langdock`) disable re
 
 ### Provider base_url validation (v1.17.2+)
 
-Every provider that accepts a caller-supplied `base_url` validates it with `validate_url()` at construction time: non-HTTP(S) schemes and private / link-local / cloud-metadata targets (e.g. `169.254.169.254`) raise `ValueError`. Cloud providers (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) reject private ranges; the `local` provider allows them (LAN mode for on-prem model servers). Fixed public default endpoints skip the check — no DNS round-trip on default construction. Explicit localhost URLs are always accepted.
+Every provider that accepts a caller-supplied `base_url` validates it with `validate_url()` at construction time: non-HTTP(S) schemes and private / link-local / cloud-metadata targets (e.g. `169.254.169.254`) raise `ValueError`.
+
+**Since v2.1.0 that validation is also enforced at connect time.** Checking only at construction left a TOCTOU window: a hostname with a very short TTL could resolve to a public address during validation and to an internal one by the time the socket opened, carrying the `Authorization` header with it. Every provider now issues its requests through a transport from `utils/url_validation` that re-resolves on each connect. It *revalidates* rather than pinning strictly — a changed address set is re-run through the same policy and rejected only if it is private/reserved/metadata, so the routine IP rotation of CDN-fronted endpoints does not turn into connection failures in long-lived processes. For targets that are not one fixed endpoint (a URL taken from an API response, a configurable catalog location, anything followed through redirects) `build_validating_transport()` applies the full policy to whatever host each hop names. Cloud providers (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) reject private ranges; the `local` provider allows them (LAN mode for on-prem model servers). Fixed public default endpoints skip the check — no DNS round-trip on default construction. Explicit localhost URLs are always accepted.
 
 ### See also
 
@@ -148,7 +150,7 @@ Every provider that accepts a caller-supplied `base_url` validates it with `vali
 
 Das Paket `eq_chatbot_core.security` bietet vier Bausteine zum Härten LLM-basierter Anwendungen: verschlüsselte API-Key-Speicherung (`encryption`), Prompt-Injection-Erkennung (`injection`), In-Memory-Token-Bucket-Rate-Limiting (`rate_limit`) und MIME-Type-basierte File-Upload-Validierung (`file_validator`).
 
-DNS-Rebinding- und SSRF-Schutz für den MCP-Transport liegen in einem Schwester-Paket — siehe [mcp.md](mcp.md).
+Der SSRF-Schutz umfasst den MCP-Transport *und* jeden LLM-Provider. Die MCP-Details stehen in [mcp.md](mcp.md); die Provider-Seite ist unten unter *Provider base_url-Validierung* beschrieben.
 
 ### Verschlüsselung (`security.encryption`)
 
@@ -267,7 +269,9 @@ Standalone-HTTP-Calls in Cloud-Providern (`mammouth`, `langdock`) deaktivieren R
 
 ### Provider base_url-Validierung (v1.17.2+)
 
-Jeder Provider mit caller-supplied `base_url` validiert diese beim Konstruieren mit `validate_url()`: Nicht-HTTP(S)-Schemata sowie private / link-local / Cloud-Metadata-Ziele (z. B. `169.254.169.254`) lösen `ValueError` aus. Cloud-Provider (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) lehnen private Ranges ab; der `local`-Provider erlaubt sie (LAN-Modus für On-Prem-Modellserver). Feste öffentliche Default-Endpoints überspringen die Prüfung — kein DNS-Roundtrip bei Default-Konstruktion. Explizite localhost-URLs sind immer erlaubt.
+Jeder Provider mit caller-supplied `base_url` validiert diese beim Konstruieren mit `validate_url()`: Nicht-HTTP(S)-Schemata sowie private / link-local / Cloud-Metadata-Ziele (z. B. `169.254.169.254`) lösen `ValueError` aus.
+
+**Seit v2.1.0 wird diese Prüfung auch beim Verbindungsaufbau durchgesetzt.** Eine Prüfung ausschließlich beim Konstruieren ließ ein TOCTOU-Fenster offen: Ein Hostname mit sehr kurzer TTL konnte während der Validierung auf eine öffentliche Adresse zeigen und beim Öffnen des Sockets auf eine interne — samt `Authorization`-Header. Jeder Provider schickt seine Requests jetzt über einen Transport aus `utils/url_validation`, der bei jedem Connect neu auflöst. Er *revalidiert*, statt strikt zu pinnen: Ein geändertes Adress-Set durchläuft dieselbe Policy und wird nur abgelehnt, wenn es privat/reserviert/Metadata ist. So wird die normale IP-Rotation CDN-gestützter Endpunkte in langlebigen Prozessen nicht zum Verbindungsfehler. Für Ziele, die kein fester Endpunkt sind (eine URL aus einer API-Antwort, ein konfigurierbarer Katalog-Ort, alles mit Redirect-Verfolgung) wendet `build_validating_transport()` die vollständige Policy auf jeden einzelnen Hop an. Cloud-Provider (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) lehnen private Ranges ab; der `local`-Provider erlaubt sie (LAN-Modus für On-Prem-Modellserver). Feste öffentliche Default-Endpoints überspringen die Prüfung — kein DNS-Roundtrip bei Default-Konstruktion. Explizite localhost-URLs sind immer erlaubt.
 
 ### Siehe auch
 

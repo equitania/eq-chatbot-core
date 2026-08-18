@@ -9,9 +9,12 @@
 | Sprint 3: RAG & Service Hardening | DONE | 100% |
 | Sprint 4: Infrastructure & Polish | IN PROGRESS | 90% |
 | Sprint 5: Security Remediation & Provider Dedup | DONE | 100% |
+| Sprint 6: Audit Remediation (v2.1.0) | DONE | 100% |
 
-**Test Suite**: 1748 passed, 0 failed, 5 xfailed
+**Test Suite**: 1935 passed, 0 failed, 5 xfailed (Python 3.12 + 3.13)
 **Linting**: Clean (ruff)
+**Typing**: `mypy --strict` clean — 0 errors (was 157)
+**Coverage**: 82%
 
 ---
 
@@ -66,6 +69,53 @@
 - [x] CI repaired (was red since at least 2026-07-09): `tomllib` import broke collection on
       Python 3.10; the `[image]` extra was never installed so the Pillow code paths were untested
 
+## Sprint 6: Audit Remediation (DONE — v2.1.0)
+
+Triggered by a full project health audit. Everything below was found by that
+audit or surfaced while fixing what it found.
+
+- [x] **DNS rebinding closed across all providers.** `validate_url()` only covered
+      construction time; requests then went out unpinned. The guard existed in
+      `mcp/client.py` but had never been applied to the providers. Extracted to
+      `utils/url_validation` and wired into all seven client-constructing providers.
+      Revalidates rather than pinning strictly, so CDN IP rotation does not turn
+      into connection failures.
+- [x] **Three further unpinned paths** found while writing tests: the LangDock agent
+      backend (used the module-level `httpx.post`), `download_signed_csv` (response-
+      supplied URL with `follow_redirects=True`), and `CapabilityCatalog.from_remote`
+      (caller-supplied URL). New `build_validating_transport()` covers targets that
+      are not one fixed endpoint.
+- [x] **LangDock SDK clients pinned** — the guard had reached its raw httpx client
+      only, not the OpenAI/Anthropic SDK clients built from the same `base_url`.
+- [x] **`ToolDefinition` never worked on any chat provider.** The base class
+      advertised it; only the realtime providers converted it. `to_chat_tool()` +
+      `normalize_tools()` added, every chat provider normalizes at its entry point.
+- [x] **LangDock Liskov violation** — `reasoning_effort` sat as a positional
+      parameter ahead of `**kwargs`, so the 6th positional argument meant something
+      different there than on every other provider. Keyword-only now.
+- [x] **Typed `ProviderError` lost its status code** — a blanket `except Exception`
+      re-wrapped it through `_handle_error()`; all ten handlers now re-raise.
+- [x] **`IndexError` on empty `candidates`/`choices`** (Gemini safety-block responses).
+- [x] **CVE gates unblocked**: `cryptography` ceiling had excluded its own fix
+      (PYSEC-2026-3552); `h2` -> 4.4.1 (PYSEC-2026-3628).
+- [x] **`pip-audit --strict` failed on every version bump** — the editable install is
+      unresolvable on PyPI between bump and release. Gate now uses `--skip-editable`.
+- [x] **`twine check` was broken** — hatchling emits Metadata-Version 2.5, twine 6.x
+      rejects it. Floor raised to 7.0.0.
+- [x] **`py.typed` added** (PEP 561) — the package is mypy-strict but shipped no
+      marker, so downstream consumers saw `Any` throughout.
+- [x] **mypy strict 157 -> 0**; CI ratchet replaced by a hard gate.
+- [x] **Python floor 3.10 -> 3.12**, aligned with the Odoo 16 interpreter.
+- [x] **Networking moved to httpx2**, `openai` floor raised to 3.0.0. `httpx` stays
+      for the Anthropic SDK, which still requires `httpx<1`; one transport
+      implementation serves both via a `http=` parameter.
+- [x] **Shared streamed tool-call fold** (`stream_accumulator`) — was copied
+      identically into six providers; net -125 lines.
+- [x] **Pre-commit pins realigned** with pyproject (ruff 0.1.9 -> 0.16.3,
+      mypy 1.8 -> 2.3.1); the hook had been formatting by different rules than CI.
+- [x] Test coverage: `server/lifecycle.py` 22% -> 93%, `utils/pdf.py` 40% -> 88%,
+      `langdock_provider.py` 29% -> 64%; suite 1748 -> 1935.
+
 ---
 
 ## Remaining Nice-to-Haves (Not Blocking Release)
@@ -74,4 +124,7 @@
 - [ ] Async provider support (for FastAPI use cases)
 - [ ] German error messages in `langdock_provider.py` lines 389, 945
 - [ ] Pricing data auto-update mechanism
-- [ ] Coverage target: 80%+ (currently ~60% with new tests)
+- [x] Coverage target: 80%+ — reached (82% as of v2.1.0)
+- [ ] `langdock_provider.py` consolidation onto `OpenAICompatibleProvider`:
+      not possible as-is (one class serves five backends). Coverage is now 64%,
+      enough to attempt a composition-based split as a separate piece of work.

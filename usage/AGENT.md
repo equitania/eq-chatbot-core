@@ -10,6 +10,7 @@
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
 - **Version:** 2.1.0
+- **Requires:** Python >= 3.12 and `openai` >= 3.0 (both raised in v2.1.0). Networking runs on `httpx2`; `httpx` is still installed for the Anthropic SDK.
 - **Framework:** Click  ·  **Human docs:** `docs/` (cli.md, providers.md, server-mode.md)
 
 ## Capabilities at a glance

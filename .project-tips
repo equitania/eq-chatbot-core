@@ -1,4 +1,5 @@
-# eq-chatbot-core v2.0.0 Quick Reference
+# eq-chatbot-core v2.1.0 Quick Reference
+# Requires Python >= 3.12 | openai >= 3.0 | networking on httpx2 (httpx kept for the Anthropic SDK)
 # PyPI: https://pypi.org/project/eq-chatbot-core/
 # GitHub: https://github.com/equitania/eq-chatbot-core
 
