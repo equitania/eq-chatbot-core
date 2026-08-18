@@ -24,6 +24,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets
@@ -116,9 +118,12 @@ class LocalLLMProvider(BaseLLMProvider):
             # re-resolve to an internal target before the socket is opened.
             from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
 
+            # __init__ always passes `base_url or LM_STUDIO_URL` to super(), so
+            # this is never None despite the base attribute's wider type.
+            base_url = self.base_url or self.LM_STUDIO_URL
             self._client = httpx.Client(
-                base_url=self.base_url,
-                transport=build_pinned_transport_for_url(self.base_url, allow_private_ranges=True),
+                base_url=base_url,
+                transport=build_pinned_transport_for_url(base_url, allow_private_ranges=True),
                 timeout=httpx.Timeout(self.timeout),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
@@ -206,8 +211,8 @@ class LocalLLMProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """
         Send a chat completion request to the local LLM server.
@@ -226,6 +231,9 @@ class LocalLLMProvider(BaseLLMProvider):
         Raises:
             ProviderError: On API errors or connection failures
         """
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
         model = model or self.default_model
 
         payload: dict[str, Any] = {
@@ -279,7 +287,7 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
@@ -303,8 +311,8 @@ class LocalLLMProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """
         Stream a chat completion response from the local LLM server.
@@ -323,6 +331,9 @@ class LocalLLMProvider(BaseLLMProvider):
         Raises:
             ProviderError: On API errors or connection failures
         """
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
         model = model or self.default_model
 
         payload: dict[str, Any] = {
@@ -423,7 +434,7 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
@@ -477,7 +488,7 @@ class LocalLLMProvider(BaseLLMProvider):
 
         except httpx.ConnectError as e:
             raise ProviderError(
-                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url)}. "
+                message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
@@ -503,7 +514,7 @@ class LocalLLMProvider(BaseLLMProvider):
             logger.debug("Local server health check failed: %s", e)
             return False
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Clean up httpx client on deletion."""
         if self._client is not None:
             self._client.close()

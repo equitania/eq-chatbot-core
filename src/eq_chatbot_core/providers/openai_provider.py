@@ -14,6 +14,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
@@ -133,11 +135,14 @@ class OpenAIProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to OpenAI."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             params: dict[str, Any] = {
@@ -199,11 +204,14 @@ class OpenAIProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from OpenAI."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             params: dict[str, Any] = {

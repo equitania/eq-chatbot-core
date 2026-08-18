@@ -34,7 +34,9 @@ class BaseEmbedder(ABC):
 class OpenAIEmbedder(BaseEmbedder):
     """OpenAI text-embedding models."""
 
-    MODELS = {
+    # Values are mixed int/float, so spell the type out rather than let the
+    # literal infer dict[str, float] and make `dimensions` a float.
+    MODELS: dict[str, dict[str, Any]] = {
         "text-embedding-3-small": {"dimensions": 1536, "price_per_1m": 0.02},
         "text-embedding-3-large": {"dimensions": 3072, "price_per_1m": 0.13},
         "text-embedding-ada-002": {"dimensions": 1536, "price_per_1m": 0.10},
@@ -76,7 +78,8 @@ class OpenAIEmbedder(BaseEmbedder):
 
     @property
     def dimensions(self) -> int:
-        return self.MODELS[self.model]["dimensions"]
+        dimensions: int = self.MODELS[self.model]["dimensions"]
+        return dimensions
 
     @property
     def client(self) -> Any:

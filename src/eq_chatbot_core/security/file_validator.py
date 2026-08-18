@@ -137,6 +137,15 @@ class FileValidator:
             )
 
         file_config = ext_result[2]
+        if file_config is None:
+            # Unreachable via _validate_extension, which only reports success
+            # together with a config — but the tuple return cannot express that,
+            # so assert it here instead of letting a None slip into the layers
+            # below (where it would surface as an AttributeError).
+            return FileValidationResult(
+                is_valid=False,
+                error_message="Internal error: no file type configuration matched",
+            )
 
         # Layer 2: MIME type verification
         mime_result = self._validate_mime_type(content, file_config)

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Iterator
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, status
@@ -133,7 +134,7 @@ def create_app(auth_token: str) -> FastAPI:
         extras = req.extra or {}
         message_dicts = [m.model_dump(exclude_none=True) for m in req.messages]
 
-        def event_iterator():  # type: ignore[no-untyped-def]
+        def event_iterator() -> Iterator[dict[str, str]]:
             try:
                 chunks = provider_inst.stream_completion(
                     messages=message_dicts,

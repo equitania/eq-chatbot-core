@@ -98,6 +98,47 @@ class ToolDefinition:
     parameters: dict[str, Any]  # Flat JSON Schema dict
     strict: bool = False
 
+    def to_chat_tool(self) -> dict[str, Any]:
+        """Render this definition in OpenAI Chat Completions wire format.
+
+        Note this is the *nested* shape (``{"type": "function", "function": {...}}``),
+        which differs from the flat shape the Realtime API expects — the realtime
+        providers do their own conversion for that reason.
+        """
+        function: dict[str, Any] = {
+            "name": self.name,
+            "description": self.description,
+            "parameters": self.parameters,
+        }
+        if self.strict:
+            function["strict"] = True
+        return {"type": "function", "function": function}
+
+
+def normalize_tools(
+    tools: "list[ToolDefinition] | list[dict[str, Any]] | None",
+) -> list[dict[str, Any]] | None:
+    """Normalize a tool list to OpenAI Chat Completions dicts.
+
+    The base class advertises that ``chat_completion``/``stream_completion``
+    accept :class:`ToolDefinition` instances, but the chat providers pass
+    ``tools`` straight into their request payload — so a ToolDefinition used to
+    reach the JSON serializer as a dataclass and fail there. Every chat provider
+    normalizes through this at its entry point, which also keeps the
+    provider-specific converters (Anthropic's ``input_schema`` form, Vertex's
+    function declarations) working unchanged, since they already translate from
+    the OpenAI dict shape.
+
+    Args:
+        tools: Tool definitions, dicts already in OpenAI format, or None.
+
+    Returns:
+        A list of OpenAI-format dicts, or None when there is nothing to send.
+    """
+    if not tools:
+        return None
+    return [tool.to_chat_tool() if isinstance(tool, ToolDefinition) else dict(tool) for tool in tools]
+
 
 class BaseLLMProvider(ABC):
     """

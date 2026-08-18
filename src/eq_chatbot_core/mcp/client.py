@@ -24,7 +24,7 @@ import shutil
 import threading
 import time
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Self
 from urllib.parse import urlparse
 
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets as _scrub
@@ -207,7 +207,7 @@ class MCPClient:
         self.api_key = api_key
         self.timeout = timeout
 
-        self._client = None
+        self._client: Any = None
         self._sse_thread: threading.Thread | None = None
         self._message_endpoint: str | None = None
         self._request_id = 0
@@ -226,7 +226,7 @@ class MCPClient:
         return headers
 
     @property
-    def client(self):
+    def client(self) -> Any:
         """Lazy initialization of httpx client with DNS-rebinding-aware transport."""
         if self._client is None:
             try:
@@ -296,7 +296,7 @@ class MCPClient:
 
                 logger.info("SSE connection established, waiting for events...")
                 event_type = None
-                event_data = []
+                event_data: list[str] = []
 
                 for line in response.iter_lines():
                     if self._stop_event.is_set():
@@ -445,7 +445,8 @@ class MCPClient:
                 error = result["error"]
                 raise RuntimeError(f"MCP error: {error.get('message', str(error))}")
 
-            return result.get("result", {})
+            value: dict[str, Any] = result.get("result", {})
+            return value
 
         finally:
             # Cleanup
@@ -518,7 +519,8 @@ class MCPClient:
                 self.connect()
 
             result = self._send_request("tools/list", {})
-            return result.get("tools", [])
+            value: list[dict[str, Any]] = result.get("tools", [])
+            return value
 
         except Exception as e:
             logger.error(f"Failed to list MCP tools: {e}")
@@ -603,11 +605,11 @@ class MCPClient:
         """Close the MCP client."""
         self.disconnect()
 
-    def __enter__(self):
+    def __enter__(self) -> "Self":
         self.connect()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.close()
 
 
@@ -774,7 +776,8 @@ class StdioMCPClient:
                 error = response["error"]
                 raise RuntimeError(f"MCP error: {error.get('message', str(error))}")
 
-            return response.get("result", {})
+            value: dict[str, Any] = response.get("result", {})
+            return value
 
     async def call_tool_async(
         self,
@@ -875,7 +878,8 @@ class StdioMCPClient:
                 await self.start()
 
             result = await self._send_request("tools/list", {})
-            return result.get("tools", [])
+            value: list[dict[str, Any]] = result.get("tools", [])
+            return value
 
         except Exception as e:
             logger.error(f"Failed to list MCP tools: {e}")
@@ -936,14 +940,14 @@ class StdioMCPClient:
             else:
                 asyncio.run(self.stop())
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "Self":
         await self.start()
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: object) -> None:
         await self.stop()
 
-    def __enter__(self):
+    def __enter__(self) -> "Self":
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -958,5 +962,5 @@ class StdioMCPClient:
             asyncio.run(self.start())
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args: object) -> None:
         self.close()

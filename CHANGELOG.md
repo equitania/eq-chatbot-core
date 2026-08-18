@@ -64,6 +64,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `status_code=429` — was caught by it and flattened into a generic
   `ProviderError` with no status, so callers could not distinguish rate limiting
   from an outage. All ten handlers now re-raise typed errors untouched.
+- **`ToolDefinition` never worked with any chat provider.** `BaseLLMProvider`
+  advertises `list[ToolDefinition] | list[dict] | None` for
+  `chat_completion`/`stream_completion`, but the chat providers passed `tools`
+  straight into their request payload — only the *realtime* providers ever
+  converted it. A caller taking the base class at its word got a dataclass in
+  the JSON serializer. `ToolDefinition.to_chat_tool()` and `normalize_tools()`
+  now render the OpenAI Chat Completions shape, and every chat provider
+  normalizes at its entry point; the Anthropic and Vertex converters are
+  unchanged because they already translate from that shape. This was what
+  mypy's 16 `override` errors were pointing at.
+- **LangDock violated the base signature in a way that could reorder arguments.**
+  `chat_completion`/`stream_completion` inserted `reasoning_effort` as a
+  positional parameter ahead of `**kwargs`, so the 6th positional argument meant
+  something different there than on every other provider. It is keyword-only now.
 - **An empty `candidates` list crashed the Gemini path.** `data.get("candidates",
   [{}])[0]` defaults only when the key is *absent*; Gemini returns
   `"candidates": []` for a safety-blocked response, which raised `IndexError` and
@@ -106,9 +120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered by tests, rather than left as an unexplained 0%-coverage module.
 - `twine` floor raised to 7.0.0: hatchling emits Metadata-Version 2.5, which
   twine 6.x rejects outright, so `twine check dist/*` failed on every build.
-- mypy errors reduced 157 -> 122; the CI ratchet baseline is lowered to match.
-  Includes real fixes in `realtime/websocket_client.py`, whose optional-import
-  fallback assigned `None` to module-typed names.
+- **mypy strict is clean: 157 errors -> 0**, and the CI ratchet is replaced by a
+  hard gate. Two of those errors were pointing at real defects rather than
+  typing noise (see Fixed), the rest were missing annotations on `**kwargs`,
+  bare generics, lazy-init attributes typed `None`, and `Any` leaking out of
+  `response.json()`.
 
 ## [2.0.2] - 2026-08-06
 

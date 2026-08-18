@@ -168,7 +168,7 @@ def get_provider(
             base_url = local_aliases[provider_name_lower]
         provider_class = LocalLLMProvider
     else:
-        provider_class = providers.get(provider_name_lower)
+        provider_class = providers.get(provider_name_lower)  # type: ignore[assignment]
 
     if provider_class is None:
         available = list(providers.keys()) + list(local_aliases.keys())

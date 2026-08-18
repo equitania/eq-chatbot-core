@@ -18,8 +18,10 @@ Usage from the CLI::
 
 from __future__ import annotations
 
+from typing import Any
 
-def create_app(auth_token: str):  # type: ignore[no-untyped-def]
+
+def create_app(auth_token: str) -> Any:
     """Lazy proxy to the real factory so importing the package without the
     ``[server]`` extra installed only fails when the server is actually used.
 
@@ -31,7 +33,7 @@ def create_app(auth_token: str):  # type: ignore[no-untyped-def]
     return _create_app(auth_token)
 
 
-def run_server(app, **kwargs):  # type: ignore[no-untyped-def]
+def run_server(app: Any, **kwargs: Any) -> Any:
     """Lazy proxy to :func:`eq_chatbot_core.server.lifecycle.run_server`."""
     from eq_chatbot_core.server.lifecycle import run_server as _run_server
 

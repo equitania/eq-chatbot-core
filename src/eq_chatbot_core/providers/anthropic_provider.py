@@ -17,6 +17,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature,
@@ -76,9 +78,9 @@ class AnthropicProvider(BaseLLMProvider):
         """Calculate exponential backoff delay with jitter."""
         import random
 
-        delay = min(self.OVERLOAD_BASE_DELAY * (2**attempt), self.OVERLOAD_MAX_DELAY)
+        delay: float = min(self.OVERLOAD_BASE_DELAY * (2**attempt), self.OVERLOAD_MAX_DELAY)
         # Add jitter (±25%)
-        jitter = delay * 0.25 * (2 * random.random() - 1)
+        jitter: float = delay * 0.25 * (2 * random.random() - 1)
         return delay + jitter
 
     @property
@@ -286,11 +288,14 @@ class AnthropicProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to Anthropic with retry on overload."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         system_prompt, filtered_messages = self._extract_system_prompt(messages)
         # Convert OpenAI-style tool messages to Anthropic format
@@ -376,11 +381,14 @@ class AnthropicProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from Anthropic with retry on overload."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         system_prompt, filtered_messages = self._extract_system_prompt(messages)
         # Convert OpenAI-style tool messages to Anthropic format

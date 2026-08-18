@@ -10,7 +10,10 @@ import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from eq_chatbot_core.rag.chunker import DocumentChunker
 
 logger = logging.getLogger(__name__)
 
@@ -299,10 +302,10 @@ class RecordTransformer:
         self.config = model_config
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self._chunker = None
+        self._chunker: DocumentChunker | None = None
 
     @property
-    def chunker(self):
+    def chunker(self) -> "DocumentChunker":
         """Lazy initialization of chunker."""
         if self._chunker is None:
             from eq_chatbot_core.rag.chunker import DocumentChunker

@@ -53,11 +53,11 @@ class DocumentChunker:
         """
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
-        self._encoder = None
+        self._encoder: Any = None
         self._encoding_name = encoding_name
 
     @property
-    def encoder(self):
+    def encoder(self) -> Any:
         """Lazy initialization of tiktoken encoder."""
         if self._encoder is None:
             try:

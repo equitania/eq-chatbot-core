@@ -26,6 +26,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
@@ -183,7 +185,10 @@ class LangDockProvider(BaseLLMProvider):
             "codestral": "codestral-latest",
             "agent": None,  # Agent uses its configured model
         }
-        return defaults.get(self.backend, "gpt-4o")
+        # The "agent" backend maps to None on purpose: its model is configured
+        # in LangDock, not chosen per request. The base class declares `str`,
+        # and callers use this only as `model or self.default_model`.
+        return defaults.get(self.backend, "gpt-4o")  # type: ignore[return-value]
 
     def _get_backend_url(self) -> str:
         """Get the full base URL for the current backend."""
@@ -274,9 +279,10 @@ class LangDockProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
         reasoning_effort: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """
         Send a chat completion request through LangDock.
@@ -284,6 +290,9 @@ class LangDockProvider(BaseLLMProvider):
         Routes to the appropriate backend based on configuration.
         """
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # backends below build request payloads from plain dicts.
+        tools = normalize_tools(tools)
 
         if self.backend == "agent":
             return self._agent_chat_completion(messages, max_tokens, **kwargs)
@@ -308,7 +317,7 @@ class LangDockProvider(BaseLLMProvider):
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
         reasoning_effort: str | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """OpenAI-compatible chat completion."""
         try:
@@ -453,7 +462,7 @@ class LangDockProvider(BaseLLMProvider):
         self,
         messages: list[dict[str, Any]],
         max_tokens: int | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """LangDock Agent chat completion using httpx directly.
 
@@ -564,7 +573,7 @@ class LangDockProvider(BaseLLMProvider):
         temperature: float,
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Anthropic-compatible chat completion."""
         try:
@@ -649,7 +658,7 @@ class LangDockProvider(BaseLLMProvider):
         model: str,
         temperature: float,
         max_tokens: int | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Google Gemini chat completion via Vertex AI compatible API."""
         try:
@@ -747,7 +756,7 @@ class LangDockProvider(BaseLLMProvider):
         messages: list[dict[str, Any]],
         model: str,
         max_tokens: int | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Codestral FIM (fill-in-the-middle) code completion."""
         try:
@@ -819,9 +828,10 @@ class LangDockProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
         reasoning_effort: str | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """
         Stream a chat completion response through LangDock.
@@ -829,6 +839,9 @@ class LangDockProvider(BaseLLMProvider):
         Routes to the appropriate backend based on configuration.
         """
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # backends below build request payloads from plain dicts.
+        tools = normalize_tools(tools)
 
         if self.backend == "agent":
             yield from self._agent_stream_completion(messages, max_tokens, **kwargs)
@@ -862,7 +875,7 @@ class LangDockProvider(BaseLLMProvider):
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
         reasoning_effort: str | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """OpenAI-compatible streaming."""
         try:
@@ -954,7 +967,7 @@ class LangDockProvider(BaseLLMProvider):
         self,
         messages: list[dict[str, Any]],
         max_tokens: int | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """LangDock Agent streaming using httpx directly.
 
@@ -1068,7 +1081,7 @@ class LangDockProvider(BaseLLMProvider):
         temperature: float,
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Anthropic-compatible streaming."""
         try:
@@ -1268,7 +1281,7 @@ class LangDockProvider(BaseLLMProvider):
         model: str,
         temperature: float,
         max_tokens: int | None,
-        **kwargs,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Google Gemini streaming via Server-Sent Events."""
         try:
@@ -1679,7 +1692,7 @@ class LangDockProvider(BaseLLMProvider):
             mimetype=mimetype,
         )
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Cleanup HTTP client on deletion."""
         if self._http_client is not None:
             try:
@@ -1819,7 +1832,7 @@ class LangDockAgentManager:
         instruction: str,
         model: str = "gpt-4o",
         knowledge_folder_ids: list[str] | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict[str, Any]:
         """
         Create a new LangDock agent.
@@ -1834,7 +1847,7 @@ class LangDockAgentManager:
         Returns:
             Created agent data
         """
-        payload = {
+        payload: dict[str, Any] = {
             "name": name,
             "instruction": instruction,
             "model": model,
@@ -1847,7 +1860,8 @@ class LangDockAgentManager:
 
         response = self.client.post("/create", json=payload)
         response.raise_for_status()
-        return response.json()
+        value: dict[str, Any] = response.json()
+        return value
 
     def get_agent(self, agent_id: str) -> dict[str, Any]:
         """
@@ -1861,9 +1875,10 @@ class LangDockAgentManager:
         """
         response = self.client.get("/get", params={"agentId": agent_id})
         response.raise_for_status()
-        return response.json()
+        value: dict[str, Any] = response.json()
+        return value
 
-    def update_agent(self, agent_id: str, **kwargs) -> dict[str, Any]:
+    def update_agent(self, agent_id: str, **kwargs: Any) -> dict[str, Any]:
         """
         Update an existing agent.
 
@@ -1877,7 +1892,8 @@ class LangDockAgentManager:
         payload = {"agentId": agent_id, **kwargs}
         response = self.client.patch("/update", json=payload)
         response.raise_for_status()
-        return response.json()
+        value: dict[str, Any] = response.json()
+        return value
 
     def list_models(self) -> list[dict[str, Any]]:
         """
@@ -1888,9 +1904,10 @@ class LangDockAgentManager:
         """
         response = self.client.get("/models")
         response.raise_for_status()
-        return response.json().get("data", [])
+        value: list[dict[str, Any]] = response.json().get("data", [])
+        return value
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Cleanup HTTP client."""
         if self._client is not None:
             try:
@@ -1970,7 +1987,8 @@ class LangDockKnowledgeManager:
                 files=files,
             )
             response.raise_for_status()
-            return response.json()
+            value: dict[str, Any] = response.json()
+            return value
 
     def list_files(self, folder_id: str) -> list[dict[str, Any]]:
         """
@@ -1984,7 +2002,8 @@ class LangDockKnowledgeManager:
         """
         response = self.client.get(f"/knowledge/{folder_id}/list")
         response.raise_for_status()
-        return response.json().get("result", [])
+        value: list[dict[str, Any]] = response.json().get("result", [])
+        return value
 
     def delete_file(self, folder_id: str, file_id: str) -> bool:
         """
@@ -2022,9 +2041,10 @@ class LangDockKnowledgeManager:
             json={"query": query},
         )
         response.raise_for_status()
-        return response.json().get("result", [])
+        value: list[dict[str, Any]] = response.json().get("result", [])
+        return value
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Cleanup HTTP client."""
         if self._client is not None:
             try:
@@ -2126,10 +2146,11 @@ class LangDockExportManager:
         if response.status_code != 200:
             raise _map_status_error(response.status_code, _safe_detail(response.text))
 
-        data = response.json()
+        data: dict[str, Any] = response.json()
         # LangDock wraps the payload in an "agent" key; unwrap when present.
-        if isinstance(data, dict) and isinstance(data.get("agent"), dict):
-            return data["agent"]
+        if isinstance(data.get("agent"), dict):
+            agent: dict[str, Any] = data["agent"]
+            return agent
         return data
 
     def export_report(
@@ -2173,10 +2194,11 @@ class LangDockExportManager:
         if response.status_code != 200:
             raise _map_status_error(response.status_code, _safe_detail(response.text))
 
-        payload = response.json()
+        payload: dict[str, Any] = response.json()
         # Response shape: {"success": true, "data": {...}}
-        if isinstance(payload, dict) and isinstance(payload.get("data"), dict):
-            return payload["data"]
+        if isinstance(payload.get("data"), dict):
+            data: dict[str, Any] = payload["data"]
+            return data
         return payload
 
     def download_signed_csv(self, url: str) -> str:
@@ -2216,7 +2238,7 @@ class LangDockExportManager:
             raise _map_status_error(response.status_code, _safe_detail(response.text))
         return response.text
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Cleanup HTTP client."""
         if self._client is not None:
             try:

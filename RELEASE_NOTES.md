@@ -77,6 +77,26 @@
   rate limiting apart from an outage, so retry logic had nothing to key on. All
   ten handlers now re-raise typed errors untouched.
 
+- **[FIX] `ToolDefinition` never actually worked with any chat provider.**
+  `BaseLLMProvider` advertises `list[ToolDefinition] | list[dict] | None` for
+  `chat_completion` and `stream_completion`, and the dataclass documents itself
+  as "shared by chat and realtime providers" — but only the realtime providers
+  ever converted it. The chat providers passed `tools` straight into their
+  request payload, so a caller who took the base class at its word handed a
+  dataclass to the JSON serializer. `ToolDefinition.to_chat_tool()` renders the
+  nested Chat Completions shape (which differs from the flat Realtime shape),
+  `normalize_tools()` applies it, and every chat provider normalizes at its
+  entry point. The Anthropic (`input_schema`) and Vertex (function declaration)
+  converters needed no change: they already translate from the OpenAI dict form.
+  mypy's 16 `override` errors had been pointing straight at this gap.
+
+- **[FIX] LangDock could silently reinterpret a positional argument.**
+  Its `chat_completion`/`stream_completion` inserted `reasoning_effort` as a
+  positional parameter ahead of `**kwargs`, so the 6th positional argument meant
+  `reasoning_effort` on LangDock and something else on every other provider —
+  a Liskov violation that type checking flagged and nothing else would have.
+  The parameter is keyword-only now.
+
 - **[FIX] An empty `candidates` list crashed the Gemini path.**
   `data.get("candidates", [{}])[0]` supplies its default only when the key is
   *absent*. Gemini returns `"candidates": []` when a response is blocked by its
@@ -112,11 +132,12 @@
   ruff 0.1.9 and mypy 1.8.0 — fourteen minor versions behind the ruff in
   `pyproject.toml` — so the hook formatted code by different rules than CI then
   verified, and the two gates could contradict each other.
-- **[CHG] mypy errors reduced from 157 to 122**; the CI ratchet baseline is
-  lowered accordingly to lock the gain in. Includes genuine fixes in
-  `realtime/websocket_client.py`, whose optional-import fallback assigned `None`
-  to module-typed names, and parameterisation of bare `dict`/`list`/`Queue`
-  generics across nine modules.
+- **[CHG] mypy strict is clean: 157 errors -> 0.** The CI ratchet that held the
+  count down is replaced by a hard gate — a ratchet earns its place only while
+  there is debt to hold. Most of the work was mechanical (unannotated
+  `**kwargs`, bare `dict`/`list`/`Queue` generics, lazy-init attributes typed
+  `None`, `Any` leaking out of `response.json()`), but three clusters were real
+  defects, listed under Fixed. Verified clean on Python 3.12 and 3.13.
 - **[CHG] `websockets` ceiling raised to `<18.0`.** Note that `google-genai`
   caps it at `<17.0`, so an install combining `[realtime,vertex]` still resolves
   to 16.x — the wider bound only takes effect without the `[vertex]` extra.

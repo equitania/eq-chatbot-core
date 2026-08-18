@@ -29,6 +29,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
@@ -103,6 +105,9 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         validate_url(effective_base_url, allow_private_ranges=self.ALLOW_PRIVATE_RANGES)
 
         super().__init__(api_key, effective_base_url, timeout, max_retries)
+        # Keep the validated URL under a non-optional type: the base attribute
+        # is `str | None`, but construction fails above when it would be empty.
+        self._effective_base_url: str = effective_base_url
         self._model = model
 
     @property
@@ -137,7 +142,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 max_retries=self.max_retries,
                 http_client=httpx.Client(
                     transport=build_pinned_transport_for_url(
-                        self.base_url, allow_private_ranges=self.ALLOW_PRIVATE_RANGES
+                        self._effective_base_url,
+                        allow_private_ranges=self.ALLOW_PRIVATE_RANGES,
                     ),
                     timeout=self.timeout,
                 ),
@@ -179,11 +185,14 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to the gateway."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             params = self._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
@@ -228,11 +237,14 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from the gateway."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             params = self._build_params(messages, model, temperature, max_tokens, tools, **kwargs)

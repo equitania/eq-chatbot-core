@@ -37,36 +37,11 @@ jobs:
       - name: Run ruff format check
         run: uv run ruff format --check src/ tests/
 
-      # mypy strict reveals pre-existing typing issues across the legacy provider
-      # code. Clearing that debt is a dedicated typing pass, so existing errors do
-      # not block CI — but the count is ratcheted: a PR that ADDS errors fails.
-      # Lower MYPY_BASELINE whenever debt is paid down so the ratchet tightens.
-      # NOTE: the baseline depends on which extras this job installs (a missing
-      # Pillow, for instance, adds errors in utils/image.py). It also shifts when
-      # the vertex SDK is upgraded. Whenever the notice below reports a lower
-      # count, lower MYPY_BASELINE to lock the gain in.
-      - name: Run mypy (ratcheted against baseline)
-        env:
-          MYPY_BASELINE: "122"
-        run: |
-          uv run mypy src/ | tee mypy.log || true
-          # A blocking syntax/stub error makes mypy stop early. The error count
-          # would then be small and the ratchet would pass for the wrong reason,
-          # so treat an aborted run as a failure rather than a green gate.
-          if grep -q "errors prevented further checking" mypy.log; then
-            echo "::error::mypy aborted early — the error count is not meaningful"
-            tail -5 mypy.log
-            exit 1
-          fi
-          count=$(grep -cE '^src/.*: error:' mypy.log || true)
-          echo "mypy errors: ${count} (baseline: ${MYPY_BASELINE})"
-          if [ "${count}" -gt "${MYPY_BASELINE}" ]; then
-            echo "::error::mypy errors increased from ${MYPY_BASELINE} to ${count}"
-            exit 1
-          fi
-          if [ "${count}" -lt "${MYPY_BASELINE}" ]; then
-            echo "::notice::mypy errors decreased to ${count} — lower MYPY_BASELINE to lock the gain in."
-          fi
+      # mypy strict is clean and gated hard. It was ratcheted against a baseline
+      # of 157 pre-existing errors until v2.1.0 paid that debt down to zero; a
+      # ratchet is only worth having while there is debt to hold down.
+      - name: Run mypy (strict)
+        run: uv run mypy src/
 
   security:
     name: Dependency vulnerability audit

@@ -21,6 +21,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
@@ -126,9 +128,12 @@ class OpenRouterProvider(BaseLLMProvider):
             # round-trip until the client is actually used.
             from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
 
+            # __init__ always passes `base_url or DEFAULT_BASE_URL` to super(),
+            # so this is never None despite the base attribute's wider type.
+            base_url = self.base_url or self.DEFAULT_BASE_URL
             self._client = httpx.Client(
-                base_url=self.base_url,
-                transport=build_pinned_transport_for_url(self.base_url),
+                base_url=base_url,
+                transport=build_pinned_transport_for_url(base_url),
                 headers=headers,
                 timeout=self.timeout,
             )
@@ -145,11 +150,14 @@ class OpenRouterProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to OpenRouter."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             # Build request payload (OpenAI-compatible format)
@@ -218,11 +226,14 @@ class OpenRouterProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from OpenRouter."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             # Build request payload
@@ -602,5 +613,5 @@ class OpenRouterProvider(BaseLLMProvider):
     def __enter__(self) -> "OpenRouterProvider":
         return self
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, *args: object) -> None:
         self.close()

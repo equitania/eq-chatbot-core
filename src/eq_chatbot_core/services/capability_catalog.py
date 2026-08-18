@@ -173,7 +173,9 @@ class CapabilityCatalog:
         pricing = dict(entry.get("pricing") or {})
         result: ModelCapabilities = {}
         for cap in CAPABILITY_KEYS:
-            result[cap] = bool(caps.get(cap, self._defaults.get(cap, False)))
+            # CAPABILITY_KEYS holds exactly the TypedDict's keys, but mypy
+            # cannot prove that for a loop variable.
+            result[cap] = bool(caps.get(cap, self._defaults.get(cap, False)))  # type: ignore[literal-required]
         if limits.get("context_length") is not None:
             result["context_length"] = int(limits["context_length"])
         if limits.get("max_output_tokens") is not None:

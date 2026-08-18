@@ -225,7 +225,7 @@ class AzureProvider(OpenAICompatibleProvider):
         """
         models = []
         for model_data in self.KNOWN_MODELS:
-            model_id = model_data["id"]
+            model_id = str(model_data["id"])
             temp_constraints = self._get_temperature_constraints(model_id)
             is_reasoning = self._is_reasoning_model(model_id)
 

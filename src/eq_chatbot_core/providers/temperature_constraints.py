@@ -144,8 +144,8 @@ def clamp_temperature(model: str, temperature: float) -> float | None:
     if not constraints["supports_temperature"]:
         return None
 
-    min_temp = constraints["min"]
-    max_temp = constraints["max"]
+    min_temp: float = constraints["min"]
+    max_temp: float = constraints["max"]
 
     if temperature < min_temp:
         _logger.warning(

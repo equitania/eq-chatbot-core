@@ -94,7 +94,8 @@ class HybridRetriever:
         # Build Qdrant filter
         qdrant_filter = None
         if filters:
-            conditions = [FieldCondition(key=k, match=MatchValue(value=v)) for k, v in filters.items()]
+            # `list` is invariant, so annotate to the union Filter expects.
+            conditions: list[Any] = [FieldCondition(key=k, match=MatchValue(value=v)) for k, v in filters.items()]
             qdrant_filter = Filter(must=conditions)
 
         # Search

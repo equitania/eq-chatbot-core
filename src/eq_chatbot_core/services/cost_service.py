@@ -3,7 +3,7 @@ LLM cost calculation service.
 """
 
 import logging
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
 
@@ -12,11 +12,14 @@ _logger = logging.getLogger(__name__)
 # Lazily-built singleton over the bundled pricing snapshot. Used only as a
 # gap-filler for models absent from the curated ``PRICING`` table below, so the
 # curated (intentionally overriding) values always win.
+if TYPE_CHECKING:
+    from eq_chatbot_core.services.pricing_catalog import PricingCatalog
+
 _CATALOG = None
 _CATALOG_LOADED = False
 
 
-def _get_catalog():
+def _get_catalog() -> "PricingCatalog | None":
     """Return the bundled :class:`PricingCatalog` (snapshot), or ``None``."""
     global _CATALOG, _CATALOG_LOADED
     if not _CATALOG_LOADED:

@@ -23,6 +23,8 @@ from eq_chatbot_core.providers.base import (
     ProviderError,
     RateLimitError,
     StreamChunk,
+    ToolDefinition,
+    normalize_tools,
 )
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature as _shared_clamp_temperature,
@@ -259,11 +261,14 @@ class VertexProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to Vertex AI."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             system_instruction, contents = self._convert_messages(messages)
@@ -346,11 +351,14 @@ class VertexProvider(BaseLLMProvider):
         model: str | None = None,
         temperature: float = 0.7,
         max_tokens: int | None = None,
-        tools: list[dict[str, Any]] | None = None,
-        **kwargs,
+        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from Vertex AI."""
         model = model or self.default_model
+        # Accept ToolDefinition instances as the base class promises; the
+        # request payload below needs plain OpenAI-format dicts.
+        tools = normalize_tools(tools)
 
         try:
             system_instruction, contents = self._convert_messages(messages)
@@ -455,7 +463,7 @@ class VertexProvider(BaseLLMProvider):
         """
         models = []
         for model_data in self.KNOWN_MODELS:
-            model_id = model_data["id"]
+            model_id = str(model_data["id"])
             temp_constraints = self._get_temperature_constraints(model_id)
 
             models.append(
@@ -539,7 +547,7 @@ class VertexProvider(BaseLLMProvider):
     def __enter__(self) -> "VertexProvider":
         return self
 
-    def __exit__(self, *args) -> None:
+    def __exit__(self, *args: object) -> None:
         self.close()
 
     def __del__(self) -> None:

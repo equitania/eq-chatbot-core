@@ -76,7 +76,7 @@ class ContextWindowManager:
         self.max_response = max_response_tokens
         self.history_ratio = history_ratio
         self.rag_ratio = rag_ratio
-        self._encoder = None
+        self._encoder: Any = None
 
     def _get_model_limit(self, model: str) -> int:
         """Get context limit for model."""
@@ -93,7 +93,7 @@ class ContextWindowManager:
         return 128000
 
     @property
-    def encoder(self):
+    def encoder(self) -> Any:
         """Lazy initialization of tiktoken encoder."""
         if self._encoder is None:
             try:
@@ -146,7 +146,7 @@ class ContextWindowManager:
         Returns:
             Truncated message list
         """
-        result = []
+        result: list[dict[str, Any]] = []
         current_tokens = 0
 
         # Iterate from newest to oldest

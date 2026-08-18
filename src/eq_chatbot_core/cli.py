@@ -317,7 +317,8 @@ def list_models(
         models = provider_instance.list_models()
 
         if vision_only:
-            models = [m for m in models if get_model_attr(m, "supports_vision", False)]
+            # `list` is invariant, so rebind instead of narrowing the union in place.
+            models = [m for m in models if get_model_attr(m, "supports_vision", False)]  # type: ignore[assignment]
 
         if as_json:
             output = [
@@ -886,7 +887,8 @@ def _load_recipe(recipe_path: str) -> dict[str, Any]:
             if required_key not in asset:
                 raise click.ClickException(f"Asset #{i} is missing required field '{required_key}'.")
 
-    return recipe
+    value: dict[str, Any] = recipe
+    return value
 
 
 @main.command("listing-assets")

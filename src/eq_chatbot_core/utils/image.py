@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 
 def parse_size(s: str) -> tuple[int, int]:
@@ -68,10 +69,10 @@ def save_png(data: bytes, path: str | Path, base_dir: str | Path | None = None) 
     return dest
 
 
-def _require_pillow():
+def _require_pillow() -> Any:
     """Import and return PIL.Image, raising a clear error if not installed."""
     try:
-        from PIL import Image  # type: ignore[import]
+        from PIL import Image
 
         return Image
     except ImportError as exc:

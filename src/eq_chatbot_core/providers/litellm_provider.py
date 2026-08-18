@@ -61,7 +61,7 @@ class LiteLLMProvider(OpenAICompatibleProvider):
         model: str = DEFAULT_TTS_MODEL,
         voice: str = DEFAULT_TTS_VOICE,
         response_format: str = "wav",
-        **kwargs,
+        **kwargs: Any,
     ) -> bytes:
         """
         Synthesize speech from text via the gateway's TTS endpoint.
@@ -85,7 +85,8 @@ class LiteLLMProvider(OpenAICompatibleProvider):
                 **kwargs,
             )
             # openai SDK returns a binary response wrapper; .read() yields bytes.
-            return response.read()
+            value: bytes = response.read()
+            return value
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -94,7 +95,7 @@ class LiteLLMProvider(OpenAICompatibleProvider):
         audio: Any,
         *,
         model: str = DEFAULT_STT_MODEL,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """
         Transcribe audio to text via the gateway's STT endpoint.
@@ -115,7 +116,8 @@ class LiteLLMProvider(OpenAICompatibleProvider):
                 file=audio,
                 **kwargs,
             )
-            return response.text
+            value: str = response.text
+            return value
         except Exception as e:
             raise self._handle_error(e) from e
 
