@@ -113,7 +113,12 @@ class CapabilityCatalog:
         try:
             import httpx
 
-            resp = httpx.get(url or DEFAULT_CATALOG_URL, timeout=timeout)
+            from eq_chatbot_core.utils.url_validation import build_validating_transport
+
+            # `url` is caller-supplied, so the request is SSRF-checked instead of
+            # being trusted to point at the Equitania catalog.
+            with httpx.Client(transport=build_validating_transport(), timeout=timeout) as client:
+                resp = client.get(url or DEFAULT_CATALOG_URL)
             resp.raise_for_status()
             return cls(resp.json())
         except Exception as e:  # network/parse failure -> offline fallback

@@ -55,6 +55,36 @@
   anywhere in this codebase, so the path was not reachable either; the CI gate
   flagged it regardless.
 
+- **[FIX] Three request paths still bypassed the new rebinding guard.**
+  Writing the LangDock tests surfaced them. The agent backend derived its URL
+  from `base_url` but sent it via the module-level `httpx.post()` — so the one
+  backend most likely to point at a self-hosted gateway was the one left
+  unprotected; sync and streaming now both use the pinned client.
+  `LangDockExportManager.download_signed_csv()` fetched a URL taken straight from
+  an API response with `follow_redirects=True`, and `CapabilityCatalog.from_remote()`
+  fetches a caller-supplied URL. Both now use the new `build_validating_transport()`,
+  which re-applies the full SSRF policy to whatever host each hop names — pinning
+  is no help there, since it only guards hosts it already knows and a redirect can
+  introduce a new one.
+
+### 🐛 Fixed
+
+- **[FIX] A typed `ProviderError` silently lost its status code.**
+  Every LangDock backend ends in a blanket `except Exception` that routes through
+  `_handle_error()`. A `ProviderError` raised deliberately inside the `try` —
+  carrying `status_code=429` or `503` — was caught by that handler and flattened
+  into a generic `ProviderError` with `status_code=None`. Callers could not tell
+  rate limiting apart from an outage, so retry logic had nothing to key on. All
+  ten handlers now re-raise typed errors untouched.
+
+- **[FIX] An empty `candidates` list crashed the Gemini path.**
+  `data.get("candidates", [{}])[0]` supplies its default only when the key is
+  *absent*. Gemini returns `"candidates": []` when a response is blocked by its
+  safety filters — a routine occurrence — which raised `IndexError` and reached
+  the caller as `ProviderError("list index out of range")`. The same pattern was
+  present for Codestral's `choices`. Both now index only after confirming the
+  list is non-empty.
+
 ### ✨ Added
 
 - **[ADD] `py.typed` marker (PEP 561).** The package is developed under
@@ -63,12 +93,17 @@
   is now actually visible outside the repository.
 - **[ADD] `build_pinned_transport_for_url()`** and the now-shared
   `build_pinned_transport()` in `utils/url_validation.py`.
-- **[ADD] Tests for two previously untested modules.** `server/lifecycle.py`
+- **[ADD] Tests for three previously untested areas.** `server/lifecycle.py`
   went from 22% to 93% coverage (port announcement, socket options, watchdog
-  behaviour, cleanup on failure) and `utils/pdf.py` from 40% to 88% (real PDF
-  rendering plus the page/DPI/size limits that bound a decompression bomb).
-  Eight new tests cover the rebinding guard itself, including the case that must
-  *not* be blocked: legitimate rotation to another public address.
+  behaviour, cleanup on failure), `utils/pdf.py` from 40% to 88% (real PDF
+  rendering plus the page/DPI/size limits that bound a decompression bomb), and
+  `providers/langdock_provider.py` from 29% to 64% — the agent, google and
+  codestral paths, the message converters, model listing, error mapping and the
+  three manager classes. That LangDock suite is what surfaced the two bugs above,
+  and it is the safety net the planned consolidation of this provider will be
+  refactored against. Fifteen further tests cover the rebinding and validating
+  transports, including the case that must *not* be blocked: legitimate rotation
+  to another public address.
 
 ### 🔧 Changed
 

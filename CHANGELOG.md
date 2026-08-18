@@ -45,6 +45,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `h2` moves to 4.4.1 via the refreshed lockfile, clearing PYSEC-2026-3628
   (HTTP/2 request smuggling). HTTP/2 is not enabled anywhere in this codebase.
+- **Three request paths still bypassed the new rebinding guard.** The LangDock
+  agent backend built its URL from `base_url` but issued it through the
+  module-level `httpx.post()`, so the very backend most likely to run against a
+  self-hosted gateway was never covered; both the sync and streaming paths now
+  go through the pinned client. `LangDockExportManager.download_signed_csv()`
+  fetched a URL taken from an API response with `follow_redirects=True`, and
+  `CapabilityCatalog.from_remote()` fetches a caller-supplied URL — both now use
+  a new `build_validating_transport()`, which re-applies the SSRF policy to every
+  host it is asked to connect to. Pinning cannot help there: it only guards hosts
+  it already knows, and a redirect can name a fresh one.
+
+### Fixed
+
+- **A typed `ProviderError` lost its status code.** Every LangDock backend ends
+  in a blanket `except Exception` that routes through `_handle_error()`. A
+  `ProviderError` raised deliberately inside the `try` — carrying e.g.
+  `status_code=429` — was caught by it and flattened into a generic
+  `ProviderError` with no status, so callers could not distinguish rate limiting
+  from an outage. All ten handlers now re-raise typed errors untouched.
+- **An empty `candidates` list crashed the Gemini path.** `data.get("candidates",
+  [{}])[0]` defaults only when the key is *absent*; Gemini returns
+  `"candidates": []` for a safety-blocked response, which raised `IndexError` and
+  surfaced as `ProviderError("list index out of range")`. Same pattern fixed for
+  Codestral's `choices`.
 
 ### Added
 
@@ -55,9 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`py.typed` marker (PEP 561).** The package is checked under `mypy --strict`
   but shipped without the marker, so every downstream consumer saw `Any` and none
   of that typing work was visible outside the repo.
-- Test coverage for two previously untested modules: `server/lifecycle.py`
-  (22% -> 93%) and `utils/pdf.py` (40% -> 88%), plus rebinding tests covering
-  both the blocked attack and the tolerated legitimate IP rotation.
+- Test coverage for three previously untested areas: `server/lifecycle.py`
+  (22% -> 93%), `utils/pdf.py` (40% -> 88%) and `providers/langdock_provider.py`
+  (29% -> 64%), plus rebinding tests covering both the blocked attack and the
+  tolerated legitimate IP rotation. The LangDock suite pins down the agent,
+  google and codestral paths, the message converters, model listing and the
+  manager classes — it is what surfaced the two bugs above.
+- `utils/url_validation.build_validating_transport()` — SSRF-checks every host,
+  for targets that are not one fixed endpoint.
 
 ### Changed
 

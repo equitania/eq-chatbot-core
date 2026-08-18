@@ -279,3 +279,57 @@ def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = Fal
             return super().handle_request(request)
 
     return _RevalidatingHostTransport()
+
+
+def build_validating_transport(*, allow_private_ranges: bool = False) -> Any:
+    """Build an httpx transport that SSRF-checks *every* host it connects to.
+
+    Use this instead of :func:`build_pinned_transport_for_url` when the target is
+    not a single known endpoint — a URL taken from an API response, a
+    configurable catalog location, or any request made with
+    ``follow_redirects=True``. Pinning only guards hosts it already knows, so a
+    redirect to a fresh hostname would sail past it; this transport re-applies
+    the full policy to whatever host each hop actually names.
+
+    Args:
+        allow_private_ranges: Permit private/loopback targets (on-prem servers).
+
+    Returns:
+        Subclass of httpx.HTTPTransport.
+
+    Raises:
+        ImportError: If httpx is not installed.
+    """
+    try:
+        import httpx
+    except ImportError as e:  # pragma: no cover - httpx is a core dependency
+        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+
+    class _ValidatingHostTransport(httpx.HTTPTransport):
+        def handle_request(self, request: httpx.Request) -> httpx.Response:
+            if request.url.scheme not in ("http", "https"):
+                raise httpx.ConnectError(f"Blocked request: scheme '{request.url.scheme}' is not allowed.")
+
+            host = request.url.host
+            if not host:
+                raise httpx.ConnectError("Blocked request: URL has no hostname.")
+
+            try:
+                infos = socket.getaddrinfo(host, None)
+            except socket.gaierror as e:
+                raise httpx.ConnectError(f"DNS resolution failed for {host}: {e}") from e
+
+            is_localhost_name = host in _LOCALHOST_NAMES
+            for info in infos:
+                try:
+                    _assert_ip_allowed(
+                        str(info[4][0]),
+                        allow_private_ranges=allow_private_ranges,
+                        is_localhost_name=is_localhost_name,
+                    )
+                except ValueError as e:
+                    raise httpx.ConnectError(f"Blocked request to {host}: {e}") from e
+
+            return super().handle_request(request)
+
+    return _ValidatingHostTransport()

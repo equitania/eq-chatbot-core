@@ -367,6 +367,11 @@ class LangDockProvider(BaseLLMProvider):
                 raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
             )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -488,15 +493,17 @@ class LangDockProvider(BaseLLMProvider):
             if _logger.isEnabledFor(logging.DEBUG):
                 _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
-            response = httpx.post(
-                agent_url,
+            # Go through the pinned client rather than the module-level
+            # httpx.post: agent_url is derived from a caller-supplied base_url,
+            # so a bare request here would bypass the DNS-rebinding guard that
+            # every other request path uses. http_client's base_url is
+            # _get_backend_url(), which for this backend is
+            # "<base_url>/agent/v1" — the relative path below resolves to
+            # agent_url. Reached only via the "agent" dispatch branch.
+            response = self.http_client.post(
+                "/chat/completions",
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
                 timeout=120.0,
-                follow_redirects=False,
             )
 
             if response.status_code != 200:
@@ -541,6 +548,11 @@ class LangDockProvider(BaseLLMProvider):
             safe = _scrub(str(e))
             _logger.error(f"Agent HTTP error: {safe}")
             raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -622,6 +634,11 @@ class LangDockProvider(BaseLLMProvider):
                 raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
             )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -709,11 +726,18 @@ class LangDockProvider(BaseLLMProvider):
                 model=model,
                 input_tokens=usage.get("promptTokenCount", 0),
                 output_tokens=usage.get("candidatesTokenCount", 0),
-                finish_reason=data.get("candidates", [{}])[0].get("finishReason", "STOP"),
+                # `candidates` is present but empty when the response was blocked,
+                # so index into it only after confirming it is non-empty.
+                finish_reason=(data.get("candidates") or [{}])[0].get("finishReason", "STOP"),
                 tool_calls=[],
                 raw_response=data,
             )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -775,11 +799,16 @@ class LangDockProvider(BaseLLMProvider):
                 model=model,
                 input_tokens=usage.get("prompt_tokens", 0),
                 output_tokens=usage.get("completion_tokens", 0),
-                finish_reason=data.get("choices", [{}])[0].get("finish_reason", "stop"),
+                finish_reason=(data.get("choices") or [{}])[0].get("finish_reason", "stop"),
                 tool_calls=[],
                 raw_response=data,
             )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -935,6 +964,11 @@ class LangDockProvider(BaseLLMProvider):
                     output_tokens=final_output_tokens if is_final else 0,
                 )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -987,15 +1021,17 @@ class LangDockProvider(BaseLLMProvider):
             if _logger.isEnabledFor(logging.DEBUG):
                 _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
-            response = httpx.post(
-                agent_url,
+            # Go through the pinned client rather than the module-level
+            # httpx.post: agent_url is derived from a caller-supplied base_url,
+            # so a bare request here would bypass the DNS-rebinding guard that
+            # every other request path uses. http_client's base_url is
+            # _get_backend_url(), which for this backend is
+            # "<base_url>/agent/v1" — the relative path below resolves to
+            # agent_url. Reached only via the "agent" dispatch branch.
+            response = self.http_client.post(
+                "/chat/completions",
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json",
-                },
                 timeout=120.0,
-                follow_redirects=False,
             )
 
             if response.status_code != 200:
@@ -1039,6 +1075,11 @@ class LangDockProvider(BaseLLMProvider):
             safe = _scrub(str(e))
             _logger.error(f"Agent stream HTTP error: {safe}")
             raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -1181,6 +1222,11 @@ class LangDockProvider(BaseLLMProvider):
                             output_tokens=final_output_tokens,
                         )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -1345,6 +1391,11 @@ class LangDockProvider(BaseLLMProvider):
                         output_tokens=total_output_tokens if is_final else 0,
                     )
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -1440,6 +1491,11 @@ class LangDockProvider(BaseLLMProvider):
             else:
                 return []
 
+        except ProviderError:
+            # Already a typed error carrying status/context. Routing it through
+            # _handle_error() again would flatten it to a bare ProviderError and
+            # drop the status code the caller needs.
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -2161,8 +2217,20 @@ class LangDockExportManager:
         Raises:
             ProviderError on any non-2xx response or transport error.
         """
+        # `url` is taken from an API response and redirects are followed, so every
+        # hop is SSRF-checked rather than trusting the gateway's answer. A pinned
+        # transport would not help here: it only guards hosts it already knows,
+        # and a redirect can name a fresh one.
+        from eq_chatbot_core.utils.url_validation import build_validating_transport, validate_url
+
         try:
-            response = httpx.get(url, timeout=self.timeout, follow_redirects=True)
+            validate_url(url)
+        except ValueError as exc:
+            raise ProviderError(f"LangDock CSV download rejected: {exc}", provider="langdock") from exc
+
+        try:
+            with httpx.Client(transport=build_validating_transport(), timeout=self.timeout) as client:
+                response = client.get(url, follow_redirects=True)
         except httpx.RequestError as exc:
             raise ProviderError(f"LangDock CSV download failed: {exc}", provider="langdock") from exc
 

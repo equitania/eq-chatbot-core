@@ -10,7 +10,11 @@ from unittest.mock import patch
 
 import pytest
 
-from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url, validate_url
+from eq_chatbot_core.utils.url_validation import (
+    build_pinned_transport_for_url,
+    build_validating_transport,
+    validate_url,
+)
 
 
 def _addrinfo(*ips: str) -> list[tuple]:
@@ -224,4 +228,78 @@ class TestPinnedTransportRebinding:
         transport = self._transport()
         with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("nope")):
             with pytest.raises(httpx.ConnectError, match="DNS resolution failed"):
+                transport.handle_request(self._request())
+
+
+@pytest.mark.unit
+class TestValidatingTransport:
+    """build_validating_transport checks every host, not just pinned ones.
+
+    Needed wherever the target is not one known endpoint: a URL from an API
+    response, a configurable catalog location, or any request that follows
+    redirects — a redirect can name a host no pin ever covered.
+    """
+
+    def _request(self, url="https://storage.example.com/report.csv"):
+        import httpx
+
+        return httpx.Request("GET", url)
+
+    def test_public_host_passes(self):
+        transport = build_validating_transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            with patch("httpx.HTTPTransport.handle_request", return_value="passed"):
+                assert transport.handle_request(self._request()) == "passed"
+
+    def test_metadata_endpoint_blocked(self):
+        import httpx
+
+        transport = build_validating_transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
+            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+                transport.handle_request(self._request())
+
+    def test_private_range_blocked(self):
+        import httpx
+
+        transport = build_validating_transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("10.1.2.3")):
+            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+                transport.handle_request(self._request())
+
+    def test_any_disallowed_address_in_the_set_blocks(self):
+        """A host resolving to one public and one internal address must not pass."""
+        import httpx
+
+        transport = build_validating_transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34", "127.0.0.1")):
+            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+                transport.handle_request(self._request())
+
+    def test_non_http_scheme_blocked(self):
+        import httpx
+
+        transport = build_validating_transport()
+        with pytest.raises(httpx.ConnectError, match="scheme"):
+            transport.handle_request(httpx.Request("GET", "ftp://example.com/x"))
+
+    def test_unresolvable_host_blocked(self):
+        import httpx
+
+        transport = build_validating_transport()
+        with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("nope")):
+            with pytest.raises(httpx.ConnectError, match="DNS resolution failed"):
+                transport.handle_request(self._request())
+
+    def test_lan_mode_allows_private_but_not_metadata(self):
+        import httpx
+
+        transport = build_validating_transport(allow_private_ranges=True)
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("192.168.1.10")):
+            with patch("httpx.HTTPTransport.handle_request", return_value="passed"):
+                assert transport.handle_request(self._request()) == "passed"
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
+            with pytest.raises(httpx.ConnectError, match="Blocked request"):
                 transport.handle_request(self._request())
