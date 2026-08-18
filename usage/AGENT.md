@@ -9,7 +9,7 @@
 
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
-- **Version:** 2.0.0
+- **Version:** 2.0.2
 - **Framework:** Click  ·  **Human docs:** `docs/` (cli.md, providers.md, server-mode.md)
 
 ## Capabilities at a glance
@@ -27,7 +27,9 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 | Command | Purpose | Args / Flags |
 |---|---|---|
 | `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
-| `eq-chatbot config init\|show\|path` | Manage the user config file (~/.config/eq-chatbot/config.toml). | init [--force], show, path |
+| `eq-chatbot config init` | Write a commented config template (mode 0600) to the config path. | --force |
+| `eq-chatbot config path` | Print the resolved config file path (whether or not it exists). | — |
+| `eq-chatbot config show` | Show the config path, permissions and a key-masked view of the contents. | — |
 | `eq-chatbot image` | Generate an image from a text prompt. | --provider/-p openai\|openrouter, --api-key/-k TEXT, --model/-m TEXT, --prompt TEXT, --prompt-file PATH, --size TEXT, --fit TEXT, --output/-o TEXT, --base-url/-u TEXT |
 | `eq-chatbot info` | Show package information. | — |
 | `eq-chatbot list-models` | List available models from a provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --base-url/-u TEXT, --json, --vision-only |
