@@ -157,7 +157,35 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
     return frozenset(resolved_ips)
 
 
-def build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
+def _http_lib(http: Any = None) -> Any:
+    """Return the HTTP client library a transport should be built against.
+
+    Two libraries are unavoidably in play: httpx2 is Pydantic's maintained
+    continuation of httpx and carries this library's own requests plus the
+    OpenAI SDK, while the Anthropic SDK still declares ``httpx<1`` in every
+    release up to 0.122 and rejects an httpx2 client. Rather than duplicate the
+    guard for each, the transports below are built against whichever module the
+    caller passes.
+
+    Args:
+        http: The ``httpx`` or ``httpx2`` module. Defaults to httpx2.
+
+    Returns:
+        The module to build the transport against.
+
+    Raises:
+        ImportError: If the default library is not installed.
+    """
+    if http is not None:
+        return http
+    try:
+        import httpx2
+    except ImportError as e:  # pragma: no cover - httpx2 is a core dependency
+        raise ImportError("httpx2 package not installed. Install with: pip install httpx2") from e
+    return httpx2
+
+
+def build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock, *, http: Any = None) -> Any:
     """Build an httpx HTTPTransport that re-checks DNS resolution against pinned IPs.
 
     Mitigates DNS rebinding attacks: at validation time the URL's hostname is
@@ -180,13 +208,10 @@ def build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threadin
     Raises:
         ImportError: If httpx is not installed.
     """
-    try:
-        import httpx
-    except ImportError as e:  # pragma: no cover - httpx is a core dependency
-        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+    httpx = _http_lib(http)
 
-    class _PinnedHostTransport(httpx.HTTPTransport):
-        def handle_request(self, request: httpx.Request) -> httpx.Response:
+    class _PinnedHostTransport(httpx.HTTPTransport):  # type: ignore[misc,name-defined]
+        def handle_request(self, request: Any) -> Any:
             host = request.url.host
             with lock:
                 pinned = pinned_ips.get(host)
@@ -207,7 +232,7 @@ def build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threadin
     return _PinnedHostTransport()
 
 
-def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = False) -> Any:
+def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = False, http: Any = None) -> Any:
     """Validate ``url`` and return an httpx transport that re-checks every connect.
 
     Convenience wrapper for the common single-endpoint case: callers that talk to
@@ -232,18 +257,15 @@ def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = Fal
         ValueError: If ``url`` fails SSRF validation.
         ImportError: If httpx is not installed.
     """
-    try:
-        import httpx
-    except ImportError as e:  # pragma: no cover - httpx is a core dependency
-        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+    httpx = _http_lib(http)
 
     resolved = validate_url(url, allow_private_ranges=allow_private_ranges)
     hostname = urlparse(url).hostname
     allowed: dict[str, frozenset[str]] = {hostname: resolved} if hostname else {}
     lock = threading.Lock()
 
-    class _RevalidatingHostTransport(httpx.HTTPTransport):
-        def handle_request(self, request: httpx.Request) -> httpx.Response:
+    class _RevalidatingHostTransport(httpx.HTTPTransport):  # type: ignore[misc,name-defined]
+        def handle_request(self, request: Any) -> Any:
             host = request.url.host
             with lock:
                 pinned = allowed.get(host)
@@ -281,7 +303,7 @@ def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = Fal
     return _RevalidatingHostTransport()
 
 
-def build_validating_transport(*, allow_private_ranges: bool = False) -> Any:
+def build_validating_transport(*, allow_private_ranges: bool = False, http: Any = None) -> Any:
     """Build an httpx transport that SSRF-checks *every* host it connects to.
 
     Use this instead of :func:`build_pinned_transport_for_url` when the target is
@@ -300,13 +322,10 @@ def build_validating_transport(*, allow_private_ranges: bool = False) -> Any:
     Raises:
         ImportError: If httpx is not installed.
     """
-    try:
-        import httpx
-    except ImportError as e:  # pragma: no cover - httpx is a core dependency
-        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+    httpx = _http_lib(http)
 
-    class _ValidatingHostTransport(httpx.HTTPTransport):
-        def handle_request(self, request: httpx.Request) -> httpx.Response:
+    class _ValidatingHostTransport(httpx.HTTPTransport):  # type: ignore[misc,name-defined]
+        def handle_request(self, request: Any) -> Any:
             if request.url.scheme not in ("http", "https"):
                 raise httpx.ConnectError(f"Blocked request: scheme '{request.url.scheme}' is not allowed.")
 

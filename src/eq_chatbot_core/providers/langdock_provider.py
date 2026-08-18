@@ -16,7 +16,7 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-import httpx
+import httpx2
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
@@ -144,7 +144,7 @@ class LangDockProvider(BaseLLMProvider):
         """
         # Initialize clients BEFORE validation to ensure __del__ works even when
         # the SSRF guard below rejects the URL.
-        self._http_client: httpx.Client | None = None
+        self._http_client: httpx2.Client | None = None
         self._openai_client: Any = None
         self._anthropic_client: Any = None
 
@@ -198,7 +198,7 @@ class LangDockProvider(BaseLLMProvider):
         return f"{self.base_url}{pattern}"
 
     @property
-    def http_client(self) -> httpx.Client:
+    def http_client(self) -> httpx2.Client:
         """Get or create HTTP client for direct API calls."""
         if self._http_client is None:
             # Pin the resolved addresses against DNS rebinding (see
@@ -206,7 +206,7 @@ class LangDockProvider(BaseLLMProvider):
             from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
 
             backend_url = self._get_backend_url()
-            self._http_client = httpx.Client(
+            self._http_client = httpx2.Client(
                 base_url=backend_url,
                 transport=build_pinned_transport_for_url(backend_url),
                 headers={
@@ -226,11 +226,21 @@ class LangDockProvider(BaseLLMProvider):
             except ImportError as e:
                 raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
 
+            # These SDK clients were never routed through the pinned transport —
+            # only the raw httpx client was. base_url is caller-supplied, so the
+            # same DNS-rebinding exposure applied here.
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
+            backend_url = self._get_backend_url()
             self._openai_client = OpenAI(
                 api_key=self.api_key,
-                base_url=self._get_backend_url(),
+                base_url=backend_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
+                http_client=httpx2.Client(
+                    transport=build_pinned_transport_for_url(backend_url),
+                    timeout=self.timeout,
+                ),
             )
         return self._openai_client
 
@@ -243,11 +253,22 @@ class LangDockProvider(BaseLLMProvider):
             except ImportError as e:
                 raise ImportError("Anthropic package not installed. Install with: pip install anthropic") from e
 
+            # As above, this client was never pinned. The Anthropic SDK requires
+            # httpx (not httpx2), so its guard is built against that library.
+            import httpx
+
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
+            backend_url = self._get_backend_url()
             self._anthropic_client = Anthropic(
                 api_key=self.api_key,
-                base_url=self._get_backend_url(),
+                base_url=backend_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
+                http_client=httpx.Client(
+                    transport=build_pinned_transport_for_url(backend_url, http=httpx),
+                    timeout=self.timeout,
+                ),
             )
         return self._anthropic_client
 
@@ -504,7 +525,7 @@ class LangDockProvider(BaseLLMProvider):
                 _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
             # Go through the pinned client rather than the module-level
-            # httpx.post: agent_url is derived from a caller-supplied base_url,
+            # httpx2.post: agent_url is derived from a caller-supplied base_url,
             # so a bare request here would bypass the DNS-rebinding guard that
             # every other request path uses. http_client's base_url is
             # _get_backend_url(), which for this backend is
@@ -554,7 +575,7 @@ class LangDockProvider(BaseLLMProvider):
                 raw_response=data,
             )
 
-        except httpx.HTTPError as e:
+        except httpx2.HTTPError as e:
             safe = _scrub(str(e))
             _logger.error(f"Agent HTTP error: {safe}")
             raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
@@ -1013,7 +1034,7 @@ class LangDockProvider(BaseLLMProvider):
                 _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
 
             # Go through the pinned client rather than the module-level
-            # httpx.post: agent_url is derived from a caller-supplied base_url,
+            # httpx2.post: agent_url is derived from a caller-supplied base_url,
             # so a bare request here would bypass the DNS-rebinding guard that
             # every other request path uses. http_client's base_url is
             # _get_backend_url(), which for this backend is
@@ -1062,7 +1083,7 @@ class LangDockProvider(BaseLLMProvider):
             else:
                 _logger.warning(f"Agent stream: No content found. Keys: {list(data.keys())}")
 
-        except httpx.HTTPError as e:
+        except httpx2.HTTPError as e:
             safe = _scrub(str(e))
             _logger.error(f"Agent stream HTTP error: {safe}")
             raise ProviderError(f"Agent HTTP error: {safe}", provider="langdock") from e
@@ -1728,13 +1749,13 @@ class LangDockAgentManager:
         """
         self.api_key = api_key
         self.timeout = timeout
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=self.BASE_URL,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
@@ -1785,7 +1806,7 @@ class LangDockAgentManager:
                 "file": (filename, file_data, mimetype),
             }
 
-            response = httpx.post(
+            response = httpx2.post(
                 upload_url,
                 files=files,
                 headers={
@@ -1819,7 +1840,7 @@ class LangDockAgentManager:
                 "file": file_info,
             }
 
-        except httpx.RequestError as e:
+        except httpx2.RequestError as e:
             _logger.error(f"Attachment upload request error: {_scrub(str(e))}")
             raise ProviderError(
                 f"Attachment upload failed: {_scrub(str(e))}",
@@ -1943,13 +1964,13 @@ class LangDockKnowledgeManager:
         """
         self.api_key = api_key
         self.timeout = timeout
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=self.BASE_URL,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
@@ -2106,13 +2127,13 @@ class LangDockExportManager:
         """
         self.api_key = api_key
         self.timeout = timeout
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=self.BASE_URL,
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
@@ -2140,7 +2161,7 @@ class LangDockExportManager:
         """
         try:
             response = self.client.get("/agent/v1/get", params={"agentId": agent_id})
-        except httpx.RequestError as exc:
+        except httpx2.RequestError as exc:
             raise ProviderError(f"LangDock agent fetch failed: {exc}", provider="langdock") from exc
 
         if response.status_code != 200:
@@ -2188,7 +2209,7 @@ class LangDockExportManager:
         }
         try:
             response = self.client.post(f"/export/{report}", json=body)
-        except httpx.RequestError as exc:
+        except httpx2.RequestError as exc:
             raise ProviderError(f"LangDock usage export failed: {exc}", provider="langdock") from exc
 
         if response.status_code != 200:
@@ -2229,9 +2250,9 @@ class LangDockExportManager:
             raise ProviderError(f"LangDock CSV download rejected: {exc}", provider="langdock") from exc
 
         try:
-            with httpx.Client(transport=build_validating_transport(), timeout=self.timeout) as client:
+            with httpx2.Client(transport=build_validating_transport(), timeout=self.timeout) as client:
                 response = client.get(url, follow_redirects=True)
-        except httpx.RequestError as exc:
+        except httpx2.RequestError as exc:
             raise ProviderError(f"LangDock CSV download failed: {exc}", provider="langdock") from exc
 
         if response.status_code != 200:

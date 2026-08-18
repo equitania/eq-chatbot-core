@@ -7,7 +7,7 @@ using mocked HTTP responses.
 
 from unittest.mock import MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 
 from eq_chatbot_core.providers.base import (
@@ -135,7 +135,7 @@ class TestLocalLLMProviderChatCompletion:
 
     def test_chat_completion_success(self, mock_chat_response):
         """Test successful chat completion."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_chat_response
         mock_response.raise_for_status = MagicMock()
@@ -143,7 +143,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             response = provider.chat_completion(
@@ -158,7 +158,7 @@ class TestLocalLLMProviderChatCompletion:
 
     def test_chat_completion_with_model(self, mock_chat_response):
         """Test chat completion with specific model."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_chat_response
         mock_response.raise_for_status = MagicMock()
@@ -166,7 +166,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             provider.chat_completion(
@@ -180,7 +180,7 @@ class TestLocalLLMProviderChatCompletion:
 
     def test_chat_completion_with_temperature(self, mock_chat_response):
         """Test chat completion with custom temperature."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_chat_response
         mock_response.raise_for_status = MagicMock()
@@ -188,7 +188,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             provider.chat_completion(
@@ -201,7 +201,7 @@ class TestLocalLLMProviderChatCompletion:
 
     def test_chat_completion_with_max_tokens(self, mock_chat_response):
         """Test chat completion with max_tokens."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_chat_response
         mock_response.raise_for_status = MagicMock()
@@ -209,7 +209,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             provider.chat_completion(
@@ -235,7 +235,7 @@ class TestLocalLLMProviderChatCompletion:
             # No usage field
         }
 
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
         mock_response.raise_for_status = MagicMock()
@@ -243,7 +243,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             response = provider.chat_completion(
@@ -282,7 +282,7 @@ class TestLocalLLMProviderChatCompletion:
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15},
         }
 
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = response_data
         mock_response.raise_for_status = MagicMock()
@@ -290,7 +290,7 @@ class TestLocalLLMProviderChatCompletion:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             response = provider.chat_completion(
@@ -313,9 +313,9 @@ class TestLocalLLMProviderErrors:
     def test_connection_error(self):
         """Test handling of connection errors."""
         mock_client = MagicMock()
-        mock_client.post.side_effect = httpx.ConnectError("Connection refused")
+        mock_client.post.side_effect = httpx2.ConnectError("Connection refused")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ProviderError) as exc_info:
@@ -328,9 +328,9 @@ class TestLocalLLMProviderErrors:
     def test_connection_error_scrubs_token_in_base_url_and_message(self):
         """A token leaking via base_url or the httpx error text is masked."""
         mock_client = MagicMock()
-        mock_client.post.side_effect = httpx.ConnectError("refused for token sk-ant-secret123456")
+        mock_client.post.side_effect = httpx2.ConnectError("refused for token sk-ant-secret123456")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(
                 api_key="not-used",
                 base_url="http://localhost:1234/v1?api_key=sk-leak-abcdef123456",
@@ -347,9 +347,9 @@ class TestLocalLLMProviderErrors:
     def test_timeout_error(self):
         """Test handling of timeout errors."""
         mock_client = MagicMock()
-        mock_client.post.side_effect = httpx.TimeoutException("Request timeout")
+        mock_client.post.side_effect = httpx2.TimeoutException("Request timeout")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ProviderError) as exc_info:
@@ -361,14 +361,14 @@ class TestLocalLLMProviderErrors:
 
     def test_authentication_error(self):
         """Test handling of 401 authentication errors."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 401
 
         mock_client = MagicMock()
-        error = httpx.HTTPStatusError("Unauthorized", request=MagicMock(), response=mock_response)
+        error = httpx2.HTTPStatusError("Unauthorized", request=MagicMock(), response=mock_response)
         mock_client.post.side_effect = error
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(AuthenticationError) as exc_info:
@@ -380,15 +380,15 @@ class TestLocalLLMProviderErrors:
 
     def test_rate_limit_error(self):
         """Test handling of 429 rate limit errors."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 429
         mock_response.headers = {"retry-after": "60"}
 
         mock_client = MagicMock()
-        error = httpx.HTTPStatusError("Rate limited", request=MagicMock(), response=mock_response)
+        error = httpx2.HTTPStatusError("Rate limited", request=MagicMock(), response=mock_response)
         mock_client.post.side_effect = error
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(RateLimitError) as exc_info:
@@ -401,18 +401,18 @@ class TestLocalLLMProviderErrors:
 
     def test_context_length_error(self):
         """Test handling of context length exceeded errors."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 400
 
         mock_client = MagicMock()
-        error = httpx.HTTPStatusError(
+        error = httpx2.HTTPStatusError(
             "context length exceeded: maximum 4096 tokens",
             request=MagicMock(),
             response=mock_response,
         )
         mock_client.post.side_effect = error
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ContextLengthError) as exc_info:
@@ -425,7 +425,7 @@ class TestLocalLLMProviderErrors:
     def test_chat_completion_surfaces_error_body(self):
         """HTTP 200 with an ``error`` body must raise instead of crashing on the
         missing ``choices`` key (LM Studio context-length overflow)."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = {
@@ -437,7 +437,7 @@ class TestLocalLLMProviderErrors:
         mock_client = MagicMock()
         mock_client.post.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ContextLengthError) as exc_info:
@@ -474,7 +474,7 @@ class TestLocalLLMProviderStreaming:
         mock_client = MagicMock()
         mock_client.stream.return_value.__enter__.return_value = mock_stream_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             chunks = list(
@@ -502,7 +502,7 @@ class TestLocalLLMProviderStreaming:
         mock_client = MagicMock()
         mock_client.stream.return_value.__enter__.return_value = mock_stream_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             chunks = list(
@@ -531,7 +531,7 @@ class TestLocalLLMProviderStreaming:
         mock_client = MagicMock()
         mock_client.stream.return_value.__enter__.return_value = mock_stream_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             chunks = list(
@@ -547,9 +547,9 @@ class TestLocalLLMProviderStreaming:
     def test_stream_completion_connection_error(self):
         """Test streaming handles connection errors."""
         mock_client = MagicMock()
-        mock_client.stream.side_effect = httpx.ConnectError("Connection refused")
+        mock_client.stream.side_effect = httpx2.ConnectError("Connection refused")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ProviderError) as exc_info:
@@ -581,7 +581,7 @@ class TestLocalLLMProviderStreaming:
         mock_client = MagicMock()
         mock_client.stream.return_value.__enter__.return_value = mock_stream_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ContextLengthError) as exc_info:
@@ -605,7 +605,7 @@ class TestLocalLLMProviderListModels:
 
     def test_list_models_success(self, mock_models_response):
         """Test successful model listing."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_models_response
         mock_response.raise_for_status = MagicMock()
@@ -613,7 +613,7 @@ class TestLocalLLMProviderListModels:
         mock_client = MagicMock()
         mock_client.get.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             models = provider.list_models()
@@ -624,7 +624,7 @@ class TestLocalLLMProviderListModels:
 
     def test_list_models_with_context_length(self, mock_models_response):
         """Test model listing includes context length when available."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = mock_models_response
         mock_response.raise_for_status = MagicMock()
@@ -632,7 +632,7 @@ class TestLocalLLMProviderListModels:
         mock_client = MagicMock()
         mock_client.get.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             models = provider.list_models()
@@ -643,9 +643,9 @@ class TestLocalLLMProviderListModels:
     def test_list_models_connection_error(self):
         """Test model listing handles connection errors."""
         mock_client = MagicMock()
-        mock_client.get.side_effect = httpx.ConnectError("Connection refused")
+        mock_client.get.side_effect = httpx2.ConnectError("Connection refused")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             with pytest.raises(ProviderError) as exc_info:
@@ -655,7 +655,7 @@ class TestLocalLLMProviderListModels:
 
     def test_list_models_empty_response(self):
         """Test model listing handles empty response."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
         mock_response.json.return_value = {"object": "list", "data": []}
         mock_response.raise_for_status = MagicMock()
@@ -663,7 +663,7 @@ class TestLocalLLMProviderListModels:
         mock_client = MagicMock()
         mock_client.get.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             models = provider.list_models()
@@ -682,13 +682,13 @@ class TestLocalLLMProviderAvailability:
 
     def test_is_server_available_true(self):
         """Test server availability returns True when server responds."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 200
 
         mock_client = MagicMock()
         mock_client.get.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             assert provider.is_server_available() is True
@@ -696,9 +696,9 @@ class TestLocalLLMProviderAvailability:
     def test_is_server_available_false_connection_error(self):
         """Test server availability returns False on connection error."""
         mock_client = MagicMock()
-        mock_client.get.side_effect = httpx.ConnectError("Connection refused")
+        mock_client.get.side_effect = httpx2.ConnectError("Connection refused")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             assert provider.is_server_available() is False
@@ -706,22 +706,22 @@ class TestLocalLLMProviderAvailability:
     def test_is_server_available_false_timeout(self):
         """Test server availability returns False on timeout."""
         mock_client = MagicMock()
-        mock_client.get.side_effect = httpx.TimeoutException("Timeout")
+        mock_client.get.side_effect = httpx2.TimeoutException("Timeout")
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             assert provider.is_server_available() is False
 
     def test_is_server_available_false_http_error(self):
         """Test server availability returns False on HTTP error."""
-        mock_response = MagicMock(spec=httpx.Response)
+        mock_response = MagicMock(spec=httpx2.Response)
         mock_response.status_code = 500
 
         mock_client = MagicMock()
         mock_client.get.return_value = mock_response
 
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client", return_value=mock_client):
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client", return_value=mock_client):
             provider = LocalLLMProvider(api_key="not-used", base_url="http://localhost:1234/v1")
 
             assert provider.is_server_available() is False
@@ -744,7 +744,7 @@ class TestLocalLLMProviderClient:
         assert provider._client is None
 
         # Accessing client property should create it
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client") as mock_client_class:
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client") as mock_client_class:
             mock_client_class.return_value = MagicMock()
             _ = provider.client
 
@@ -752,7 +752,7 @@ class TestLocalLLMProviderClient:
 
     def test_client_reuses_instance(self):
         """Test that client is reused across calls."""
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client") as mock_client_class:
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client") as mock_client_class:
             mock_instance = MagicMock()
             mock_client_class.return_value = mock_instance
 
@@ -767,7 +767,7 @@ class TestLocalLLMProviderClient:
 
     def test_client_includes_auth_header(self):
         """Test that client includes authorization header."""
-        with patch("eq_chatbot_core.providers.local_provider.httpx.Client") as mock_client_class:
+        with patch("eq_chatbot_core.providers.local_provider.httpx2.Client") as mock_client_class:
             mock_client_class.return_value = MagicMock()
 
             provider = LocalLLMProvider(api_key="test-key")

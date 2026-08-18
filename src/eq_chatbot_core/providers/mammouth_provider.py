@@ -11,7 +11,7 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-import httpx
+import httpx2
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
@@ -79,7 +79,7 @@ class MammouthProvider(BaseLLMProvider):
         """
         # Initialize the client attribute BEFORE validation so close()/__del__
         # stay safe if the SSRF guard below raises.
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
         # SSRF guard: only a caller-supplied base_url is validated — the fixed
         # public default needs no DNS round-trip. Imported lazily to avoid an
@@ -100,7 +100,7 @@ class MammouthProvider(BaseLLMProvider):
         return "gpt-4o"
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Lazy initialization of HTTP client."""
         if self._client is None:
             headers = {
@@ -115,7 +115,7 @@ class MammouthProvider(BaseLLMProvider):
             # __init__ always passes `base_url or DEFAULT_BASE_URL` to super(),
             # so this is never None despite the base attribute's wider type.
             base_url = self.base_url or self.DEFAULT_BASE_URL
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=base_url,
                 transport=build_pinned_transport_for_url(base_url),
                 headers=headers,
@@ -204,7 +204,7 @@ class MammouthProvider(BaseLLMProvider):
                 raw_response=data,
             )
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -322,7 +322,7 @@ class MammouthProvider(BaseLLMProvider):
                         output_tokens=final_output_tokens if is_final else 0,
                     )
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -339,7 +339,7 @@ class MammouthProvider(BaseLLMProvider):
         """
         try:
             # Models endpoint is at a different URL than the chat API
-            response = httpx.get(
+            response = httpx2.get(
                 self.MODELS_URL,
                 headers={"Authorization": f"Bearer {self.api_key}"},
                 timeout=self.timeout,
@@ -393,12 +393,12 @@ class MammouthProvider(BaseLLMProvider):
             models.sort(key=lambda m: m["id"])
             return models
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:
+    def _handle_http_error(self, error: httpx2.HTTPStatusError) -> ProviderError:
         """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.response.status_code
         try:
@@ -415,7 +415,7 @@ class MammouthProvider(BaseLLMProvider):
                 message = err_field.get("message", str(error))
             else:
                 message = str(err_field)
-        except (ValueError, KeyError, httpx.ResponseNotRead):
+        except (ValueError, KeyError, httpx2.ResponseNotRead):
             message = str(error)
 
         # Gateway error bodies can echo request headers/credentials — mask before

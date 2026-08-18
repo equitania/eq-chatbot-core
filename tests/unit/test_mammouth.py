@@ -95,7 +95,7 @@ class TestMammouthProviderInit:
 
     def test_basic_init(self):
         """Test basic provider initialization."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -104,7 +104,7 @@ class TestMammouthProviderInit:
 
     def test_init_with_custom_base_url(self):
         """Test initialization with custom base URL."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             custom_url = "http://localhost:4000/v1"
@@ -113,7 +113,7 @@ class TestMammouthProviderInit:
 
     def test_init_with_timeout(self):
         """Test initialization with custom timeout."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key", timeout=120.0)
@@ -131,7 +131,7 @@ class TestMammouthProviderProperties:
 
     def test_provider_name(self):
         """Test provider_name property."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -139,7 +139,7 @@ class TestMammouthProviderProperties:
 
     def test_default_model(self):
         """Test default model is GPT-4o."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -157,7 +157,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_reasoning_model_no_temperature(self):
         """Test reasoning models (o1, o3, o4) return None for temperature."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -168,7 +168,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_gpt5_temperature_passthrough(self):
         """Test GPT-5.x models pass through temperature (min=0.0)."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -180,7 +180,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_gpt41_temperature_passthrough(self):
         """Test GPT-4.1 models pass through temperature (min=0.0)."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -191,7 +191,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_gpt41_valid_temperature_passes_through(self):
         """Test GPT-4.1 models pass through valid temperatures."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -202,7 +202,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_legacy_model_passthrough(self):
         """Test legacy models (gpt-4o) pass through any valid temperature."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -213,7 +213,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_claude_max_temperature_clamped(self):
         """Test Claude models clamp temperature to max 1.0."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -225,7 +225,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_unknown_model_uses_defaults(self):
         """Test unknown models use default constraints (0.0-2.0)."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -236,7 +236,7 @@ class TestMammouthTemperatureConstraints:
 
     def test_constraints_in_list_models(self, mock_models_response):
         """Test list_models returns temperature constraints per model."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -277,7 +277,7 @@ class TestMammouthReasoningModels:
 
     def test_o1_is_reasoning_model(self):
         """Test o1 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -287,7 +287,7 @@ class TestMammouthReasoningModels:
 
     def test_o3_is_reasoning_model(self):
         """Test o3 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -296,7 +296,7 @@ class TestMammouthReasoningModels:
 
     def test_o4_is_reasoning_model(self):
         """Test o4 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -304,7 +304,7 @@ class TestMammouthReasoningModels:
 
     def test_gpt_not_reasoning_model(self):
         """Test GPT models are not reasoning models."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -314,7 +314,7 @@ class TestMammouthReasoningModels:
 
     def test_claude_not_reasoning_model(self):
         """Test Claude models are not reasoning models."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
@@ -333,7 +333,7 @@ class TestMammouthChatCompletion:
 
     def test_simple_completion(self, mock_chat_response):
         """Test simple chat completion."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -359,7 +359,7 @@ class TestMammouthChatCompletion:
 
     def test_completion_temperature_clamped_for_gpt41(self, mock_chat_response):
         """Test temperature is clamped to 1.0 for GPT-4.1 models."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -385,7 +385,7 @@ class TestMammouthChatCompletion:
 
     def test_completion_no_temperature_for_reasoning(self, mock_chat_response):
         """Test reasoning models don't receive temperature."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -411,7 +411,7 @@ class TestMammouthChatCompletion:
 
     def test_completion_with_max_tokens(self, mock_chat_response):
         """Test completion with max_tokens."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -450,7 +450,7 @@ class TestMammouthChatCompletion:
         ]
         mock_chat_response["choices"][0]["finish_reason"] = "tool_calls"
 
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -487,7 +487,7 @@ class TestMammouthStreamCompletion:
 
     def test_basic_streaming(self):
         """Test basic SSE streaming."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             # Simulate SSE stream lines
@@ -528,7 +528,7 @@ class TestMammouthStreamCompletion:
 
     def test_streaming_temperature_clamped(self):
         """Test streaming also clamps temperature for GPT-4.1 models."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             sse_lines = [
@@ -572,7 +572,7 @@ class TestMammouthListModels:
 
     def test_list_models_returns_all(self, mock_models_response):
         """Test list_models returns all available models."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -593,7 +593,7 @@ class TestMammouthListModels:
 
     def test_list_models_includes_metadata(self, mock_models_response):
         """Test list_models includes model metadata."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -613,7 +613,7 @@ class TestMammouthListModels:
 
     def test_list_models_includes_pricing(self, mock_models_response):
         """Test list_models includes pricing information."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -631,7 +631,7 @@ class TestMammouthListModels:
 
     def test_list_models_sorted(self, mock_models_response):
         """Test list_models returns sorted by ID."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
@@ -666,18 +666,18 @@ class TestMammouthErrorHandling:
 
     def test_rate_limit_error(self):
         """Test rate limit error is properly mapped."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
             mock_response.status_code = 429
             mock_response.json.return_value = {"error": {"message": "Rate limit exceeded"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Rate limit exceeded",
                 request=MagicMock(),
                 response=mock_response,
@@ -698,18 +698,18 @@ class TestMammouthErrorHandling:
 
     def test_authentication_error(self):
         """Test authentication error is properly mapped."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
             mock_response.status_code = 401
             mock_response.json.return_value = {"error": {"message": "Invalid API key"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Unauthorized",
                 request=MagicMock(),
                 response=mock_response,
@@ -730,18 +730,18 @@ class TestMammouthErrorHandling:
 
     def test_overloaded_error(self):
         """Test 503 overloaded error is properly mapped."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
             mock_response.status_code = 503
             mock_response.json.return_value = {"error": {"message": "Service overloaded"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Service Unavailable",
                 request=MagicMock(),
                 response=mock_response,
@@ -762,18 +762,18 @@ class TestMammouthErrorHandling:
 
     def test_context_length_error(self):
         """Test context length error is properly mapped."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_response = MagicMock()
             mock_response.status_code = 400
             mock_response.json.return_value = {"error": {"message": "Maximum context length exceeded"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Bad Request",
                 request=MagicMock(),
                 response=mock_response,
@@ -794,7 +794,7 @@ class TestMammouthErrorHandling:
 
     def test_generic_error(self):
         """Test generic errors are wrapped as ProviderError."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx.Client") as mock_client_class:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2.Client") as mock_client_class:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_client = MagicMock()
@@ -821,7 +821,7 @@ class TestMammouthContextManager:
 
     def test_close_client(self):
         """Test close() properly closes the HTTP client."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_client = MagicMock()
@@ -837,7 +837,7 @@ class TestMammouthContextManager:
 
     def test_context_manager(self):
         """Test context manager protocol."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             mock_client = MagicMock()
@@ -861,7 +861,7 @@ class TestMammouthFactoryIntegration:
 
     def test_get_provider_returns_mammouth(self):
         """Test get_provider returns MammouthProvider."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx"):
+        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers import get_provider
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 

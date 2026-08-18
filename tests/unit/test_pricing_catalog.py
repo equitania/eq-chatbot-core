@@ -100,12 +100,12 @@ class TestSnapshotAndRemote:
         assert cat.lookup("gpt-4o") is not None
 
     def test_from_remote_falls_back_to_snapshot(self, monkeypatch):
-        import httpx
+        import httpx2
 
         def boom(*args, **kwargs):
-            raise httpx.ConnectError("offline")
+            raise httpx2.ConnectError("offline")
 
-        monkeypatch.setattr(httpx, "get", boom)
+        monkeypatch.setattr(httpx2, "get", boom)
         cat = PricingCatalog.from_remote(timeout=0.1)
         # Snapshot is bundled, so a well-known model still resolves.
         assert cat.lookup("gpt-4o") is not None

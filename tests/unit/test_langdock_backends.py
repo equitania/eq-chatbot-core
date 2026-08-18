@@ -11,7 +11,7 @@ against.
 import json
 from unittest.mock import MagicMock, patch
 
-import httpx
+import httpx2
 import pytest
 
 from eq_chatbot_core.providers.base import (
@@ -33,7 +33,7 @@ def _provider(**kwargs):
 
 
 def _resp(status=200, payload=None, text=""):
-    """Minimal stand-in for an httpx.Response as this provider consumes it."""
+    """Minimal stand-in for an httpx2.Response as this provider consumes it."""
     r = MagicMock()
     r.status_code = status
     r.json.return_value = payload if payload is not None else {}
@@ -567,7 +567,7 @@ class TestExportManagerDownloadGuard:
 
     def test_public_url_is_fetched_and_returned(self):
         manager = self._manager()
-        transport = httpx.MockTransport(lambda req: httpx.Response(200, text="a,b,c"))
+        transport = httpx2.MockTransport(lambda req: httpx2.Response(200, text="a,b,c"))
 
         with patch("eq_chatbot_core.utils.url_validation.validate_url", return_value=frozenset({"93.184.216.34"})):
             with patch("eq_chatbot_core.utils.url_validation.build_validating_transport", return_value=transport):
@@ -575,7 +575,7 @@ class TestExportManagerDownloadGuard:
 
     def test_non_200_maps_to_provider_error(self):
         manager = self._manager()
-        transport = httpx.MockTransport(lambda req: httpx.Response(404, text="gone"))
+        transport = httpx2.MockTransport(lambda req: httpx2.Response(404, text="gone"))
 
         with patch("eq_chatbot_core.utils.url_validation.validate_url", return_value=frozenset({"93.184.216.34"})):
             with patch("eq_chatbot_core.utils.url_validation.build_validating_transport", return_value=transport):
@@ -743,7 +743,7 @@ class TestStatusErrorMapping:
 
 
 def _mock_client(handler, base_url="https://api.langdock.com"):
-    return httpx.Client(transport=httpx.MockTransport(handler), base_url=base_url)
+    return httpx2.Client(transport=httpx2.MockTransport(handler), base_url=base_url)
 
 
 class TestExportManager:
@@ -754,13 +754,13 @@ class TestExportManager:
 
     def test_get_agent_unwraps_the_agent_envelope(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(200, json={"agent": {"name": "Support"}}))
+        manager._client = _mock_client(lambda r: httpx2.Response(200, json={"agent": {"name": "Support"}}))
 
         assert manager.get_agent("ag-1") == {"name": "Support"}
 
     def test_get_agent_passes_through_unwrapped_payload(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(200, json={"name": "Support"}))
+        manager._client = _mock_client(lambda r: httpx2.Response(200, json={"name": "Support"}))
 
         assert manager.get_agent("ag-1") == {"name": "Support"}
 
@@ -770,7 +770,7 @@ class TestExportManager:
 
         def handler(request):
             seen["url"] = str(request.url)
-            return httpx.Response(200, json={})
+            return httpx2.Response(200, json={})
 
         manager._client = _mock_client(handler)
         manager.get_agent("ag-42")
@@ -779,7 +779,7 @@ class TestExportManager:
 
     def test_get_agent_maps_401_to_authentication_error(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(401, text="bad key"))
+        manager._client = _mock_client(lambda r: httpx2.Response(401, text="bad key"))
 
         with pytest.raises(AuthenticationError):
             manager.get_agent("ag-1")
@@ -791,7 +791,7 @@ class TestExportManager:
     def test_export_report_unwraps_data(self):
         manager = self._manager()
         manager._client = _mock_client(
-            lambda r: httpx.Response(200, json={"success": True, "data": {"downloadUrl": "https://x/y.csv"}})
+            lambda r: httpx2.Response(200, json={"success": True, "data": {"downloadUrl": "https://x/y.csv"}})
         )
 
         assert manager.export_report("agents", "a", "b") == {"downloadUrl": "https://x/y.csv"}
@@ -802,7 +802,7 @@ class TestExportManager:
 
         def handler(request):
             seen["body"] = json.loads(request.content)
-            return httpx.Response(200, json={"data": {}})
+            return httpx2.Response(200, json={"data": {}})
 
         manager._client = _mock_client(handler)
         manager.export_report("users", "2026-01-01", "2026-01-31", timezone="Europe/Berlin")
@@ -812,7 +812,7 @@ class TestExportManager:
 
     def test_export_report_maps_429(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(429, text="slow down"))
+        manager._client = _mock_client(lambda r: httpx2.Response(429, text="slow down"))
 
         with pytest.raises(RateLimitError):
             manager.export_report("agents", "a", "b")
@@ -835,7 +835,7 @@ class TestKnowledgeManager:
 
         def handler(request):
             seen["path"] = request.url.path
-            return httpx.Response(200, json={"files": [{"id": "f1"}]})
+            return httpx2.Response(200, json={"files": [{"id": "f1"}]})
 
         manager._client = _mock_client(handler)
         manager.list_files("folder-9")
@@ -844,15 +844,15 @@ class TestKnowledgeManager:
 
     def test_delete_file_returns_true_on_success(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(200, json={}))
+        manager._client = _mock_client(lambda r: httpx2.Response(200, json={}))
 
         assert manager.delete_file("folder-9", "file-1") is True
 
     def test_delete_file_raises_on_error_status(self):
         manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx.Response(404, json={}))
+        manager._client = _mock_client(lambda r: httpx2.Response(404, json={}))
 
-        with pytest.raises(httpx.HTTPStatusError):
+        with pytest.raises(httpx2.HTTPStatusError):
             manager.delete_file("folder-9", "file-1")
 
     def test_search_posts_the_query(self):
@@ -861,7 +861,7 @@ class TestKnowledgeManager:
 
         def handler(request):
             seen["body"] = json.loads(request.content)
-            return httpx.Response(200, json={"results": []})
+            return httpx2.Response(200, json={"results": []})
 
         manager._client = _mock_client(handler)
         manager.search("invoice handling")

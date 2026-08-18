@@ -10,7 +10,7 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-import httpx
+import httpx2
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
@@ -100,7 +100,7 @@ class OpenRouterProvider(BaseLLMProvider):
         super().__init__(api_key, base_url or self.DEFAULT_BASE_URL, timeout, max_retries)
         self.site_url = site_url
         self.site_name = site_name
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
     @property
     def provider_name(self) -> str:
@@ -111,7 +111,7 @@ class OpenRouterProvider(BaseLLMProvider):
         return "openai/gpt-4o"
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Lazy initialization of HTTP client."""
         if self._client is None:
             headers = {
@@ -131,7 +131,7 @@ class OpenRouterProvider(BaseLLMProvider):
             # __init__ always passes `base_url or DEFAULT_BASE_URL` to super(),
             # so this is never None despite the base attribute's wider type.
             base_url = self.base_url or self.DEFAULT_BASE_URL
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=base_url,
                 transport=build_pinned_transport_for_url(base_url),
                 headers=headers,
@@ -215,7 +215,7 @@ class OpenRouterProvider(BaseLLMProvider):
                 raw_response=data,
             )
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -338,7 +338,7 @@ class OpenRouterProvider(BaseLLMProvider):
                         output_tokens=final_output_tokens if is_final else 0,
                     )
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -378,7 +378,7 @@ class OpenRouterProvider(BaseLLMProvider):
             models.sort(key=lambda m: m["id"])
             return models
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -457,7 +457,7 @@ class OpenRouterProvider(BaseLLMProvider):
                 mime=mime,
             )
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_http_error(e) from e
         except ProviderError:
             raise
@@ -558,7 +558,7 @@ class OpenRouterProvider(BaseLLMProvider):
             "output_cost_per_1k": output_per_1k,
         }
 
-    def _handle_http_error(self, error: httpx.HTTPStatusError) -> ProviderError:
+    def _handle_http_error(self, error: httpx2.HTTPStatusError) -> ProviderError:
         """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.response.status_code
         try:

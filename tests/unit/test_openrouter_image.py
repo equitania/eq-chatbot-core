@@ -7,7 +7,7 @@ OpenRouter uses httpx directly).
 import base64
 from unittest.mock import MagicMock
 
-import httpx
+import httpx2
 import pytest
 
 from eq_chatbot_core.providers.base import ImageResult, ProviderError
@@ -194,7 +194,7 @@ class TestOpenRouterImageGeneration:
 
         p, mock_client = provider
 
-        http_error = httpx.HTTPStatusError(
+        http_error = httpx2.HTTPStatusError(
             "401",
             request=MagicMock(),
             response=MagicMock(
@@ -213,7 +213,7 @@ class TestOpenRouterImageGeneration:
 
         p, mock_client = provider
 
-        http_error = httpx.HTTPStatusError(
+        http_error = httpx2.HTTPStatusError(
             "429",
             request=MagicMock(),
             response=MagicMock(

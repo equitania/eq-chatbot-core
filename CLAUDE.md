@@ -199,7 +199,12 @@ Copy `tests/.env.example` to `tests/.env.test` for API keys. Environment variabl
 
 ### Core (always installed)
 
-openai, anthropic, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
+openai (>=3), anthropic, httpx2, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
+
+Two HTTP client libraries are intentional: `httpx2` (Pydantic's maintained continuation of
+httpx) carries this library's own requests and the OpenAI SDK, which moved to it in 3.x.
+The Anthropic SDK still requires `httpx<1`, so `anthropic_provider` alone stays on `httpx`.
+`build_pinned_transport_for_url(..., http=httpx)` builds the SSRF guard against either.
 
 ### Optional
 

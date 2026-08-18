@@ -58,6 +58,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **LangDock's SDK clients were never pinned.** The rebinding guard had been
+  applied to its raw httpx client but not to the OpenAI and Anthropic SDK clients
+  it builds from the same caller-supplied `base_url`. Both now route through the
+  pinned transport.
+- **`pip-audit --strict` failed on every version bump.** The project is installed
+  editable in CI, so between a bump and its release the package is unresolvable
+  on PyPI and `--strict` turns that into a failure — the security job would have
+  gone red on this very release. The gate now uses `--skip-editable` without
+  `--strict`; a real advisory still fails the build, which was verified against a
+  knowingly vulnerable package rather than assumed.
 - **A typed `ProviderError` lost its status code.** Every LangDock backend ends
   in a blanket `except Exception` that routes through `_handle_error()`. A
   `ProviderError` raised deliberately inside the `try` — carrying e.g.
@@ -123,12 +133,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `mypy` ceiling raised to `<3.0.0`. 2.3 was verified against this codebase and
   reports the same zero errors as 1.19, so the bound no longer needs to hold a
   major back. The pre-commit hook moves with it.
-- `openai` deliberately stays at `<3.0.0`. 3.x was evaluated: the full suite
-  passes and a real HTTP round-trip through the pinned transport works, but the
-  3.x type stubs expect an `httpx2.Client` where this library passes an
-  `httpx.Client`, which would put two errors back into the now-clean mypy gate.
-  Adopting it means deciding whether the DNS-rebinding transport moves to httpx2
-  — a decision worth making deliberately rather than as a side effect.
+- **`openai` floor raised to 3.0.0 and the networking moved to `httpx2`.**
+  httpx2 is Pydantic's maintained continuation of httpx, which has seen little
+  activity; openai 3.x moved to it. This library's own requests — the MCP client,
+  LangDock, local, Mammouth, OpenRouter and both catalog fetchers — now go
+  through httpx2 as well.
+
+  `httpx` stays a declared dependency and is **not** redundant: the Anthropic SDK
+  requires `httpx<1` in every release up to the current 0.122 and rejects an
+  httpx2 client, so `anthropic_provider` and the LangDock Anthropic backend keep
+  using it. Rather than duplicate the SSRF guard, the transport builders take the
+  client library as an argument (`build_pinned_transport_for_url(..., http=httpx)`),
+  so one implementation serves both. The split is covered by tests so it cannot
+  drift silently.
 - **mypy strict is clean: 157 errors -> 0**, and the CI ratchet is replaced by a
   hard gate. Two of those errors were pointing at real defects rather than
   typing noise (see Fixed), the rest were missing annotations on `**kwargs`,

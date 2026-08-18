@@ -1354,7 +1354,7 @@ class TestDNSRebindingProtection:
         import socket
         import threading
 
-        import httpx
+        import httpx2
 
         from eq_chatbot_core.mcp.client import _build_pinned_transport
 
@@ -1364,10 +1364,10 @@ class TestDNSRebindingProtection:
 
         # Force getaddrinfo to return a rogue private IP — simulating rebinding
         rogue_addrinfo = [(2, 1, 6, "", ("169.254.169.254", 0))]
-        request = httpx.Request("GET", "http://target.example/")
+        request = httpx2.Request("GET", "http://target.example/")
 
         with patch.object(socket, "getaddrinfo", return_value=rogue_addrinfo):
-            with pytest.raises(httpx.ConnectError, match="DNS rebinding detected"):
+            with pytest.raises(httpx2.ConnectError, match="DNS rebinding detected"):
                 transport.handle_request(request)
 
     def test_pinned_transport_passes_when_resolution_matches(self):
@@ -1377,7 +1377,7 @@ class TestDNSRebindingProtection:
         import socket
         import threading
 
-        import httpx
+        import httpx2
 
         from eq_chatbot_core.mcp.client import _build_pinned_transport
 
@@ -1386,11 +1386,11 @@ class TestDNSRebindingProtection:
         transport = _build_pinned_transport(pinned_ips, lock)
 
         good_addrinfo = [(2, 1, 6, "", ("203.0.113.5", 0))]
-        request = httpx.Request("GET", "http://target.example/")
-        sentinel_response = MagicMock(spec=httpx.Response)
+        request = httpx2.Request("GET", "http://target.example/")
+        sentinel_response = MagicMock(spec=httpx2.Response)
 
         with patch.object(socket, "getaddrinfo", return_value=good_addrinfo):
-            with patch.object(httpx.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
+            with patch.object(httpx2.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
                 result = transport.handle_request(request)
                 super_call.assert_called_once()
                 assert result is sentinel_response
@@ -1400,7 +1400,7 @@ class TestDNSRebindingProtection:
         must not be blocked by the transport."""
         import threading
 
-        import httpx
+        import httpx2
 
         from eq_chatbot_core.mcp.client import _build_pinned_transport
 
@@ -1408,10 +1408,10 @@ class TestDNSRebindingProtection:
         lock = threading.Lock()
         transport = _build_pinned_transport(pinned_ips, lock)
 
-        request = httpx.Request("GET", "http://other.example/")
-        sentinel_response = MagicMock(spec=httpx.Response)
+        request = httpx2.Request("GET", "http://other.example/")
+        sentinel_response = MagicMock(spec=httpx2.Response)
 
-        with patch.object(httpx.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
+        with patch.object(httpx2.HTTPTransport, "handle_request", return_value=sentinel_response) as super_call:
             result = transport.handle_request(request)
             super_call.assert_called_once()
             assert result is sentinel_response

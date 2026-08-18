@@ -77,7 +77,7 @@ client.close()
 
 #### DNS rebinding protection (HTTP transport)
 
-Added in v1.6.0. `_validate_url()` resolves the hostname during URL validation and returns the IP set. The HTTP transport (`httpx.HTTPTransport`) re-resolves on every request and raises `httpx.ConnectError("DNS rebinding detected")` if the resolution diverges from the pinned set.
+Added in v1.6.0. `_validate_url()` resolves the hostname during URL validation and returns the IP set. The HTTP transport (`httpx2.HTTPTransport`) re-resolves on every request and raises `httpx2.ConnectError("DNS rebinding detected")` if the resolution diverges from the pinned set.
 
 The SSE listener client and the request client share the same `_pinned_ips` map; endpoint redirects sent by the server in the `endpoint` event are also pinned. Mitigates the TOCTOU window between URL validation and the actual TCP connect.
 
@@ -202,7 +202,7 @@ client.close()
 
 #### DNS-Rebinding-Schutz (HTTP-Transport)
 
-Hinzugefügt in v1.6.0. `_validate_url()` resolvt den Hostname während der URL-Validierung und liefert das IP-Set zurück. Der HTTP-Transport (`httpx.HTTPTransport`) resolvt bei jedem Request neu und wirft `httpx.ConnectError("DNS rebinding detected")` wenn die Auflösung vom gepinnten Set abweicht.
+Hinzugefügt in v1.6.0. `_validate_url()` resolvt den Hostname während der URL-Validierung und liefert das IP-Set zurück. Der HTTP-Transport (`httpx2.HTTPTransport`) resolvt bei jedem Request neu und wirft `httpx2.ConnectError("DNS rebinding detected")` wenn die Auflösung vom gepinnten Set abweicht.
 
 SSE-Listener-Client und Request-Client teilen dieselbe `_pinned_ips`-Map; Endpoint-Redirects, die der Server im `endpoint`-Event sendet, werden ebenfalls gepinnt. Reduziert das TOCTOU-Fenster zwischen URL-Validierung und tatsächlichem TCP-Connect.
 

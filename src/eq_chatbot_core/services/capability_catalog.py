@@ -111,13 +111,13 @@ class CapabilityCatalog:
     def from_remote(cls, url: str | None = None, timeout: float = 10.0) -> CapabilityCatalog:
         """Fetch the hosted Equitania catalog; fall back to the bundled snapshot."""
         try:
-            import httpx
+            import httpx2
 
             from eq_chatbot_core.utils.url_validation import build_validating_transport
 
             # `url` is caller-supplied, so the request is SSRF-checked instead of
             # being trusted to point at the Equitania catalog.
-            with httpx.Client(transport=build_validating_transport(), timeout=timeout) as client:
+            with httpx2.Client(transport=build_validating_transport(), timeout=timeout) as client:
                 resp = client.get(url or DEFAULT_CATALOG_URL)
             resp.raise_for_status()
             return cls(resp.json())

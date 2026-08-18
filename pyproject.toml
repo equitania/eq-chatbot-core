@@ -30,7 +30,10 @@ classifiers = [
 ]
 
 dependencies = [
-    "openai>=2.0.0,<3.0.0",
+    # 3.x is the release that moved to httpx2; the pinned DNS-rebinding transport
+    # is built against whichever client library each SDK expects, so the floor and
+    # the httpx2 dependency below move together.
+    "openai>=3.0.0,<4.0.0",
     "anthropic>=0.90.0,<2.0.0",
     "qdrant-client>=1.12.0,<2.0.0",
     "tiktoken>=0.9.0,<1.0.0",
@@ -40,6 +43,11 @@ dependencies = [
     # uses Fernet, but pinning below the fix keeps `pip-audit --strict` red and
     # holds shared environments on a vulnerable range.
     "cryptography>=50.0.0,<51.0.0",
+    # Both are needed and neither is redundant: httpx2 is Pydantic's maintained
+    # continuation and carries our own networking plus the OpenAI SDK, while the
+    # Anthropic SDK still requires httpx<1 in every release up to 0.122 — so the
+    # Anthropic client stays on httpx until that changes.
+    "httpx2>=2.12.0,<3.0.0",
     "httpx>=0.27.0,<1.0.0",
     "pydantic>=2.11.0,<3.0.0",
     # Floor 8.3.3 excludes CVE-2026-7246 (command injection in click.edit()).

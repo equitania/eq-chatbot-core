@@ -87,7 +87,7 @@ def mock_models_response():
 
 @pytest.fixture
 def mock_httpx_client():
-    """Create a mock httpx.Client."""
+    """Create a mock httpx2.Client."""
     mock = MagicMock()
     return mock
 
@@ -103,7 +103,7 @@ class TestOpenRouterProviderInit:
 
     def test_basic_init(self):
         """Test basic provider initialization."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -112,7 +112,7 @@ class TestOpenRouterProviderInit:
 
     def test_init_with_custom_base_url(self):
         """Test initialization with custom base URL."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             custom_url = "http://localhost:4000/v1"
@@ -121,7 +121,7 @@ class TestOpenRouterProviderInit:
 
     def test_init_with_site_info(self):
         """Test initialization with site URL and name for rankings."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(
@@ -134,7 +134,7 @@ class TestOpenRouterProviderInit:
 
     def test_init_with_timeout(self):
         """Test initialization with custom timeout."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key", timeout=120.0)
@@ -152,7 +152,7 @@ class TestOpenRouterProviderProperties:
 
     def test_provider_name(self):
         """Test provider_name property."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -160,7 +160,7 @@ class TestOpenRouterProviderProperties:
 
     def test_default_model(self):
         """Test default model is OpenAI GPT-4o via OpenRouter."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -178,7 +178,7 @@ class TestOpenRouterReasoningModels:
 
     def test_o1_is_reasoning_model(self):
         """Test o1 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -188,7 +188,7 @@ class TestOpenRouterReasoningModels:
 
     def test_o3_is_reasoning_model(self):
         """Test o3 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -197,7 +197,7 @@ class TestOpenRouterReasoningModels:
 
     def test_o4_is_reasoning_model(self):
         """Test o4 models are detected as reasoning."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -205,7 +205,7 @@ class TestOpenRouterReasoningModels:
 
     def test_gpt_not_reasoning_model(self):
         """Test GPT models are not reasoning models."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -214,7 +214,7 @@ class TestOpenRouterReasoningModels:
 
     def test_claude_not_reasoning_model(self):
         """Test Claude models are not reasoning models."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -222,7 +222,7 @@ class TestOpenRouterReasoningModels:
 
     def test_llama_not_reasoning_model(self):
         """Test Llama models are not reasoning models."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -240,7 +240,7 @@ class TestOpenRouterChatCompletion:
 
     def test_simple_completion(self, mock_chat_response):
         """Test simple chat completion."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -266,7 +266,7 @@ class TestOpenRouterChatCompletion:
 
     def test_completion_with_temperature(self, mock_chat_response):
         """Test completion includes temperature for non-reasoning models."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -293,7 +293,7 @@ class TestOpenRouterChatCompletion:
 
     def test_completion_without_temperature_for_reasoning(self, mock_chat_response):
         """Test reasoning models don't receive temperature."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -320,7 +320,7 @@ class TestOpenRouterChatCompletion:
 
     def test_completion_with_max_tokens(self, mock_chat_response):
         """Test completion with max_tokens."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -360,7 +360,7 @@ class TestOpenRouterChatCompletion:
         ]
         mock_chat_response["choices"][0]["finish_reason"] = "tool_calls"
 
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -393,7 +393,7 @@ class TestOpenRouterChatCompletion:
 
 def _build_stream_response(lines: list[str]) -> MagicMock:
     """
-    Build a mock response object that mimics httpx.Client.stream(...) context manager.
+    Build a mock response object that mimics httpx2.Client.stream(...) context manager.
 
     The provider uses `with self.client.stream("POST", ...) as response:` and then
     iterates `response.iter_lines()`. We mock both __enter__/__exit__ and iter_lines.
@@ -415,7 +415,7 @@ class TestOpenRouterStreamCompletion:
 
     def test_simple_stream(self):
         """Test that streaming yields content chunks and a terminal chunk."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             sse_lines = [
@@ -450,7 +450,7 @@ class TestOpenRouterStreamCompletion:
         """SSE comment / keep-alive lines (': OPENROUTER PROCESSING') must be ignored,
         not parsed as JSON — no 'Failed to parse SSE chunk' warning, content intact."""
         with (
-            patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx,
+            patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx,
             patch("eq_chatbot_core.providers.openrouter_provider._logger") as mock_logger,
         ):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
@@ -487,7 +487,7 @@ class TestOpenRouterStreamCompletion:
 
     def test_stream_finish_reason_propagates(self):
         """Final chunk must carry finish_reason and is_final=True."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             sse_lines = [
@@ -521,7 +521,7 @@ class TestOpenRouterStreamCompletion:
 
     def test_stream_accumulates_tool_calls(self):
         """Tool-call deltas across chunks must be accumulated into the final chunk."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             sse_lines = [
@@ -575,7 +575,7 @@ class TestOpenRouterListModels:
 
     def test_list_models_returns_all(self, mock_models_response):
         """Test list_models returns all available models."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -599,7 +599,7 @@ class TestOpenRouterListModels:
 
     def test_list_models_includes_metadata(self, mock_models_response):
         """Test list_models includes model metadata."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -623,7 +623,7 @@ class TestOpenRouterListModels:
 
     def test_list_models_includes_constraints(self, mock_models_response):
         """Test list_models includes temperature and capability constraints."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -651,7 +651,7 @@ class TestOpenRouterListModels:
 
     def test_list_models_includes_pricing(self, mock_models_response):
         """Test list_models includes pricing information."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -683,7 +683,7 @@ class TestOpenRouterModelConstraints:
 
     def test_regular_model_constraints(self):
         """Test regular model has temperature support."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -703,7 +703,7 @@ class TestOpenRouterModelConstraints:
 
     def test_reasoning_model_constraints(self):
         """Test reasoning model has no temperature support."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -723,7 +723,7 @@ class TestOpenRouterModelConstraints:
 
     def test_pricing_extraction(self):
         """Test pricing extraction from model data."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -744,7 +744,7 @@ class TestOpenRouterModelConstraints:
 
     def test_pricing_with_missing_values(self):
         """Test pricing extraction handles missing values."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
@@ -776,7 +776,7 @@ class TestOpenRouterErrorHandling:
 
     def test_rate_limit_error(self):
         """Test rate limit error is properly mapped."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             # Create mock HTTP 429 error
@@ -784,11 +784,11 @@ class TestOpenRouterErrorHandling:
             mock_response.status_code = 429
             mock_response.json.return_value = {"error": {"message": "Rate limit exceeded"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Rate limit exceeded",
                 request=MagicMock(),
                 response=mock_response,
@@ -809,18 +809,18 @@ class TestOpenRouterErrorHandling:
 
     def test_authentication_error(self):
         """Test authentication error is properly mapped."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
             mock_response.status_code = 401
             mock_response.json.return_value = {"error": {"message": "Invalid API key"}}
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Unauthorized",
                 request=MagicMock(),
                 response=mock_response,
@@ -841,7 +841,7 @@ class TestOpenRouterErrorHandling:
 
     def test_context_length_error(self):
         """HTTP 400 with 'context' in message must map to ContextLengthError."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_response = MagicMock()
@@ -850,11 +850,11 @@ class TestOpenRouterErrorHandling:
                 "error": {"message": "This model's maximum context length is 8192 tokens."}
             }
 
-            import httpx
+            import httpx2
 
-            mock_httpx.HTTPStatusError = httpx.HTTPStatusError
+            mock_httpx.HTTPStatusError = httpx2.HTTPStatusError
 
-            mock_error = httpx.HTTPStatusError(
+            mock_error = httpx2.HTTPStatusError(
                 "Bad Request",
                 request=MagicMock(),
                 response=mock_response,
@@ -875,9 +875,9 @@ class TestOpenRouterErrorHandling:
 
     def test_generic_error(self):
         """Test generic errors are wrapped as ProviderError."""
-        # Only patch httpx.Client, not the entire httpx module
-        # This preserves httpx.HTTPStatusError as a real exception class
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx.Client") as mock_client_class:
+        # Only patch httpx2.Client, not the entire httpx module
+        # This preserves httpx2.HTTPStatusError as a real exception class
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2.Client") as mock_client_class:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_client = MagicMock()
@@ -904,7 +904,7 @@ class TestOpenRouterContextManager:
 
     def test_close_client(self):
         """Test close() properly closes the HTTP client."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_client = MagicMock()
@@ -920,7 +920,7 @@ class TestOpenRouterContextManager:
 
     def test_context_manager(self):
         """Test context manager protocol."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx") as mock_httpx:
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             mock_client = MagicMock()
@@ -945,7 +945,7 @@ class TestOpenRouterFactoryIntegration:
 
     def test_get_provider_returns_openrouter(self):
         """Test get_provider returns OpenRouterProvider."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx"):
+        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
             from eq_chatbot_core.providers import get_provider
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 

@@ -92,9 +92,9 @@ class PricingCatalog:
     def from_remote(cls, timeout: float = 10.0) -> PricingCatalog:
         """Fetch the live LiteLLM database; fall back to the bundled snapshot."""
         try:
-            import httpx
+            import httpx2
 
-            resp = httpx.get(LITELLM_PRICING_URL, timeout=timeout)
+            resp = httpx2.get(LITELLM_PRICING_URL, timeout=timeout)
             resp.raise_for_status()
             return cls(resp.json())
         except Exception as e:  # network/parse failure -> offline fallback

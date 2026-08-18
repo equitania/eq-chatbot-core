@@ -14,7 +14,7 @@ import logging
 from collections.abc import Iterator
 from typing import Any
 
-import httpx
+import httpx2
 
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
@@ -82,7 +82,7 @@ class LocalLLMProvider(BaseLLMProvider):
         """
         # Initialize client attribute BEFORE validation so __del__ works even if
         # construction fails on an invalid base_url.
-        self._client: httpx.Client | None = None
+        self._client: httpx2.Client | None = None
 
         effective_base_url = base_url or self.LM_STUDIO_URL
         # SSRF guard: local servers legitimately live on localhost/LAN, so private
@@ -109,7 +109,7 @@ class LocalLLMProvider(BaseLLMProvider):
         return "local-model"
 
     @property
-    def client(self) -> httpx.Client:
+    def client(self) -> httpx2.Client:
         """Lazy initialization of httpx client."""
         if self._client is None:
             # Pin the validated addresses for the lifetime of the client: the
@@ -121,10 +121,10 @@ class LocalLLMProvider(BaseLLMProvider):
             # __init__ always passes `base_url or LM_STUDIO_URL` to super(), so
             # this is never None despite the base attribute's wider type.
             base_url = self.base_url or self.LM_STUDIO_URL
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 base_url=base_url,
                 transport=build_pinned_transport_for_url(base_url, allow_private_ranges=True),
-                timeout=httpx.Timeout(self.timeout),
+                timeout=httpx2.Timeout(self.timeout),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -166,7 +166,7 @@ class LocalLLMProvider(BaseLLMProvider):
             )
         return ProviderError(message=message, provider=self.provider_name)
 
-    def _handle_error(self, error: Exception, response: httpx.Response | None = None) -> ProviderError:
+    def _handle_error(self, error: Exception, response: httpx2.Response | None = None) -> ProviderError:
         """Convert HTTP errors to provider-specific exceptions."""
         status_code = response.status_code if response else None
 
@@ -285,13 +285,13 @@ class LocalLLMProvider(BaseLLMProvider):
                 raw_response=data,
             )
 
-        except httpx.ConnectError as e:
+        except httpx2.ConnectError as e:
             raise ProviderError(
                 message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
-        except httpx.TimeoutException as e:
+        except httpx2.TimeoutException as e:
             raise ProviderError(
                 message=f"Request timed out after {self.timeout}s. "
                 f"Local model may be loading or server is slow. Error: {scrub_secrets(str(e))}",
@@ -300,7 +300,7 @@ class LocalLLMProvider(BaseLLMProvider):
         except ProviderError:
             # Already a typed provider error (e.g. server-side error body) — pass through.
             raise
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -432,13 +432,13 @@ class LocalLLMProvider(BaseLLMProvider):
                             # Skip malformed JSON lines
                             continue
 
-        except httpx.ConnectError as e:
+        except httpx2.ConnectError as e:
             raise ProviderError(
                 message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
             ) from e
-        except httpx.TimeoutException as e:
+        except httpx2.TimeoutException as e:
             raise ProviderError(
                 message=f"Stream timed out after {self.timeout}s. Error: {scrub_secrets(str(e))}",
                 provider=self.provider_name,
@@ -446,7 +446,7 @@ class LocalLLMProvider(BaseLLMProvider):
         except ProviderError:
             # Already a typed provider error (e.g. server-side error body) — pass through.
             raise
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -486,7 +486,7 @@ class LocalLLMProvider(BaseLLMProvider):
 
             return models
 
-        except httpx.ConnectError as e:
+        except httpx2.ConnectError as e:
             raise ProviderError(
                 message=f"Cannot connect to local LLM server at {scrub_secrets(self.base_url or self.LM_STUDIO_URL)}. "
                 f"Ensure the server is running. Error: {scrub_secrets(str(e))}",
@@ -495,7 +495,7 @@ class LocalLLMProvider(BaseLLMProvider):
         except ProviderError:
             # Already a typed provider error (e.g. server-side error body) — pass through.
             raise
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise self._handle_error(e, e.response) from e
         except Exception as e:
             raise self._handle_error(e) from e
@@ -510,7 +510,7 @@ class LocalLLMProvider(BaseLLMProvider):
         try:
             response = self.client.get("/models")
             return response.status_code == 200
-        except (httpx.HTTPError, ConnectionError, OSError, TimeoutError) as e:
+        except (httpx2.HTTPError, ConnectionError, OSError, TimeoutError) as e:
             logger.debug("Local server health check failed: %s", e)
             return False
 

@@ -230,12 +230,12 @@ class MCPClient:
         """Lazy initialization of httpx client with DNS-rebinding-aware transport."""
         if self._client is None:
             try:
-                import httpx
+                import httpx2
             except ImportError as e:
                 raise ImportError("httpx package not installed. Install with: pip install httpx") from e
 
             transport = _build_pinned_transport(self._pinned_ips, self._pinned_lock)
-            self._client = httpx.Client(
+            self._client = httpx2.Client(
                 headers=self._get_headers(),
                 timeout=self.timeout,
                 transport=transport,
@@ -262,7 +262,7 @@ class MCPClient:
     def _sse_listener_loop(self) -> None:
         """SSE listener loop running in separate thread."""
         try:
-            import httpx
+            import httpx2
         except ImportError:
             logger.error("httpx not installed")
             return
@@ -276,13 +276,13 @@ class MCPClient:
 
         try:
             # SSE connections need: quick connect, but infinite read timeout
-            # httpx.Timeout(default, connect=, read=, write=, pool=)
-            sse_timeout = httpx.Timeout(None, connect=10.0)
+            # httpx2.Timeout(default, connect=, read=, write=, pool=)
+            sse_timeout = httpx2.Timeout(None, connect=10.0)
 
             # Use a dedicated client with the pinned-host transport so the SSE
             # connection enforces DNS rebinding protection like the request client.
             sse_transport = _build_pinned_transport(self._pinned_ips, self._pinned_lock)
-            sse_client = httpx.Client(
+            sse_client = httpx2.Client(
                 headers=self._get_headers(),
                 timeout=sse_timeout,
                 transport=sse_transport,
@@ -319,9 +319,9 @@ class MCPClient:
                     elif line.startswith("data:"):
                         event_data.append(line[5:].strip())
 
-        except httpx.ConnectError as e:
+        except httpx2.ConnectError as e:
             logger.error(f"Failed to connect to MCP server at {_scrub(sse_url)}: {_scrub(str(e))}")
-        except httpx.TimeoutException as e:
+        except httpx2.TimeoutException as e:
             logger.error(f"Connection timeout to MCP server at {_scrub(sse_url)}: {_scrub(str(e))}")
         except Exception as e:
             if not self._stop_event.is_set():

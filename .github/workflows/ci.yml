@@ -67,9 +67,15 @@ jobs:
       # gate: a disclosed CVE in a (transitive) dependency must be triaged, not
       # merged past. If a finding is genuinely not applicable and no fixed release
       # exists yet, unblock deliberately with an explicit, commented exception:
-      #   uv run pip-audit --strict --ignore-vuln GHSA-xxxx-xxxx-xxxx
+      #   uv run pip-audit --skip-editable --ignore-vuln GHSA-xxxx-xxxx-xxxx
+      #
+      # --skip-editable excludes this package itself, which is installed editable
+      # and therefore unresolvable on PyPI between a version bump and its release.
+      # --strict is deliberately NOT set: it turns that unresolvable entry into a
+      # failure, so every release commit would have gone red before publishing.
+      # Dropping it does not weaken the gate — a real advisory still exits 1.
       - name: Run pip-audit
-        run: uv run pip-audit --strict
+        run: uv run pip-audit --skip-editable
 
   test:
     name: Tests (Python ${{ matrix.python-version }})

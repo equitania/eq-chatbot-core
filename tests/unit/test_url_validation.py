@@ -6,7 +6,7 @@ by the IPv4 address they embed, not by the synthesized IPv6 form.
 """
 
 import socket
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -150,33 +150,33 @@ class TestPinnedTransportRebinding:
             return build_pinned_transport_for_url("https://api.example.com/v1", **kwargs)
 
     def _request(self):
-        import httpx
+        import httpx2
 
-        return httpx.Request("GET", "https://api.example.com/v1/models")
+        return httpx2.Request("GET", "https://api.example.com/v1/models")
 
     def test_rebinding_to_cloud_metadata_is_blocked(self):
-        import httpx
+        import httpx2
 
         transport = self._transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
-            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+            with pytest.raises(httpx2.ConnectError, match="DNS rebinding blocked"):
                 transport.handle_request(self._request())
 
     def test_rebinding_to_private_range_is_blocked(self):
-        import httpx
+        import httpx2
 
         transport = self._transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("10.0.0.5")):
-            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+            with pytest.raises(httpx2.ConnectError, match="DNS rebinding blocked"):
                 transport.handle_request(self._request())
 
     def test_rebinding_via_nat64_wrapped_metadata_is_blocked(self):
         """The embedded IPv4 must be classified, not just the outer IPv6 form."""
-        import httpx
+        import httpx2
 
         transport = self._transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("64:ff9b::a9fe:a9fe")):
-            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+            with pytest.raises(httpx2.ConnectError, match="DNS rebinding blocked"):
                 transport.handle_request(self._request())
 
     def test_rotation_to_another_public_ip_is_allowed(self):
@@ -192,7 +192,7 @@ class TestPinnedTransportRebinding:
             called["ok"] = True
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.99")):
-            with patch("httpx.HTTPTransport.handle_request", side_effect=_fake_super):
+            with patch("httpx2.HTTPTransport.handle_request", side_effect=_fake_super):
                 transport.handle_request(self._request())
 
         assert called.get("ok"), "legitimate public-IP rotation must pass the guard"
@@ -202,32 +202,32 @@ class TestPinnedTransportRebinding:
         called = {}
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with patch("httpx.HTTPTransport.handle_request", side_effect=lambda r: called.setdefault("ok", True)):
+            with patch("httpx2.HTTPTransport.handle_request", side_effect=lambda r: called.setdefault("ok", True)):
                 transport.handle_request(self._request())
 
         assert called.get("ok")
 
     def test_lan_mode_allows_private_target_but_still_blocks_metadata(self):
-        import httpx
+        import httpx2
 
         transport = self._transport("192.168.1.50", allow_private_ranges=True)
 
         # A different private address is fine in LAN mode ...
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("192.168.1.51")):
-            with patch("httpx.HTTPTransport.handle_request", side_effect=lambda r: None):
+            with patch("httpx2.HTTPTransport.handle_request", side_effect=lambda r: None):
                 transport.handle_request(self._request())
 
         # ... but the cloud-metadata endpoint stays blocked even there.
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
-            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+            with pytest.raises(httpx2.ConnectError, match="DNS rebinding blocked"):
                 transport.handle_request(self._request())
 
     def test_strict_mode_rejects_unresolvable_host_at_request_time(self):
-        import httpx
+        import httpx2
 
         transport = self._transport()
         with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("nope")):
-            with pytest.raises(httpx.ConnectError, match="DNS resolution failed"):
+            with pytest.raises(httpx2.ConnectError, match="DNS resolution failed"):
                 transport.handle_request(self._request())
 
 
@@ -241,65 +241,125 @@ class TestValidatingTransport:
     """
 
     def _request(self, url="https://storage.example.com/report.csv"):
-        import httpx
+        import httpx2
 
-        return httpx.Request("GET", url)
+        return httpx2.Request("GET", url)
 
     def test_public_host_passes(self):
         transport = build_validating_transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
-            with patch("httpx.HTTPTransport.handle_request", return_value="passed"):
+            with patch("httpx2.HTTPTransport.handle_request", return_value="passed"):
                 assert transport.handle_request(self._request()) == "passed"
 
     def test_metadata_endpoint_blocked(self):
-        import httpx
+        import httpx2
 
         transport = build_validating_transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
-            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+            with pytest.raises(httpx2.ConnectError, match="Blocked request"):
                 transport.handle_request(self._request())
 
     def test_private_range_blocked(self):
-        import httpx
+        import httpx2
 
         transport = build_validating_transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("10.1.2.3")):
-            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+            with pytest.raises(httpx2.ConnectError, match="Blocked request"):
                 transport.handle_request(self._request())
 
     def test_any_disallowed_address_in_the_set_blocks(self):
         """A host resolving to one public and one internal address must not pass."""
-        import httpx
+        import httpx2
 
         transport = build_validating_transport()
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34", "127.0.0.1")):
-            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+            with pytest.raises(httpx2.ConnectError, match="Blocked request"):
                 transport.handle_request(self._request())
 
     def test_non_http_scheme_blocked(self):
-        import httpx
+        import httpx2
 
         transport = build_validating_transport()
-        with pytest.raises(httpx.ConnectError, match="scheme"):
-            transport.handle_request(httpx.Request("GET", "ftp://example.com/x"))
+        with pytest.raises(httpx2.ConnectError, match="scheme"):
+            transport.handle_request(httpx2.Request("GET", "ftp://example.com/x"))
 
     def test_unresolvable_host_blocked(self):
-        import httpx
+        import httpx2
 
         transport = build_validating_transport()
         with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("nope")):
-            with pytest.raises(httpx.ConnectError, match="DNS resolution failed"):
+            with pytest.raises(httpx2.ConnectError, match="DNS resolution failed"):
                 transport.handle_request(self._request())
 
     def test_lan_mode_allows_private_but_not_metadata(self):
-        import httpx
+        import httpx2
 
         transport = build_validating_transport(allow_private_ranges=True)
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("192.168.1.10")):
-            with patch("httpx.HTTPTransport.handle_request", return_value="passed"):
+            with patch("httpx2.HTTPTransport.handle_request", return_value="passed"):
                 assert transport.handle_request(self._request()) == "passed"
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
-            with pytest.raises(httpx.ConnectError, match="Blocked request"):
+            with pytest.raises(httpx2.ConnectError, match="Blocked request"):
                 transport.handle_request(self._request())
+
+
+@pytest.mark.unit
+class TestClientLibrarySplit:
+    """Two HTTP client libraries are in play, and which one is used matters.
+
+    httpx2 (Pydantic's maintained continuation of httpx) carries this library's
+    own requests and the OpenAI SDK, which moved to it in 3.x. The Anthropic SDK
+    still declares ``httpx<1`` in every release up to 0.122 and rejects an httpx2
+    client, so that one provider stays on httpx. Mixing them up produces a
+    transport the SDK will not accept, so the split is asserted rather than
+    assumed.
+    """
+
+    def test_default_transport_is_built_against_httpx2(self):
+        import httpx2
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            transport = build_pinned_transport_for_url("https://api.example.com/v1")
+
+        assert isinstance(transport, httpx2.HTTPTransport)
+
+    def test_transport_can_be_built_against_httpx_for_the_anthropic_sdk(self):
+        import httpx
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            transport = build_pinned_transport_for_url("https://api.example.com/v1", http=httpx)
+
+        assert isinstance(transport, httpx.HTTPTransport)
+
+    def test_validating_transport_honours_the_same_choice(self):
+        import httpx
+
+        assert isinstance(build_validating_transport(http=httpx), httpx.HTTPTransport)
+
+    def test_guard_still_fires_on_the_httpx_variant(self):
+        """The Anthropic island must not be a hole in the SSRF protection."""
+        import httpx
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            transport = build_pinned_transport_for_url("https://api.example.com/v1", http=httpx)
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+                transport.handle_request(httpx.Request("GET", "https://api.example.com/v1/models"))
+
+    def test_anthropic_provider_builds_an_httpx_client(self):
+        """AnthropicProvider must hand the SDK a client it accepts."""
+        import httpx
+
+        mock_anthropic = MagicMock()
+        with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
+            from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
+
+            provider = AnthropicProvider(api_key="sk-ant-test")
+            provider._client = None
+            _ = provider.client
+
+        http_client = mock_anthropic.Anthropic.call_args[1]["http_client"]
+        assert isinstance(http_client, httpx.Client)

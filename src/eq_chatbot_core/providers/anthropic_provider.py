@@ -114,8 +114,11 @@ class AnthropicProvider(BaseLLMProvider):
                 base_url=effective_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
+                # The Anthropic SDK declares httpx<1 and rejects an httpx2 client,
+                # so this provider — alone among them — stays on httpx and builds
+                # its guard against that library.
                 http_client=httpx.Client(
-                    transport=build_pinned_transport_for_url(effective_url),
+                    transport=build_pinned_transport_for_url(effective_url, http=httpx),
                     timeout=self.timeout,
                 ),
             )

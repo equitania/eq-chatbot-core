@@ -69,6 +69,19 @@
 
 ### 🐛 Fixed
 
+- **[FIX] LangDock's SDK clients were never pinned.** The DNS-rebinding guard
+  had been applied to its raw httpx client, but the OpenAI and Anthropic SDK
+  clients it builds from the same caller-supplied `base_url` went out unpinned.
+  Both now route through the pinned transport.
+
+- **[FIX] `pip-audit --strict` failed on every version bump.** The project is
+  installed editable in CI, so between a version bump and its release the package
+  cannot be resolved on PyPI — and `--strict` turns that into a hard failure. The
+  security job would have gone red on this very release. The gate now runs
+  `--skip-editable` without `--strict`. That does not weaken it: a real advisory
+  still exits non-zero, which was confirmed by auditing a knowingly vulnerable
+  package rather than taking the flag's documentation on trust.
+
 - **[FIX] A typed `ProviderError` silently lost its status code.**
   Every LangDock backend ends in a blanket `except Exception` that routes through
   `_handle_error()`. A `ProviderError` raised deliberately inside the `try` —
@@ -164,15 +177,26 @@
   holding back a major for no reason. The pre-commit hook moves with it, so hook
   and CI keep judging the code by the same rules.
 
-- **[CHG] `openai` deliberately stays at `<3.0.0`.** 3.x was evaluated rather
-  than assumed: the full unit suite passes against 3.2, and a real HTTP
-  round-trip through a local server confirms the DNS-rebinding transport still
-  carries requests. The blocker is typing — 3.x ships stubs expecting an
-  `httpx2.Client` where this library passes an `httpx.Client`, which would put
-  two errors straight back into the mypy gate that was just cleared. Adopting
-  3.x therefore means deciding whether the pinned transport (and the MCP client,
-  and four httpx-based providers) move to httpx2. That is a deliberate decision,
-  not a side effect of a version bump.
+- **[CHG] `openai` floor raised to 3.0.0; this library's networking moved to
+  `httpx2`.** httpx2 is Pydantic's maintained continuation of httpx — httpx
+  itself has seen little activity, and openai 3.x moved across. The MCP client,
+  the LangDock/local/Mammouth/OpenRouter providers and both catalog fetchers now
+  use httpx2 too.
+
+  **`httpx` remains a declared dependency and is not redundant.** The Anthropic
+  SDK requires `httpx<1` in every release up to the current 0.122 and rejects an
+  httpx2 client, so `anthropic_provider` and the LangDock Anthropic backend stay
+  on httpx. A clean single-library migration is therefore not possible today.
+  Rather than maintain two copies of security-critical code, the transport
+  builders take the client library as a parameter —
+  `build_pinned_transport_for_url(url, http=httpx)` — so one implementation
+  guards both. Tests assert which library each side gets, so the split cannot
+  drift unnoticed.
+
+  Verified end-to-end rather than by test mocks: a real HTTP round-trip through
+  a local server against openai 3.2 with the pinned httpx2 transport, the same
+  for the raw httpx2 providers, and the rebinding guard firing on both the httpx2
+  stack and the httpx one.
 
 - **[CHG] `twine` floor raised to 7.0.0.** Current hatchling emits
   Metadata-Version 2.5 and twine 6.x rejects that as invalid, so `twine check`
