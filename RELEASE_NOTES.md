@@ -159,6 +159,21 @@
   content-block based, not an OpenAI-style delta stream.
 - **[CHG] `utils/pricing.py` documented as a deliberate compatibility shim** and
   covered by tests, instead of remaining an unexplained module at 0% coverage.
+- **[CHG] `mypy` ceiling raised to `<3.0.0`.** 2.3 was run against the whole
+  codebase and reports the same zero errors as 1.19, so the bound was only
+  holding back a major for no reason. The pre-commit hook moves with it, so hook
+  and CI keep judging the code by the same rules.
+
+- **[CHG] `openai` deliberately stays at `<3.0.0`.** 3.x was evaluated rather
+  than assumed: the full unit suite passes against 3.2, and a real HTTP
+  round-trip through a local server confirms the DNS-rebinding transport still
+  carries requests. The blocker is typing — 3.x ships stubs expecting an
+  `httpx2.Client` where this library passes an `httpx.Client`, which would put
+  two errors straight back into the mypy gate that was just cleared. Adopting
+  3.x therefore means deciding whether the pinned transport (and the MCP client,
+  and four httpx-based providers) move to httpx2. That is a deliberate decision,
+  not a side effect of a version bump.
+
 - **[CHG] `twine` floor raised to 7.0.0.** Current hatchling emits
   Metadata-Version 2.5 and twine 6.x rejects that as invalid, so `twine check`
   failed on every freshly built artifact — which would have blocked the local

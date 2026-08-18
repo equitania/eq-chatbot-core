@@ -120,6 +120,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covered by tests, rather than left as an unexplained 0%-coverage module.
 - `twine` floor raised to 7.0.0: hatchling emits Metadata-Version 2.5, which
   twine 6.x rejects outright, so `twine check dist/*` failed on every build.
+- `mypy` ceiling raised to `<3.0.0`. 2.3 was verified against this codebase and
+  reports the same zero errors as 1.19, so the bound no longer needs to hold a
+  major back. The pre-commit hook moves with it.
+- `openai` deliberately stays at `<3.0.0`. 3.x was evaluated: the full suite
+  passes and a real HTTP round-trip through the pinned transport works, but the
+  3.x type stubs expect an `httpx2.Client` where this library passes an
+  `httpx.Client`, which would put two errors back into the now-clean mypy gate.
+  Adopting it means deciding whether the DNS-rebinding transport moves to httpx2
+  — a decision worth making deliberately rather than as a side effect.
 - **mypy strict is clean: 157 errors -> 0**, and the CI ratchet is replaced by a
   hard gate. Two of those errors were pointing at real defects rather than
   typing noise (see Fixed), the rest were missing annotations on `**kwargs`,

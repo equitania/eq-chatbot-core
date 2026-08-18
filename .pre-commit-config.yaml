@@ -15,10 +15,10 @@ repos:
         args: [--fix, --exit-non-zero-on-fix]
       - id: ruff-format
 
-  # Pinned to the 1.x line on purpose: pyproject declares mypy>=1.15,<2.0 and the
-  # CI ratchet baseline is measured with it. Bump both together, never just here.
+  # Keep in step with the mypy range in pyproject.toml — the hook and CI must
+  # judge the code by the same rules.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+    rev: v2.3.1
     hooks:
       - id: mypy
         additional_dependencies:
