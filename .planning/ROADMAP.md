@@ -188,7 +188,7 @@ Plans:
   1. `eq-chatbot realtime-test -p mock` runs without a real API key and prints a success message — proves the CLI command, factory wiring, and MockRealtimeProvider are all connected end-to-end
   2. A pre-release grep of `GlassAgents/backend/realtime/bridge.py` event-type strings finds zero mismatches against `NormalizedRealtimeEventTypes` library constants (PITFALL-27 gate: silent audio loss on migration is impossible)
   3. `docs/realtime.md` exists with both `#deutsch` and `#english` anchors; contains explicit "not available via HTTP sidecar" and "not available via CLI JSON I/O" sections
-  4. Full CI matrix (Python 3.10, 3.11, 3.12, 3.13) is green including the new `tests/unit/realtime/` suite
+  4. Full CI matrix (Python 3.12, 3.13) is green including the new `tests/unit/realtime/` suite
   5. `python -m build && twine check dist/*` passes on the `1.8.0` wheel — tag is ready for `/afterwork` local publish
 
 **Plans**: TBD

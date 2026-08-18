@@ -26,6 +26,15 @@ from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 # =============================================================================
 
 
+def _assert_pinned_http_client(call_kwargs):
+    """The SDK client must be routed through the DNS-rebinding-aware transport."""
+    http_client = call_kwargs["http_client"]
+    transport = http_client._transport
+    assert type(transport).__name__ == "_RevalidatingHostTransport", (
+        f"expected pinned transport, got {type(transport).__name__}"
+    )
+
+
 @pytest.fixture
 def mock_openai_response():
     """Create a mock OpenAI chat completion response."""
@@ -157,13 +166,15 @@ class TestOpenAIProviderInit:
         # Access client
         _ = provider.client
 
-        mock_openai_class.assert_called_once_with(
-            api_key="sk-test-key",
-            base_url=OpenAIProvider.DEFAULT_BASE_URL,
-            timeout=60.0,
-            max_retries=2,
-            organization=None,
-        )
+        kwargs = mock_openai_class.call_args.kwargs
+        _assert_pinned_http_client(kwargs)
+        assert {k: v for k, v in kwargs.items() if k != "http_client"} == {
+            "api_key": "sk-test-key",
+            "base_url": OpenAIProvider.DEFAULT_BASE_URL,
+            "timeout": 60.0,
+            "max_retries": 2,
+            "organization": None,
+        }
 
     def test_client_reuses_instance(self):
         """Test that client is only created once."""

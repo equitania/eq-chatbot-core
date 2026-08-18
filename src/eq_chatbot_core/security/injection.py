@@ -6,6 +6,7 @@ import html
 import re
 import unicodedata
 from re import Pattern
+from typing import Any
 
 # Known prompt injection patterns
 INJECTION_PATTERNS: list[str] = [
@@ -220,7 +221,7 @@ def wrap_external_content(content: str, source: str = "external") -> str:
     return f"{header}\n```\n{content}\n```"
 
 
-def _format_tools_section(tools: list[dict]) -> str:
+def _format_tools_section(tools: list[dict[str, Any]]) -> str:
     """
     Format MCP tools list for inclusion in system prompt.
 
@@ -254,7 +255,7 @@ def _format_tools_section(tools: list[dict]) -> str:
 def build_safe_system_prompt(
     base_prompt: str,
     context: str | None = None,
-    tools: list[dict] | None = None,
+    tools: list[dict[str, Any]] | None = None,
     include_safety_prefix: bool = True,
     include_safety_suffix: bool = True,
 ) -> str:

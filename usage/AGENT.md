@@ -9,7 +9,7 @@
 
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
-- **Version:** 2.0.2
+- **Version:** 2.1.0
 - **Framework:** Click  ·  **Human docs:** `docs/` (cli.md, providers.md, server-mode.md)
 
 ## Capabilities at a glance

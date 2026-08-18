@@ -1,5 +1,97 @@
 # Release Notes
 
+## Version 2.1.0 (18.08.2026)
+
+### ⚠️ Breaking
+
+- **[CHG] Minimum Python is now 3.12** (was 3.10), aligning the library with the
+  interpreter used for Odoo 16 deployments. Python 3.10 reaches end of life on
+  31.10.2026; 3.11 is dropped in the same step so there is exactly one supported
+  baseline instead of four. Installs on 3.10/3.11 now fail at resolution time
+  rather than silently running an untested combination. The CI matrix is 3.12
+  and 3.13. The `tomli` backport dependency is gone (`tomllib` is stdlib), and
+  `puremagic` moves to the 2.x line.
+
+### 🔒 Security
+
+- **[FIX] DNS rebinding was possible against every LLM provider.**
+  Each provider called `validate_url()` once in its constructor and then never
+  pinned the addresses it resolved; the actual requests went out through SDK or
+  httpx clients that re-resolved the hostname without any check. An attacker who
+  controls `base_url` — which the server sidecar accepts in the body of
+  `POST /chat` — could supply a hostname with a near-zero TTL that resolved to a
+  harmless public address during validation and to `169.254.169.254` (cloud
+  metadata) or another internal service by the time the socket was opened. The
+  request, including the victim's `Authorization` header, would then go to the
+  internal target. Classic TOCTOU SSRF.
+
+  The MCP client already defended against exactly this (`_build_pinned_transport`,
+  comment: "Mitigates DNS rebinding attacks") — the protection simply had never
+  been applied to the providers. It is now extracted to
+  `utils/url_validation.build_pinned_transport_for_url()` and used by all seven
+  client-constructing providers: `openai`, `anthropic`, `openai_compatible`
+  (and with it `azure`, `ionos`, `litellm`, `melious`), `langdock`, `local`,
+  `mammouth`, `openrouter`. `vertex` needs none — it ignores `base_url` and talks
+  to fixed Google endpoints.
+
+  The provider transport **revalidates** instead of pinning strictly: when the
+  address set diverges from the original resolution, the new addresses are run
+  through the same SSRF policy and rejected only if they are private, reserved,
+  or metadata targets. Strict set-pinning — correct for the MCP client's
+  short-lived, self-hosted endpoints — would have turned the routine IP rotation
+  of CDN-fronted provider endpoints into hard connection failures in long-running
+  processes such as an Odoo worker.
+
+- **[FIX] The `cryptography` ceiling excluded its own security fix.**
+  `>=46.0.7,<50.0.0` ruled out release 50.0.0, the one that fixes
+  PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7 decryption). Because
+  `pip-audit --strict` is a hard CI gate, the pipeline could not go green.
+  This library uses `cryptography` only for Fernet, so the vulnerable PKCS#7 path
+  was never reachable from here — but the pin held every shared environment on a
+  vulnerable range. Floor raised to 50.0.0.
+
+- **[FIX] `h2` updated to 4.4.1** (PYSEC-2026-3628, HTTP/2 request smuggling via
+  a duplicated Host header) through the refreshed lockfile. HTTP/2 is not enabled
+  anywhere in this codebase, so the path was not reachable either; the CI gate
+  flagged it regardless.
+
+### ✨ Added
+
+- **[ADD] `py.typed` marker (PEP 561).** The package is developed under
+  `mypy --strict` but shipped without the marker, so type checkers ignored every
+  annotation and downstream consumers saw `Any` throughout. All that typing work
+  is now actually visible outside the repository.
+- **[ADD] `build_pinned_transport_for_url()`** and the now-shared
+  `build_pinned_transport()` in `utils/url_validation.py`.
+- **[ADD] Tests for two previously untested modules.** `server/lifecycle.py`
+  went from 22% to 93% coverage (port announcement, socket options, watchdog
+  behaviour, cleanup on failure) and `utils/pdf.py` from 40% to 88% (real PDF
+  rendering plus the page/DPI/size limits that bound a decompression bomb).
+  Eight new tests cover the rebinding guard itself, including the case that must
+  *not* be blocked: legitimate rotation to another public address.
+
+### 🔧 Changed
+
+- **[CHG] Pre-commit hooks pinned to the versions the project actually uses**
+  (ruff 0.16.3, mypy 1.19.1, pre-commit-hooks 6.0.0). They had drifted to
+  ruff 0.1.9 and mypy 1.8.0 — fourteen minor versions behind the ruff in
+  `pyproject.toml` — so the hook formatted code by different rules than CI then
+  verified, and the two gates could contradict each other.
+- **[CHG] mypy errors reduced from 157 to 122**; the CI ratchet baseline is
+  lowered accordingly to lock the gain in. Includes genuine fixes in
+  `realtime/websocket_client.py`, whose optional-import fallback assigned `None`
+  to module-typed names, and parameterisation of bare `dict`/`list`/`Queue`
+  generics across nine modules.
+- **[CHG] `websockets` ceiling raised to `<18.0`.** Note that `google-genai`
+  caps it at `<17.0`, so an install combining `[realtime,vertex]` still resolves
+  to 16.x — the wider bound only takes effect without the `[vertex]` extra.
+- **[CHG] `utils/pricing.py` documented as a deliberate compatibility shim** and
+  covered by tests, instead of remaining an unexplained module at 0% coverage.
+- **[CHG] `twine` floor raised to 7.0.0.** Current hatchling emits
+  Metadata-Version 2.5 and twine 6.x rejects that as invalid, so `twine check`
+  failed on every freshly built artifact — which would have blocked the local
+  release workflow at the last step.
+
 ## Version 2.0.2 (06.08.2026)
 
 ### 🐛 Fixed

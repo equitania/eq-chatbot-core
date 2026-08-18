@@ -105,7 +105,7 @@ class ChatbotErrorHandler:
     def __init__(
         self,
         get_provider_fn: Callable[[str], Any] | None = None,
-        log_fn: Callable[[str, str, dict], None] | None = None,
+        log_fn: Callable[[str, str, dict[str, Any]], None] | None = None,
         messages: dict[str, str] | None = None,
     ):
         """
@@ -125,7 +125,7 @@ class ChatbotErrorHandler:
         error: Exception,
         provider: str,
         context: dict[str, Any],
-        retry_callback: Callable[[dict], Any] | None = None,
+        retry_callback: Callable[[dict[str, Any]], Any] | None = None,
     ) -> ErrorResult:
         """
         Handle LLM provider errors with retry and fallback.
@@ -161,7 +161,7 @@ class ChatbotErrorHandler:
         error: Exception,
         provider: str,
         context: dict[str, Any],
-        retry_callback: Callable[[dict], Any] | None,
+        retry_callback: Callable[[dict[str, Any]], Any] | None,
     ) -> ErrorResult:
         """Handle timeout with exponential backoff retry and jitter."""
         import random

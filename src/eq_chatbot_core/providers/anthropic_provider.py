@@ -98,11 +98,24 @@ class AnthropicProvider(BaseLLMProvider):
             except ImportError as e:
                 raise ImportError("Anthropic package not installed. Install with: pip install anthropic") from e
 
+            # Route the SDK through an httpx client whose transport re-checks DNS
+            # on every connect. Without it the constructor's validate_url() only
+            # covers one point in time and an attacker-controlled hostname can
+            # re-resolve to an internal address before the socket opens.
+            import httpx
+
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
+            effective_url = self.base_url or self.DEFAULT_BASE_URL
             self._client = Anthropic(
                 api_key=self.api_key,
-                base_url=self.base_url or self.DEFAULT_BASE_URL,
+                base_url=effective_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
+                http_client=httpx.Client(
+                    transport=build_pinned_transport_for_url(effective_url),
+                    timeout=self.timeout,
+                ),
             )
         return self._client
 

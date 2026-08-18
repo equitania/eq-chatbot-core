@@ -7,7 +7,7 @@ and proper storage protocol interaction.
 """
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -109,7 +109,7 @@ class TestUsageRecord:
 
     def test_basic_creation(self):
         """Test creating a usage record with required fields."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = UsageRecord(
             user_id=1,
             company_id=10,
@@ -126,7 +126,7 @@ class TestUsageRecord:
 
     def test_zero_counts(self):
         """Test usage record with zero counts."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         record = UsageRecord(
             user_id=42,
             company_id=1,

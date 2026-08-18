@@ -15,14 +15,10 @@ from __future__ import annotations
 
 import os
 import sys
+import tomllib
 from importlib import resources
 from pathlib import Path
 from typing import Any
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:  # pragma: no cover - exercised only on Python 3.10
-    import tomli as tomllib
 
 
 class ConfigError(Exception):

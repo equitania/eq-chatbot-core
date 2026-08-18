@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import pytest
 
-from eq_chatbot_core.utils.url_validation import validate_url
+from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url, validate_url
 
 
 def _addrinfo(*ips: str) -> list[tuple]:
@@ -130,3 +130,98 @@ class TestNativeIPv6Unchanged:
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("fd00::1")):
             with pytest.raises(ValueError, match="private/reserved"):
                 validate_url("https://internal.example.com")
+
+
+@pytest.mark.unit
+class TestPinnedTransportRebinding:
+    """The transport returned by build_pinned_transport_for_url must re-check DNS.
+
+    Validating the URL once in the constructor only covers that moment: a hostname
+    can pass validation and then re-resolve to an internal target before the socket
+    is opened (DNS rebinding / TOCTOU SSRF).
+    """
+
+    def _transport(self, initial_ip: str = "93.184.216.34", **kwargs):
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo(initial_ip)):
+            return build_pinned_transport_for_url("https://api.example.com/v1", **kwargs)
+
+    def _request(self):
+        import httpx
+
+        return httpx.Request("GET", "https://api.example.com/v1/models")
+
+    def test_rebinding_to_cloud_metadata_is_blocked(self):
+        import httpx
+
+        transport = self._transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+                transport.handle_request(self._request())
+
+    def test_rebinding_to_private_range_is_blocked(self):
+        import httpx
+
+        transport = self._transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("10.0.0.5")):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+                transport.handle_request(self._request())
+
+    def test_rebinding_via_nat64_wrapped_metadata_is_blocked(self):
+        """The embedded IPv4 must be classified, not just the outer IPv6 form."""
+        import httpx
+
+        transport = self._transport()
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("64:ff9b::a9fe:a9fe")):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+                transport.handle_request(self._request())
+
+    def test_rotation_to_another_public_ip_is_allowed(self):
+        """CDN-fronted endpoints legitimately rotate; that must not break requests.
+
+        Strict set-pinning would reject this and turn normal IP rotation into hard
+        connection failures in long-lived processes.
+        """
+        transport = self._transport()
+        called = {}
+
+        def _fake_super(request):
+            called["ok"] = True
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.99")):
+            with patch("httpx.HTTPTransport.handle_request", side_effect=_fake_super):
+                transport.handle_request(self._request())
+
+        assert called.get("ok"), "legitimate public-IP rotation must pass the guard"
+
+    def test_unchanged_resolution_is_allowed(self):
+        transport = self._transport()
+        called = {}
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            with patch("httpx.HTTPTransport.handle_request", side_effect=lambda r: called.setdefault("ok", True)):
+                transport.handle_request(self._request())
+
+        assert called.get("ok")
+
+    def test_lan_mode_allows_private_target_but_still_blocks_metadata(self):
+        import httpx
+
+        transport = self._transport("192.168.1.50", allow_private_ranges=True)
+
+        # A different private address is fine in LAN mode ...
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("192.168.1.51")):
+            with patch("httpx.HTTPTransport.handle_request", side_effect=lambda r: None):
+                transport.handle_request(self._request())
+
+        # ... but the cloud-metadata endpoint stays blocked even there.
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("169.254.169.254")):
+            with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
+                transport.handle_request(self._request())
+
+    def test_strict_mode_rejects_unresolvable_host_at_request_time(self):
+        import httpx
+
+        transport = self._transport()
+        with patch.object(socket, "getaddrinfo", side_effect=socket.gaierror("nope")):
+            with pytest.raises(httpx.ConnectError, match="DNS resolution failed"):
+                transport.handle_request(self._request())

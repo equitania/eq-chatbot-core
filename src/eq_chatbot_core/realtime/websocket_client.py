@@ -13,6 +13,13 @@ from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
 from typing import Any
 
+# Annotated as Any because the optional-import fallback rebinds both names to
+# None: without the annotation the module type and None are incompatible, and
+# every attribute access on them (e.g. websockets.connect) is checked against a
+# module type the [realtime] extra may not have installed at all.
+websockets: Any
+ws_exceptions: Any
+
 _websockets_available = True
 try:
     import websockets

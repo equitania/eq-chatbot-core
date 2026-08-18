@@ -1,7 +1,7 @@
 # eq-chatbot-core
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
 ![PyPI](https://img.shields.io/pypi/v/eq-chatbot-core.svg)
 
 Core library for LLM chatbot integration with multi-provider support.
@@ -300,11 +300,11 @@ Weitere Härtungshinweise:
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 2.0.2 |
+| **Version** | 2.1.0 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |
-| **Python** | >=3.10 |
+| **Python** | >=3.12 |
 | **Homepage** | https://www.ownerp.com |
 | **Repository** | https://github.com/equitania/eq-chatbot-core |
 | **Changelog** | [CHANGELOG.md](CHANGELOG.md) |

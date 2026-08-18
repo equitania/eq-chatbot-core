@@ -5,6 +5,77 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-08-18
+
+### Breaking
+
+- **Minimum Python is now 3.12** (was 3.10). Aligns the library with the
+  interpreter used for Odoo 16 deployments. Python 3.10 reaches end of life on
+  2026-10-31; 3.11 is dropped in the same step so there is only one supported
+  baseline. Installs on 3.10/3.11 now fail at resolution time instead of
+  silently running an untested combination. The CI matrix is 3.12 and 3.13.
+
+### Security
+
+- **DNS rebinding is now blocked for every LLM provider.** `validate_url()` only
+  covered the resolution at construction time; the actual requests then went out
+  through SDK/httpx clients that re-resolved the hostname unpinned. A caller who
+  controls `base_url` — reachable through the server sidecar's `POST /chat`,
+  which accepts `base_url` in the request body — could point it at a hostname
+  with a near-zero TTL that passed validation as a public address and then
+  resolved to `169.254.169.254` or another internal target by the time the
+  socket opened, sending the `Authorization` header along with it (TOCTOU SSRF).
+  All seven client-constructing providers (`openai`, `anthropic`,
+  `openai_compatible` and its `azure`/`ionos`/`litellm`/`melious` subclasses,
+  `langdock`, `local`, `mammouth`, `openrouter`) now route through a transport
+  that re-checks DNS on every connect.
+
+  The new transport revalidates rather than pinning strictly: an address set
+  that diverges from the original resolution is re-run through the same SSRF
+  policy and rejected only if it is private/reserved/metadata. Strict pinning
+  would have turned the legitimate IP rotation of CDN-fronted provider endpoints
+  into hard connection failures in long-lived processes.
+
+- **`cryptography` floor raised to 50.0.0**, which excludes PYSEC-2026-3552
+  (Bleichenbacher oracle in PKCS#7 decryption). The previous `<50.0.0` ceiling
+  actively excluded the fixed release, so `pip-audit --strict` — a hard CI gate —
+  could not pass. This library only ever uses Fernet, so the vulnerable code path
+  was never reachable here, but the pin held shared environments on a vulnerable
+  range.
+
+- `h2` moves to 4.4.1 via the refreshed lockfile, clearing PYSEC-2026-3628
+  (HTTP/2 request smuggling). HTTP/2 is not enabled anywhere in this codebase.
+
+### Added
+
+- `utils/url_validation.build_pinned_transport_for_url()` — validates a URL and
+  returns an httpx transport that re-checks DNS on every connect.
+- `utils/url_validation.build_pinned_transport()` — the strict-pinning transport
+  previously private to the MCP client, now shared.
+- **`py.typed` marker (PEP 561).** The package is checked under `mypy --strict`
+  but shipped without the marker, so every downstream consumer saw `Any` and none
+  of that typing work was visible outside the repo.
+- Test coverage for two previously untested modules: `server/lifecycle.py`
+  (22% -> 93%) and `utils/pdf.py` (40% -> 88%), plus rebinding tests covering
+  both the blocked attack and the tolerated legitimate IP rotation.
+
+### Changed
+
+- `puremagic` floor raised to 2.0 (the 1.x allowance existed only for 3.10/3.11).
+- `websockets` ceiling raised to `<18.0`. Note that `google-genai` caps it at
+  `<17.0`, so an install combining `[realtime,vertex]` still resolves to 16.x.
+- `tomli` dependency removed — `tomllib` is stdlib on every supported version.
+- Pre-commit hooks pinned to the versions the project actually uses (ruff 0.16.3,
+  mypy 1.19.1, pre-commit-hooks 6.0.0). They were on ruff 0.1.9 / mypy 1.8.0, so
+  the hook formatted by different rules than CI verified.
+- `utils/pricing.py` documented as a deliberate backward-compatibility shim and
+  covered by tests, rather than left as an unexplained 0%-coverage module.
+- `twine` floor raised to 7.0.0: hatchling emits Metadata-Version 2.5, which
+  twine 6.x rejects outright, so `twine check dist/*` failed on every build.
+- mypy errors reduced 157 -> 122; the CI ratchet baseline is lowered to match.
+  Includes real fixes in `realtime/websocket_client.py`, whose optional-import
+  fallback assigned `None` to module-typed names.
+
 ## [2.0.2] - 2026-08-06
 
 ### Fixed

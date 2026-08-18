@@ -37,6 +37,15 @@ TEST_BASE_URL = "http://localhost:4000/v1"
 # =============================================================================
 
 
+def _assert_pinned_http_client(call_kwargs):
+    """The SDK client must be routed through the DNS-rebinding-aware transport."""
+    http_client = call_kwargs["http_client"]
+    transport = http_client._transport
+    assert type(transport).__name__ == "_RevalidatingHostTransport", (
+        f"expected pinned transport, got {type(transport).__name__}"
+    )
+
+
 @pytest.fixture
 def mock_chat_response():
     """Mock chat completion response (with a reasoning_content raw field)."""
@@ -165,12 +174,14 @@ class TestLiteLLMProviderInit:
         provider._client = None
         _ = provider.client
 
-        mock_openai_class.assert_called_once_with(
-            api_key="test-key",
-            base_url=TEST_BASE_URL,
-            timeout=60.0,
-            max_retries=2,
-        )
+        kwargs = mock_openai_class.call_args.kwargs
+        _assert_pinned_http_client(kwargs)
+        assert {k: v for k, v in kwargs.items() if k != "http_client"} == {
+            "api_key": "test-key",
+            "base_url": TEST_BASE_URL,
+            "timeout": 60.0,
+            "max_retries": 2,
+        }
 
 
 @pytest.mark.unit

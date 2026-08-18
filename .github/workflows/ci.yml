@@ -47,7 +47,7 @@ jobs:
       # count, lower MYPY_BASELINE to lock the gain in.
       - name: Run mypy (ratcheted against baseline)
         env:
-          MYPY_BASELINE: "157"
+          MYPY_BASELINE: "122"
         run: |
           uv run mypy src/ | tee mypy.log || true
           # A blocking syntax/stub error makes mypy stop early. The error count
@@ -102,7 +102,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
 

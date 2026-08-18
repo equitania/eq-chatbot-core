@@ -26,6 +26,15 @@ from eq_chatbot_core.providers.base import (
 # =============================================================================
 
 
+def _assert_pinned_http_client(call_kwargs):
+    """The SDK client must be routed through the DNS-rebinding-aware transport."""
+    http_client = call_kwargs["http_client"]
+    transport = http_client._transport
+    assert type(transport).__name__ == "_RevalidatingHostTransport", (
+        f"expected pinned transport, got {type(transport).__name__}"
+    )
+
+
 @pytest.fixture
 def mock_anthropic_response():
     """Create a mock Anthropic message response."""
@@ -152,12 +161,14 @@ class TestAnthropicProviderInit:
 
         _ = provider.client
 
-        mock_anthropic_class.assert_called_once_with(
-            api_key="sk-ant-test-key",
-            base_url=AnthropicProvider.DEFAULT_BASE_URL,
-            timeout=60.0,
-            max_retries=2,
-        )
+        kwargs = mock_anthropic_class.call_args.kwargs
+        _assert_pinned_http_client(kwargs)
+        assert {k: v for k, v in kwargs.items() if k != "http_client"} == {
+            "api_key": "sk-ant-test-key",
+            "base_url": AnthropicProvider.DEFAULT_BASE_URL,
+            "timeout": 60.0,
+            "max_retries": 2,
+        }
 
     def test_client_reuses_instance(self):
         """Test that client is only created once."""

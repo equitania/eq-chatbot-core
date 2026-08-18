@@ -5,8 +5,8 @@
 ## Languages
 
 **Primary:**
-- Python 3.10+ - All library source code (`src/eq_chatbot_core/`)
-- Python 3.10–3.13 - Tested matrix (CI runs all four versions)
+- Python 3.12+ - All library source code (`src/eq_chatbot_core/`)
+- Python 3.12–3.13 - Tested matrix (CI runs both versions)
 
 **Secondary:**
 - None (pure Python library)
@@ -14,8 +14,8 @@
 ## Runtime
 
 **Environment:**
-- CPython 3.10, 3.11, 3.12, 3.13 (all supported)
-- Minimum: Python 3.10 (union-type syntax `X | Y` used throughout)
+- CPython 3.12, 3.13 (all supported)
+- Minimum: Python 3.12 (raised from 3.10 in v2.1.0; 3.10 reaches EOL on 2026-10-31)
 
 **Package Manager:**
 - UV (astral-sh/uv) — mandatory, never pip
@@ -60,7 +60,7 @@
 - `[azure]` — `azure-ai-inference>=1.0.0b9`, `azure-core>=1.30.0` — Azure AI Foundry provider
 - `[vertex]` — `google-genai>=1.0.0` — Google Vertex AI / Gemini provider
 - `[server]` — FastAPI + Uvicorn + sse-starlette — HTTP sidecar gateway
-- `[security]` — `puremagic>=1.10,<3.0` — MIME-type validation (Python 3.10/3.11 safe)
+- `[security]` — `puremagic>=2.0,<3.0` — MIME-type validation
 - `[pdf]` — `pymupdf>=1.26.0,<2.0.0` — PDF-to-image for vision models
 - `[local]` — `sentence-transformers>=3.0.0,<6.0.0` — local embedding generation
 
@@ -95,12 +95,12 @@
 
 **Development:**
 - UV installed (`astral-sh/setup-uv@v3` in CI)
-- Python 3.10–3.13
+- Python 3.12–3.13
 - For Vertex: Google Cloud SDK (`gcloud`)
 - For integration tests: API keys in `tests/.env.test`
 
 **Production (as library):**
-- Python >=3.10
+- Python >=3.12
 - Callers install with desired extras: `pip install eq-chatbot-core[azure,pdf,server]`
 - Published to PyPI as `eq-chatbot-core`
 - Build/publish done locally by maintainer (not via CI)

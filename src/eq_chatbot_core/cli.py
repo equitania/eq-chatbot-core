@@ -11,6 +11,7 @@ Usage:
 import json
 import os
 import sys
+from typing import Any
 
 import click
 
@@ -303,8 +304,6 @@ def list_models(
         )
         sys.exit(1)
 
-    from typing import Any
-
     from eq_chatbot_core.providers import ModelInfo, ProviderError, get_provider
 
     def get_model_attr(model: ModelInfo | dict[str, Any], attr: str, default: Any = None) -> Any:
@@ -361,7 +360,7 @@ MAX_INPUT_SIZE = 1_048_576
 VALID_ROLES = {"user", "assistant", "system", "tool"}
 
 
-def _validate_messages(messages: list) -> list[dict]:
+def _validate_messages(messages: list[Any]) -> list[dict[str, Any]]:
     """Validate message structure for chat command."""
     validated = []
     for i, msg in enumerate(messages):
@@ -502,7 +501,7 @@ def chat(
         # Create provider and send request
         provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
 
-        kwargs: dict = {
+        kwargs: dict[str, Any] = {
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
@@ -853,7 +852,7 @@ def _parse_fit(fit: str | None) -> tuple[int, int, str] | None:
     return w, h, mode
 
 
-def _load_recipe(recipe_path: str) -> dict:
+def _load_recipe(recipe_path: str) -> dict[str, Any]:
     """Load and validate a recipe JSON file.
 
     Raises click.ClickException with a clear message on any validation error.
@@ -1005,7 +1004,7 @@ def listing_assets(
     dest_dir = pathlib.Path(dest) if dest else recipe_dir
     dest_dir.mkdir(parents=True, exist_ok=True)
 
-    assets: list[dict] = recipe["assets"]
+    assets: list[dict[str, Any]] = recipe["assets"]
 
     # Apply --only filter
     if only:

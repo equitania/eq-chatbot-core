@@ -4,6 +4,7 @@ Document chunking for RAG pipeline.
 
 from collections.abc import Iterator
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -13,7 +14,7 @@ class Chunk:
     content: str
     """The text content of this chunk."""
 
-    metadata: dict
+    metadata: dict[str, Any]
     """Metadata (source, page, etc.)."""
 
     token_count: int
@@ -70,7 +71,7 @@ class DocumentChunker:
     def chunk_text(
         self,
         text: str,
-        metadata: dict | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Iterator[Chunk]:
         """
         Split text into overlapping chunks.

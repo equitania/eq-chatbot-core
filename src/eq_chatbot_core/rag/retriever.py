@@ -19,7 +19,7 @@ class RetrievalResult:
     score: float
     """Similarity score (0-1)."""
 
-    metadata: dict
+    metadata: dict[str, Any]
     """Document metadata."""
 
     source: str
@@ -63,7 +63,7 @@ class HybridRetriever:
     def retrieve(
         self,
         query: str,
-        filters: dict | None = None,
+        filters: dict[str, Any] | None = None,
         top_k: int | None = None,
     ) -> list[RetrievalResult]:
         """
@@ -189,7 +189,7 @@ class HybridRetriever:
 
     def upsert(
         self,
-        chunks: list[dict],
+        chunks: list[dict[str, Any]],
         batch_size: int = 100,
     ) -> int:
         """

@@ -4,11 +4,19 @@ URL validation for SSRF protection.
 Shared between the MCP SSE client (strict mode — blocks private networks) and
 the local LLM provider (LAN mode — private/loopback ranges are legitimate for
 on-prem model servers, but cloud-metadata and non-HTTP targets stay blocked).
+
+Validation alone only covers the resolution at construction time. Anything that
+issues requests later must additionally pin the resolved addresses via
+:func:`build_pinned_transport_for_url`, otherwise an attacker-controlled
+hostname can pass validation and re-resolve to an internal address before the
+socket is opened (DNS rebinding / TOCTOU SSRF).
 """
 
 import ipaddress
 import logging
 import socket
+import threading
+from typing import Any
 from urllib.parse import urlparse
 
 _logger = logging.getLogger(__name__)
@@ -41,6 +49,45 @@ def _effective_address(
         if ip in _NAT64_WELL_KNOWN_PREFIX:
             return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
     return ip
+
+
+def _assert_ip_allowed(ip_str: str, *, allow_private_ranges: bool, is_localhost_name: bool) -> None:
+    """Raise ValueError if a resolved address is not an allowed connect target.
+
+    Shared by :func:`validate_url` (construction time) and the revalidating
+    transport (request time) so both apply exactly the same policy.
+
+    Args:
+        ip_str: Resolved address, as returned by ``socket.getaddrinfo``.
+        allow_private_ranges: LAN mode — permit loopback/private targets.
+        is_localhost_name: Whether the hostname itself is an explicit localhost
+            name, which is allowed to resolve into loopback even in strict mode.
+
+    Raises:
+        ValueError: If the address is a disallowed target.
+    """
+    # Classify the embedded IPv4 for NAT64/IPv4-mapped forms, but keep pinning
+    # the address as resolved — the connection may still take the IPv6 route.
+    ip = _effective_address(ipaddress.ip_address(ip_str))
+    shown = ip_str if str(ip) == ip_str else f"{ip_str} (embeds {ip})"
+
+    if allow_private_ranges:
+        # LAN mode: loopback and private ranges are legitimate for local model
+        # servers; still block link-local (cloud-metadata 169.254.x), multicast,
+        # unspecified, and non-loopback reserved targets.
+        if ip.is_loopback:
+            return  # 127.0.0.1 / ::1 — explicitly allowed
+        if ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
+            raise ValueError(f"URL resolves to disallowed IP {shown} (cloud-metadata / reserved range).")
+        return
+
+    if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+        # Allow localhost explicitly for local development.
+        if is_localhost_name:
+            return
+        raise ValueError(
+            f"URL resolves to private/reserved IP {shown}. Internal network access is not allowed for security reasons."
+        )
 
 
 def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[str]:
@@ -100,29 +147,135 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
 
     for addr_info in addr_infos:
         ip_str = str(addr_info[4][0])
-        # Classify the embedded IPv4 for NAT64/IPv4-mapped forms, but keep pinning
-        # the address as resolved — the connection may still take the IPv6 route.
-        ip = _effective_address(ipaddress.ip_address(ip_str))
-        shown = ip_str if str(ip) == ip_str else f"{ip_str} (embeds {ip})"
-
-        if allow_private_ranges:
-            # LAN mode: loopback and private ranges are legitimate for local model
-            # servers; still block link-local (cloud-metadata 169.254.x), multicast,
-            # unspecified, and non-loopback reserved targets.
-            if ip.is_loopback:
-                pass  # 127.0.0.1 / ::1 — explicitly allowed
-            elif ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
-                raise ValueError(f"URL resolves to disallowed IP {shown} (cloud-metadata / reserved range).")
-        else:
-            if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
-                # Allow localhost explicitly for local development.
-                if is_localhost_name:
-                    resolved_ips.add(ip_str)
-                    continue
-                raise ValueError(
-                    f"URL resolves to private/reserved IP {shown}. "
-                    "Internal network access is not allowed for security reasons."
-                )
+        _assert_ip_allowed(
+            ip_str,
+            allow_private_ranges=allow_private_ranges,
+            is_localhost_name=is_localhost_name,
+        )
         resolved_ips.add(ip_str)
 
     return frozenset(resolved_ips)
+
+
+def build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
+    """Build an httpx HTTPTransport that re-checks DNS resolution against pinned IPs.
+
+    Mitigates DNS rebinding attacks: at validation time the URL's hostname is
+    resolved to a set of allowed IPs; at request time the transport re-resolves
+    and rejects the connection if the resolution diverges from that set.
+
+    Note: A small TOCTOU window remains between this check and httpx's actual
+    socket connect call. For complete protection, deploy network-level egress
+    filtering against private/reserved IP ranges.
+
+    Args:
+        pinned_ips: Shared mapping of hostname -> frozenset of allowed IPs.
+                    The caller may keep updating it as new endpoints are
+                    validated; the transport reads it under ``lock``.
+        lock: Lock guarding concurrent updates to ``pinned_ips``.
+
+    Returns:
+        Subclass of httpx.HTTPTransport.
+
+    Raises:
+        ImportError: If httpx is not installed.
+    """
+    try:
+        import httpx
+    except ImportError as e:  # pragma: no cover - httpx is a core dependency
+        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+
+    class _PinnedHostTransport(httpx.HTTPTransport):
+        def handle_request(self, request: httpx.Request) -> httpx.Response:
+            host = request.url.host
+            with lock:
+                pinned = pinned_ips.get(host)
+            if pinned:
+                try:
+                    infos = socket.getaddrinfo(host, None)
+                except socket.gaierror as e:
+                    raise httpx.ConnectError(f"DNS resolution failed for {host}: {e}") from e
+                current = frozenset(str(info[4][0]) for info in infos)
+                rogue = current - pinned
+                if rogue:
+                    raise httpx.ConnectError(
+                        f"DNS rebinding detected: {host} now resolves to {sorted(rogue)}, "
+                        f"expected subset of pinned set {sorted(pinned)}."
+                    )
+            return super().handle_request(request)
+
+    return _PinnedHostTransport()
+
+
+def build_pinned_transport_for_url(url: str, *, allow_private_ranges: bool = False) -> Any:
+    """Validate ``url`` and return an httpx transport that re-checks every connect.
+
+    Convenience wrapper for the common single-endpoint case: callers that talk to
+    exactly one host (every LLM provider) get validation and rebinding protection
+    in one call, instead of validating once and then connecting unpinned.
+
+    Unlike :func:`build_pinned_transport`, a divergence from the pinned set is not
+    rejected outright — the new addresses are re-run through the same SSRF policy
+    and only blocked if they are private/reserved/metadata targets. That keeps the
+    security property (never connect to an internal address) while tolerating the
+    legitimate IP rotation of CDN-fronted provider endpoints, which strict pinning
+    would eventually turn into hard connection failures in long-lived processes.
+
+    Args:
+        url: Base URL to validate and pin.
+        allow_private_ranges: Permit private/loopback targets (on-prem servers).
+
+    Returns:
+        Subclass of httpx.HTTPTransport, seeded with the IPs ``url`` resolved to.
+
+    Raises:
+        ValueError: If ``url`` fails SSRF validation.
+        ImportError: If httpx is not installed.
+    """
+    try:
+        import httpx
+    except ImportError as e:  # pragma: no cover - httpx is a core dependency
+        raise ImportError("httpx package not installed. Install with: pip install httpx") from e
+
+    resolved = validate_url(url, allow_private_ranges=allow_private_ranges)
+    hostname = urlparse(url).hostname
+    allowed: dict[str, frozenset[str]] = {hostname: resolved} if hostname else {}
+    lock = threading.Lock()
+
+    class _RevalidatingHostTransport(httpx.HTTPTransport):
+        def handle_request(self, request: httpx.Request) -> httpx.Response:
+            host = request.url.host
+            with lock:
+                pinned = allowed.get(host)
+            if pinned is None:
+                return super().handle_request(request)
+
+            try:
+                infos = socket.getaddrinfo(host, None)
+            except socket.gaierror as e:
+                if allow_private_ranges:
+                    # LAN mode mirrors validate_url: a local hostname may only be
+                    # resolvable further down the path (proxy, on-prem resolver).
+                    _logger.warning("Could not re-resolve '%s' for rebinding check; proceeding (LAN mode).", host)
+                    return super().handle_request(request)
+                raise httpx.ConnectError(f"DNS resolution failed for {host}: {e}") from e
+
+            current = frozenset(str(info[4][0]) for info in infos)
+            unseen = current - pinned
+            if unseen:
+                is_localhost_name = host in _LOCALHOST_NAMES
+                for ip_str in sorted(unseen):
+                    try:
+                        _assert_ip_allowed(
+                            ip_str,
+                            allow_private_ranges=allow_private_ranges,
+                            is_localhost_name=is_localhost_name,
+                        )
+                    except ValueError as e:
+                        raise httpx.ConnectError(f"DNS rebinding blocked for {host}: {e}") from e
+                with lock:
+                    allowed[host] = allowed.get(host, frozenset()) | unseen
+
+            return super().handle_request(request)
+
+    return _RevalidatingHostTransport()

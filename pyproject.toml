@@ -8,7 +8,7 @@ dynamic = ["version"]
 description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI, LiteLLM, IONOS, Local)"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 authors = [
     { name = "Equitania Software GmbH", email = "info@equitania.de" },
 ]
@@ -23,8 +23,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -36,14 +34,16 @@ dependencies = [
     "anthropic>=0.90.0,<2.0.0",
     "qdrant-client>=1.12.0,<2.0.0",
     "tiktoken>=0.9.0,<1.0.0",
-    # Floor 46.0.7 excludes CVE-2026-26007 / CVE-2026-39892 / CVE-2026-34073
-    # (wildcard SAN name-constraint bypass); still supports Python 3.10.
-    "cryptography>=46.0.7,<50.0.0",
+    # Floor 50.0.0 excludes PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7
+    # decryption) as well as the earlier CVE-2026-26007 / CVE-2026-39892 /
+    # CVE-2026-34073 (wildcard SAN name-constraint bypass). This library only
+    # uses Fernet, but pinning below the fix keeps `pip-audit --strict` red and
+    # holds shared environments on a vulnerable range.
+    "cryptography>=50.0.0,<51.0.0",
     "httpx>=0.27.0,<1.0.0",
     "pydantic>=2.11.0,<3.0.0",
     # Floor 8.3.3 excludes CVE-2026-7246 (command injection in click.edit()).
     "click>=8.3.3,<9.0.0",
-    "tomli>=2.0.0; python_version < '3.11'",  # CLI config file parsing (tomllib is stdlib from 3.11)
 ]
 
 [project.optional-dependencies]
@@ -55,7 +55,9 @@ dev = [
     "python-dotenv>=1.2.2,<2.0.0",  # For loading .env.test in tests
     "ruff>=0.12.0,<1.0.0",
     "mypy>=1.15.0,<2.0.0",
-    "twine>=6.0.0,<7.0.0",
+    # Floor 7.0.0: hatchling now emits Metadata-Version 2.5, which twine 6.x
+    # rejects as invalid — `twine check dist/*` fails on every build otherwise.
+    "twine>=7.0.0,<8.0.0",
     "pre-commit>=4.0.0,<5.0.0",
     "pip-audit>=2.7.0,<3.0.0",  # Dependency vulnerability scanning (CI security gate)
 ]
@@ -64,9 +66,10 @@ local = [
 ]
 security = [
     # Pure Python MIME type verification (no libmagic dependency).
-    # puremagic 2.x requires Python >=3.12; allow 1.10+ for users on 3.10/3.11.
-    # Both 1.x and 2.x expose the from_string(..., mime=True) and PureError API used by file_validator.
-    "puremagic>=1.10,<3.0",
+    # puremagic 2.x requires Python >=3.12, which this project now mandates, so
+    # the 1.x allowance for 3.10/3.11 users is gone. 2.x exposes the
+    # from_string(..., mime=True) and PureError API used by file_validator.
+    "puremagic>=2.0,<3.0",
 ]
 pdf = [
     # NOTE: pymupdf is AGPL-3.0-or-later (commercial license available from
@@ -101,7 +104,10 @@ image = [
     "Pillow>=12.3.0,<13.0",
 ]
 realtime = [
-    "websockets>=13.0,<17.0",
+    # NOTE: google-genai (the [vertex] extra) caps websockets at <17.0, so an
+    # install combining [realtime,vertex] resolves to 16.x regardless of this
+    # ceiling. The wider bound only takes effect for installs without [vertex].
+    "websockets>=13.0,<18.0",
 ]
 server = [
     # Localhost HTTP gateway for cross-language integrations (e.g. fr-designer
@@ -133,6 +139,9 @@ packages = ["src/eq_chatbot_core"]
 artifacts = ["src/eq_chatbot_core/data/*.json", "src/eq_chatbot_core/data/*.example"]
 
 [tool.hatch.build.targets.wheel.force-include]
+# PEP 561 marker: without it type checkers ignore the inline annotations of this
+# package entirely, so every downstream consumer sees `Any` despite mypy strict.
+"src/eq_chatbot_core/py.typed" = "eq_chatbot_core/py.typed"
 "src/eq_chatbot_core/data/model_prices.json" = "eq_chatbot_core/data/model_prices.json"
 "src/eq_chatbot_core/data/capability_catalog.json" = "eq_chatbot_core/data/capability_catalog.json"
 "src/eq_chatbot_core/data/capability_overrides.json" = "eq_chatbot_core/data/capability_overrides.json"
@@ -140,7 +149,7 @@ artifacts = ["src/eq_chatbot_core/data/*.json", "src/eq_chatbot_core/data/*.exam
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [
@@ -170,7 +179,7 @@ known-first-party = ["eq_chatbot_core"]
 line-ending = "auto"
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 strict = true
 ignore_missing_imports = true
 

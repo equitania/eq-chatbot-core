@@ -21,7 +21,6 @@ import os
 import queue
 import re
 import shutil
-import socket
 import threading
 import time
 from dataclasses import dataclass
@@ -29,6 +28,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets as _scrub
+from eq_chatbot_core.utils.url_validation import build_pinned_transport as _build_pinned_transport
 from eq_chatbot_core.utils.url_validation import validate_url as _validate_url
 from eq_chatbot_core.version import __version__
 
@@ -94,49 +94,6 @@ def _validate_stdio_env(env: dict[str, str] | None) -> None:
                 "execution: it permits code injection independent of the command "
                 f"allowlist. Disallowed keys: {sorted(_DANGEROUS_ENV_KEYS)}."
             )
-
-
-def _build_pinned_transport(pinned_ips: dict[str, frozenset[str]], lock: threading.Lock) -> Any:
-    """Build an httpx HTTPTransport that re-checks DNS resolution against pinned IPs.
-
-    Mitigates DNS rebinding attacks: at validation time the URL's hostname is
-    resolved to a set of public IPs; at request time the transport re-resolves
-    and rejects the connection if the resolution diverges from that set.
-
-    Note: A small TOCTOU window remains between this check and httpx's actual
-    socket connect call. For complete protection, deploy network-level egress
-    filtering against private/reserved IP ranges.
-
-    Args:
-        pinned_ips: Shared mapping of hostname -> frozenset of allowed IPs.
-                    Updated by the caller as new endpoints are validated.
-        lock: Lock guarding concurrent updates to pinned_ips.
-
-    Returns:
-        Subclass of httpx.HTTPTransport.
-    """
-    import httpx
-
-    class _PinnedHostTransport(httpx.HTTPTransport):
-        def handle_request(self, request: httpx.Request) -> httpx.Response:
-            host = request.url.host
-            with lock:
-                pinned = pinned_ips.get(host)
-            if pinned:
-                try:
-                    infos = socket.getaddrinfo(host, None)
-                except socket.gaierror as e:
-                    raise httpx.ConnectError(f"DNS resolution failed for {host}: {e}") from e
-                current = frozenset(str(info[4][0]) for info in infos)
-                rogue = current - pinned
-                if rogue:
-                    raise httpx.ConnectError(
-                        f"DNS rebinding detected: {host} now resolves to {sorted(rogue)}, "
-                        f"expected subset of pinned set {sorted(pinned)}."
-                    )
-            return super().handle_request(request)
-
-    return _PinnedHostTransport()
 
 
 def _validate_stdio_command(command: str, args: list[str] | None = None) -> None:
@@ -254,7 +211,7 @@ class MCPClient:
         self._sse_thread: threading.Thread | None = None
         self._message_endpoint: str | None = None
         self._request_id = 0
-        self._pending_requests: dict[int, queue.Queue] = {}
+        self._pending_requests: dict[int, queue.Queue[Any]] = {}
         self._lock = threading.Lock()
         self._pending_lock = threading.Lock()
         self._connected = threading.Event()
@@ -463,7 +420,7 @@ class MCPClient:
             request["params"] = params
 
         # Create response queue for this request
-        response_queue: queue.Queue = queue.Queue()
+        response_queue: queue.Queue[Any] = queue.Queue()
         with self._pending_lock:
             self._pending_requests[request_id] = response_queue
 
@@ -754,7 +711,7 @@ class StdioMCPClient:
         try:
             self._process.terminate()
             await asyncio.wait_for(self._process.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self._process.kill()
             await self._process.wait()
         finally:
@@ -805,7 +762,7 @@ class StdioMCPClient:
                     self._process.stdout.readline(),
                     timeout=self.timeout,
                 )
-            except asyncio.TimeoutError as err:
+            except TimeoutError as err:
                 raise TimeoutError(f"MCP request timed out after {self.timeout}s") from err
 
             if not response_line:

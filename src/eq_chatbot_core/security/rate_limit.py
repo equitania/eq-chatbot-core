@@ -7,7 +7,7 @@ The actual storage is handled by Odoo models.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Protocol, runtime_checkable
 
 _logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ def check_rate_limit(
     Returns:
         RateLimitResult with allowed status and details
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     # Check per-minute burst limit
     minute_ago = now - timedelta(minutes=1)

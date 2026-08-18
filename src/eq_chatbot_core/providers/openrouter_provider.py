@@ -120,8 +120,14 @@ class OpenRouterProvider(BaseLLMProvider):
             if self.site_name:
                 headers["X-Title"] = self.site_name
 
+            # Pin the resolved addresses against DNS rebinding. Done here rather
+            # than in __init__ so the fixed public default still costs no DNS
+            # round-trip until the client is actually used.
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
             self._client = httpx.Client(
                 base_url=self.base_url,
+                transport=build_pinned_transport_for_url(self.base_url),
                 headers=headers,
                 timeout=self.timeout,
             )

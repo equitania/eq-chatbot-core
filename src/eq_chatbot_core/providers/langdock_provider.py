@@ -195,8 +195,14 @@ class LangDockProvider(BaseLLMProvider):
     def http_client(self) -> httpx.Client:
         """Get or create HTTP client for direct API calls."""
         if self._http_client is None:
+            # Pin the resolved addresses against DNS rebinding (see
+            # utils.url_validation.build_pinned_transport_for_url).
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
+            backend_url = self._get_backend_url()
             self._http_client = httpx.Client(
-                base_url=self._get_backend_url(),
+                base_url=backend_url,
+                transport=build_pinned_transport_for_url(backend_url),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Content-Type": "application/json",
@@ -1178,7 +1184,7 @@ class LangDockProvider(BaseLLMProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _convert_to_gemini_parts(self, content: str | list) -> list[dict[str, Any]]:
+    def _convert_to_gemini_parts(self, content: str | list[Any]) -> list[dict[str, Any]]:
         """Convert OpenAI-style content to Gemini parts format.
 
         Args:

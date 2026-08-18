@@ -5,7 +5,6 @@ Tests both SSE and stdio transport modes with mocked dependencies.
 Run with: pytest tests/unit/test_mcp.py -v
 """
 
-import asyncio
 import json
 import os
 import queue
@@ -700,7 +699,7 @@ class TestStdioMCPClientProcessManagement:
         mock_process = MagicMock()
         mock_process.terminate = MagicMock()
         mock_process.kill = MagicMock()
-        mock_process.wait = AsyncMock(side_effect=[asyncio.TimeoutError(), None])
+        mock_process.wait = AsyncMock(side_effect=[TimeoutError(), None])
         client._process = mock_process
 
         await client.stop()
@@ -755,7 +754,7 @@ class TestStdioMCPClientRequests:
         mock_process.stdin.write = MagicMock()
         mock_process.stdin.drain = AsyncMock()
         mock_process.stdout = MagicMock()
-        mock_process.stdout.readline = AsyncMock(side_effect=asyncio.TimeoutError())
+        mock_process.stdout.readline = AsyncMock(side_effect=TimeoutError())
         client._process = mock_process
 
         with pytest.raises(TimeoutError, match="timed out"):

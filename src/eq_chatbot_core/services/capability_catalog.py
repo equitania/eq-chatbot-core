@@ -21,7 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
 
@@ -72,17 +72,17 @@ class ModelCapabilities(TypedDict, total=False):
 class CapabilityCatalog:
     """Lookup of model capabilities/limits/pricing, backed by the Equitania catalog."""
 
-    def __init__(self, raw: dict):
+    def __init__(self, raw: dict[str, Any]):
         self._raw = raw or {}
-        self._defaults: dict = dict(self._raw.get("capability_defaults") or {})
-        self.capability_meta: dict = dict(self._raw.get("capability_meta") or {})
-        self.providers: dict = dict(self._raw.get("providers") or {})
+        self._defaults: dict[str, Any] = dict(self._raw.get("capability_defaults") or {})
+        self.capability_meta: dict[str, Any] = dict(self._raw.get("capability_meta") or {})
+        self.providers: dict[str, Any] = dict(self._raw.get("providers") or {})
         self.currency: str = str(self._raw.get("currency") or "USD")
 
         # Index by normalized alias/id -> list of (preferred_providers, entry).
         # A canonical id may be reachable through several providers, so we keep a
         # list and disambiguate on the requested provider at lookup time.
-        self._entries: dict[str, list[tuple[frozenset[str], dict]]] = {}
+        self._entries: dict[str, list[tuple[frozenset[str], dict[str, Any]]]] = {}
         for model in self._raw.get("models") or []:
             if not isinstance(model, dict):
                 continue
@@ -152,7 +152,7 @@ class CapabilityCatalog:
                 return self._build(entry)
         return None
 
-    def _match_key(self, key: str, provider: str | None) -> dict | None:
+    def _match_key(self, key: str, provider: str | None) -> dict[str, Any] | None:
         candidates = self._entries.get(key)
         if not candidates:
             return None
@@ -162,7 +162,7 @@ class CapabilityCatalog:
                     return entry
         return candidates[0][1]
 
-    def _build(self, entry: dict) -> ModelCapabilities:
+    def _build(self, entry: dict[str, Any]) -> ModelCapabilities:
         caps = dict(entry.get("capabilities") or {})
         limits = dict(entry.get("limits") or {})
         pricing = dict(entry.get("pricing") or {})

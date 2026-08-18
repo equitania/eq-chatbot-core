@@ -1,23 +1,14 @@
 """CON-12: Static check that pyproject.toml declares the [realtime] extra with correct websockets version bounds."""
 
-import sys
+import tomllib
 from pathlib import Path
 
 import pytest
 
-# tomllib is stdlib from 3.11; on 3.10 the project already ships `tomli` (declared
-# in pyproject.toml with a python_version marker) and it exposes the same load().
-# A module-level `import tomllib` guarded only by a pytestmark skipif would still
-# break collection on 3.10 — the mark is evaluated after the import runs.
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
 
 @pytest.mark.unit
 def test_realtime_extra_declared() -> None:
-    """CON-12: websockets>=13.0,<17.0 declared in pyproject.toml [realtime] extra."""
+    """CON-12: websockets>=13.0,<18.0 declared in pyproject.toml [realtime] extra."""
     pyproject_path = Path(__file__).parent.parent.parent.parent / "pyproject.toml"
     assert pyproject_path.exists(), f"pyproject.toml not found at {pyproject_path}"
     with open(pyproject_path, "rb") as f:
@@ -29,7 +20,7 @@ def test_realtime_extra_declared() -> None:
     assert len(websockets_deps) == 1, f"Expected 1 websockets dep, got: {websockets_deps}"
     dep_str = websockets_deps[0]
     assert ">=13.0" in dep_str, f"Missing >=13.0 lower bound: {dep_str}"
-    assert "<17.0" in dep_str, f"Missing <17.0 upper bound: {dep_str}"
+    assert "<18.0" in dep_str, f"Missing <18.0 upper bound: {dep_str}"
 
 
 @pytest.mark.unit

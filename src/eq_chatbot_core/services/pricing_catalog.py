@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
 
@@ -57,7 +57,7 @@ class ModelPricing(TypedDict):
 class PricingCatalog:
     """Lookup of per-1k-token prices, backed by the LiteLLM pricing database."""
 
-    def __init__(self, raw: dict):
+    def __init__(self, raw: dict[str, Any]):
         # Index as {normalized_model_id: [(litellm_provider, ModelPricing), ...]}.
         # A model id may appear under multiple providers, so we keep a list and
         # disambiguate at lookup time.

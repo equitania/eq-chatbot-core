@@ -109,8 +109,15 @@ class LocalLLMProvider(BaseLLMProvider):
     def client(self) -> httpx.Client:
         """Lazy initialization of httpx client."""
         if self._client is None:
+            # Pin the validated addresses for the lifetime of the client: the
+            # constructor's validate_url() only covers the resolution at that
+            # moment, so without this an attacker-supplied hostname could
+            # re-resolve to an internal target before the socket is opened.
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
             self._client = httpx.Client(
                 base_url=self.base_url,
+                transport=build_pinned_transport_for_url(self.base_url, allow_private_ranges=True),
                 timeout=httpx.Timeout(self.timeout),
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
