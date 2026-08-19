@@ -131,7 +131,28 @@ Standalone HTTP calls inside cloud providers (`mammouth`, `langdock`) disable re
 
 Every provider that accepts a caller-supplied `base_url` validates it with `validate_url()` at construction time: non-HTTP(S) schemes and private / link-local / cloud-metadata targets (e.g. `169.254.169.254`) raise `ValueError`.
 
-**Since v2.1.0 that validation is also enforced at connect time.** Checking only at construction left a TOCTOU window: a hostname with a very short TTL could resolve to a public address during validation and to an internal one by the time the socket opened, carrying the `Authorization` header with it. Every provider now issues its requests through a transport from `utils/url_validation` that re-resolves on each connect. It *revalidates* rather than pinning strictly — a changed address set is re-run through the same policy and rejected only if it is private/reserved/metadata, so the routine IP rotation of CDN-fronted endpoints does not turn into connection failures in long-lived processes. For targets that are not one fixed endpoint (a URL taken from an API response, a configurable catalog location, anything followed through redirects) `build_validating_transport()` applies the full policy to whatever host each hop names. Cloud providers (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) reject private ranges; the `local` provider allows them (LAN mode for on-prem model servers). Fixed public default endpoints skip the check — no DNS round-trip on default construction. Explicit localhost URLs are always accepted.
+**Since v2.1.0 that validation is also enforced at connect time.** Checking only at construction left a TOCTOU window: a hostname with a very short TTL could resolve to a public address during validation and to an internal one by the time the socket opened, carrying the `Authorization` header with it. Every provider now issues its requests through a transport from `utils/url_validation` that re-resolves on each connect. It *revalidates* rather than pinning strictly — a changed address set is re-run through the same policy and rejected only if it is private/reserved/metadata, so the routine IP rotation of CDN-fronted endpoints does not turn into connection failures in long-lived processes. For targets that are not one fixed endpoint (a URL taken from an API response, a configurable catalog location, anything followed through redirects) `build_validating_transport()` applies the full policy to whatever host each hop names. Cloud providers (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) reject private ranges; the `local` and `privatemode` providers allow them (LAN mode for on-prem model servers and for the Privatemode proxy, which is loopback by design). Fixed public default endpoints skip the check — no DNS round-trip on default construction. Explicit localhost URLs are always accepted.
+
+### Privatemode confidentiality boundary (v3.0.0+)
+
+The `privatemode` provider is the one case where the transport *is* the security property. Privatemode's
+end-to-end encryption is produced by a local privatemode-proxy, not by this library — the library speaks
+plain OpenAI Chat Completions to that proxy. Whether prompts are actually protected therefore depends
+entirely on where `base_url` points, and a wrong value would fail **silently**: the caller believes the
+data is encrypted while it crosses the network in the clear.
+
+`PrivatemodeProvider` classifies the endpoint at construction, before the SDK client is ever built:
+
+| `base_url` | Behaviour |
+|------------|-----------|
+| `https://…` | allowed — TLS protects the hop |
+| loopback (the default `http://localhost:8080/v1`) | allowed, without a DNS lookup |
+| plain HTTP → private / cluster-internal address | allowed, logged at INFO (the vendor's Helm deployment) |
+| plain HTTP → **public** address | **`ValueError`**, naming the address and the three legitimate fixes |
+
+`allow_insecure_transport=True` overrides the last row for hops protected by other means (VPN, service
+mesh, IPsec) and logs a warning stating that the end-to-end guarantee does not hold. An unresolvable
+hostname is warned about and deferred to the SSRF guard rather than guessed at.
 
 ### See also
 
@@ -271,7 +292,30 @@ Standalone-HTTP-Calls in Cloud-Providern (`mammouth`, `langdock`) deaktivieren R
 
 Jeder Provider mit caller-supplied `base_url` validiert diese beim Konstruieren mit `validate_url()`: Nicht-HTTP(S)-Schemata sowie private / link-local / Cloud-Metadata-Ziele (z. B. `169.254.169.254`) lösen `ValueError` aus.
 
-**Seit v2.1.0 wird diese Prüfung auch beim Verbindungsaufbau durchgesetzt.** Eine Prüfung ausschließlich beim Konstruieren ließ ein TOCTOU-Fenster offen: Ein Hostname mit sehr kurzer TTL konnte während der Validierung auf eine öffentliche Adresse zeigen und beim Öffnen des Sockets auf eine interne — samt `Authorization`-Header. Jeder Provider schickt seine Requests jetzt über einen Transport aus `utils/url_validation`, der bei jedem Connect neu auflöst. Er *revalidiert*, statt strikt zu pinnen: Ein geändertes Adress-Set durchläuft dieselbe Policy und wird nur abgelehnt, wenn es privat/reserviert/Metadata ist. So wird die normale IP-Rotation CDN-gestützter Endpunkte in langlebigen Prozessen nicht zum Verbindungsfehler. Für Ziele, die kein fester Endpunkt sind (eine URL aus einer API-Antwort, ein konfigurierbarer Katalog-Ort, alles mit Redirect-Verfolgung) wendet `build_validating_transport()` die vollständige Policy auf jeden einzelnen Hop an. Cloud-Provider (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) lehnen private Ranges ab; der `local`-Provider erlaubt sie (LAN-Modus für On-Prem-Modellserver). Feste öffentliche Default-Endpoints überspringen die Prüfung — kein DNS-Roundtrip bei Default-Konstruktion. Explizite localhost-URLs sind immer erlaubt.
+**Seit v2.1.0 wird diese Prüfung auch beim Verbindungsaufbau durchgesetzt.** Eine Prüfung ausschließlich beim Konstruieren ließ ein TOCTOU-Fenster offen: Ein Hostname mit sehr kurzer TTL konnte während der Validierung auf eine öffentliche Adresse zeigen und beim Öffnen des Sockets auf eine interne — samt `Authorization`-Header. Jeder Provider schickt seine Requests jetzt über einen Transport aus `utils/url_validation`, der bei jedem Connect neu auflöst. Er *revalidiert*, statt strikt zu pinnen: Ein geändertes Adress-Set durchläuft dieselbe Policy und wird nur abgelehnt, wenn es privat/reserviert/Metadata ist. So wird die normale IP-Rotation CDN-gestützter Endpunkte in langlebigen Prozessen nicht zum Verbindungsfehler. Für Ziele, die kein fester Endpunkt sind (eine URL aus einer API-Antwort, ein konfigurierbarer Katalog-Ort, alles mit Redirect-Verfolgung) wendet `build_validating_transport()` die vollständige Policy auf jeden einzelnen Hop an. Cloud-Provider (`azure`, `langdock`, `openrouter`, `mammouth`, `litellm`, `ionos`, `melious`) lehnen private Ranges ab; die Provider `local` und `privatemode` erlauben sie (LAN-Modus für On-Prem-Modellserver bzw. für den Privatemode-Proxy, der konstruktionsbedingt auf Loopback läuft). Feste öffentliche Default-Endpoints überspringen die Prüfung — kein DNS-Roundtrip bei Default-Konstruktion. Explizite localhost-URLs sind immer erlaubt.
+
+### Privatemode-Vertraulichkeitsgrenze (v3.0.0+)
+
+Beim `privatemode`-Provider **ist** der Transportweg die Sicherheitseigenschaft. Die
+Ende-zu-Ende-Verschlüsselung erzeugt der lokale privatemode-proxy, nicht diese Library — die Library
+spricht Klartext-OpenAI-Chat-Completions gegen diesen Proxy. Ob Prompts tatsächlich geschützt sind,
+hängt damit ausschließlich davon ab, wohin `base_url` zeigt, und ein falscher Wert würde
+**stillschweigend** scheitern: Der Aufrufer hält die Daten für verschlüsselt, während sie im Klartext
+über das Netz gehen.
+
+`PrivatemodeProvider` klassifiziert den Endpunkt beim Konstruieren, bevor überhaupt ein SDK-Client
+gebaut wird:
+
+| `base_url` | Verhalten |
+|------------|-----------|
+| `https://…` | erlaubt — TLS schützt den Hop |
+| Loopback (der Default `http://localhost:8080/v1`) | erlaubt, ohne DNS-Lookup |
+| Klartext-HTTP → private/cluster-interne Adresse | erlaubt, INFO-Log (das Helm-Deployment des Herstellers) |
+| Klartext-HTTP → **öffentliche** Adresse | **`ValueError`** mit Nennung der Adresse und der drei legitimen Auswege |
+
+`allow_insecure_transport=True` übersteuert die letzte Zeile für anderweitig geschützte Hops (VPN,
+Service Mesh, IPsec) und protokolliert eine Warnung, dass die Ende-zu-Ende-Garantie nicht gilt. Ein
+nicht auflösbarer Hostname wird gewarnt und an den SSRF-Guard weitergereicht statt geraten.
 
 ### Siehe auch
 

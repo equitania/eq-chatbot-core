@@ -42,6 +42,11 @@ Usage:
     # Melious.ai (sovereign EU-hosted, OpenAI-compatible; base_url has a default)
     provider = get_provider("melious", api_key="sk-mel-...")
     response = provider.chat_completion(messages=[...], model="minimax-428b-m3")
+
+    # Privatemode (end-to-end encrypted, via the locally-run attesting proxy).
+    # The proxy usually holds the API key, so none is passed here.
+    provider = get_provider("privatemode")  # defaults to http://localhost:8080/v1
+    response = provider.chat_completion(messages=[...], model="kimi-latest")
 """
 
 from typing import TYPE_CHECKING, Any
@@ -57,6 +62,7 @@ CLOUD_PROVIDERS: list[str] = [
     "litellm",
     "ionos",
     "melious",
+    "privatemode",
 ]
 LOCAL_PROVIDERS: list[str] = ["local", "lm_studio", "lmstudio", "ollama"]
 
@@ -121,6 +127,7 @@ def get_provider(
     from eq_chatbot_core.providers.melious_provider import MeliousProvider
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
+    from eq_chatbot_core.providers.privatemode_provider import PrivatemodeProvider
     from eq_chatbot_core.providers.vertex_provider import VertexProvider
 
     # Provider class mapping
@@ -136,6 +143,7 @@ def get_provider(
         "litellm": LiteLLMProvider,
         "ionos": IonosProvider,
         "melious": MeliousProvider,
+        "privatemode": PrivatemodeProvider,
     }
 
     # Convenience aliases for local providers with default URLs
@@ -160,6 +168,7 @@ def get_provider(
         | type[LiteLLMProvider]
         | type[IonosProvider]
         | type[MeliousProvider]
+        | type[PrivatemodeProvider]
         | None
     ) = None
 
@@ -174,7 +183,9 @@ def get_provider(
         available = list(providers.keys()) + list(local_aliases.keys())
         raise ValueError(f"Unknown provider: {provider_name}. Available: {', '.join(sorted(set(available)))}")
 
-    # Local providers and Vertex don't require API key
+    # Local providers and Vertex don't require an API key. Privatemode usually
+    # doesn't either — its proxy holds the key — and substitutes its own
+    # placeholder, so an empty string is passed through untouched here.
     if provider_class in (LocalLLMProvider, VertexProvider):
         api_key = api_key or "not-used"
 
@@ -203,6 +214,7 @@ from eq_chatbot_core.providers.local_provider import LocalLLMProvider  # noqa: E
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa: E402
 from eq_chatbot_core.providers.melious_provider import MeliousProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
+from eq_chatbot_core.providers.privatemode_provider import PrivatemodeProvider  # noqa: E402
 from eq_chatbot_core.providers.vertex_provider import VertexProvider  # noqa: E402
 
 __all__ = [
@@ -223,6 +235,7 @@ __all__ = [
     "LiteLLMProvider",
     "IonosProvider",
     "MeliousProvider",
+    "PrivatemodeProvider",
     "MammouthProvider",
     "OpenRouterProvider",
     "ToolDefinition",

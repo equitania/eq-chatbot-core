@@ -20,7 +20,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Local (LM Studio/Ollama)
+- **Multi-Provider Support** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Privatemode.ai (end-to-end encrypted, EU), Local (LM Studio/Ollama)
 - **Unified API** — same interface regardless of provider
 - **Temperature Safety** — automatic model-specific temperature clamping
 - **Security** — Fernet encryption, prompt-injection detection (direct user input + indirect tool/RAG content), file-upload validation, race-free token-bucket rate limiting
@@ -214,7 +214,7 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Melious.ai (souverän EU), Local (LM Studio/Ollama)
+- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Melious.ai (souverän EU), Privatemode.ai (Ende-zu-Ende-verschlüsselt, EU), Local (LM Studio/Ollama)
 - **Einheitliche API** — gleiche Schnittstelle unabhängig vom Provider
 - **Temperature-Sicherheit** — automatisches modellspezifisches Temperature-Clamping
 - **Sicherheit** — Fernet-Verschlüsselung, Prompt-Injection-Erkennung (direkte Nutzereingaben + indirekte Tool-/RAG-Inhalte), File-Upload-Validierung, Race-freies Token-Bucket-Rate-Limiting

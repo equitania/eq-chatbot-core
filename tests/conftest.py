@@ -219,6 +219,8 @@ def test_config() -> dict[str, Any]:
         # Melious.ai (sovereign EU-hosted; base_url defaults to the official endpoint)
         "melious_api_key": os.getenv("MELIOUS_API_KEY"),
         "melious_base_url": os.getenv("MELIOUS_BASE_URL"),
+        "privatemode_api_key": os.getenv("PRIVATEMODE_API_KEY"),
+        "privatemode_base_url": os.getenv("PRIVATEMODE_BASE_URL"),
         # Vertex AI
         "vertex_project": os.getenv("VERTEX_PROJECT"),
         "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
@@ -305,6 +307,12 @@ def melious_api_key(test_config) -> str | None:
 def melious_base_url(test_config) -> str | None:
     """Melious base URL from environment (optional; defaults to official endpoint)."""
     return test_config["melious_base_url"]
+
+
+@pytest.fixture(scope="session")
+def privatemode_base_url(test_config) -> str | None:
+    """Privatemode proxy base URL (optional; defaults to http://localhost:8080/v1)."""
+    return test_config["privatemode_base_url"]
 
 
 @pytest.fixture
@@ -654,6 +662,37 @@ def melious_resolved_model(test_config, resolved_models) -> str:
 
 
 @pytest.fixture(scope="session")
+def privatemode_resolved_model(test_config, resolved_models) -> str:
+    """Resolve the Privatemode test model against the local proxy.
+
+    Privatemode has no public API: the privatemode-proxy container must be
+    running locally (or reachable at PRIVATEMODE_BASE_URL). An API key is only
+    needed when that proxy was started without ``--apiKey``.
+    """
+    cache_key = "privatemode"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider(
+            "privatemode",
+            api_key=test_config.get("privatemode_api_key"),
+            base_url=test_config.get("privatemode_base_url"),
+        )
+        # Probe first: the resolver swallows list_models() failures and returns
+        # an unvalidated model, which would turn "no proxy running" into a wall
+        # of connection errors instead of a clean skip.
+        try:
+            provider.list_models()
+        except Exception as exc:  # proxy not running is the normal case
+            pytest.skip(f"Privatemode proxy unreachable at {provider.base_url} ({exc})")
+
+        chain = _select_chain(cache_key, "PRIVATEMODE_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
 def vertex_resolved_model(test_config, resolved_models) -> str:
     """Resolve Vertex AI test model from registry against live API.
 
@@ -997,6 +1036,10 @@ _MODULE_GROUPS = {
         "label": "Provider: Melious.ai (sovereign EU)",
         "modules": ["test_melious", "test_melious_live"],
     },
+    "Privatemode": {
+        "label": "Provider: Privatemode.ai (end-to-end encrypted)",
+        "modules": ["test_privatemode", "test_privatemode_live"],
+    },
     "Local": {
         "label": "Provider: Local (LM Studio / Ollama)",
         "modules": ["test_local", "test_local_live"],
@@ -1039,6 +1082,7 @@ _RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
     "litellm": ("LiteLLM Gateway", "LITELLM_TEST_MODEL"),
     "ionos": ("IONOS AI Model Hub", "IONOS_TEST_MODEL"),
     "melious": ("Melious.ai", "MELIOUS_TEST_MODEL"),
+    "privatemode": ("Privatemode.ai", "PRIVATEMODE_TEST_MODEL"),
     "local": ("Local (LM Studio / Ollama)", "LOCAL_TEST_MODEL"),
 }
 
@@ -1057,6 +1101,7 @@ _RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
     "litellm": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint
+    "privatemode": [],  # gated by proxy availability, not by a key
     "local": [],  # gated by SKIP_LOCAL_TESTS / server-availability
 }
 
@@ -1075,6 +1120,7 @@ _GROUP_TO_PRIMARY_RESOLVER: dict[str, str] = {
     "LiteLLM": "litellm",
     "Ionos": "ionos",
     "Melious": "melious",
+    "Privatemode": "privatemode",
     "Local": "local",
 }
 
@@ -1093,6 +1139,7 @@ _GROUP_REQUIRED_ENV = {
     "LiteLLM": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "Ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "Melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint
+    "Privatemode": [],  # no key — the local proxy holds it
     "Local": [],  # no key — uses local servers
 }
 

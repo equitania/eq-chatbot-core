@@ -32,6 +32,7 @@ All providers implement the same `BaseLLMProvider` interface — `chat_completio
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Any OpenAI-compatible gateway (LiteLLM proxy, vLLM). **No default URL** — `base_url` is required. Also supports TTS/STT |
 | `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-hosted (Berlin/de-txl), OpenAI-compatible. `base_url` defaults to the official endpoint |
 | `melious` | `MeliousProvider` | `api_key` | Melious.ai — sovereign EU-hosted, OpenAI-compatible (60+ open-weight models). `base_url` defaults to the official endpoint |
+| `privatemode` | `PrivatemodeProvider` | — (proxy holds it) | Privatemode.ai — end-to-end encrypted via confidential computing. Talks to a **local** privatemode-proxy; `base_url` defaults to `http://localhost:8080/v1` |
 | `local` | `LocalLLMProvider` | `base_url` | Custom OpenAI-compatible endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Defaults to `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Defaults to `localhost:11434/v1` |
@@ -216,6 +217,61 @@ catalogue. Melious-specific extras (`preset`, the `:flavor` model suffix) and re
 > **GDPR:** Melious runs on sovereign European infrastructure (GDPR, ISO 27001 in progress, green
 > hosting), making it suitable for EU-regulated workloads.
 
+### Privatemode.ai setup
+
+[Privatemode.ai](https://www.privatemode.ai) (Edgeless Systems) is an end-to-end encrypted GenAI
+service built on confidential computing. Prompts and responses are encrypted on the client side and
+decrypted only inside a hardware-isolated Confidential Computing Environment (CCE). Neither Edgeless
+Systems nor the infrastructure provider (Scaleway, EU) can read the data.
+
+**This provider is different from every other one here: there is no public API to call.** The
+encryption and the remote attestation are done by a proxy you run yourself:
+
+```bash
+docker run -p 8080:8080 \
+    ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest \
+    --apiKey <your-api-key>
+```
+
+The library then speaks ordinary OpenAI Chat Completions to that proxy:
+
+```python
+provider = get_provider("privatemode")          # base_url defaults to http://localhost:8080/v1
+
+response = provider.chat_completion(
+    messages=[{"role": "user", "content": "Hallo!"}],
+    model="kimi-latest",                        # default; `-latest` survives model retirement
+)
+```
+
+`api_key` is **optional** — the proxy normally holds it (`--apiKey`) and authenticates upstream on
+your behalf. Pass a key only when the proxy was started without one, in which case it forwards your
+`Authorization` header.
+
+**The end-to-end guarantee is only as strong as the hop to the proxy**, and misconfiguring that hop
+would fail silently. The provider therefore classifies `base_url` at construction:
+
+| `base_url` | Behaviour |
+|------------|-----------|
+| `https://…` (anywhere) | allowed — TLS protects the hop |
+| loopback (the default) | allowed, no DNS lookup |
+| plain HTTP → private/cluster-internal address | allowed, logged at INFO (the documented Helm deployment) |
+| plain HTTP → **public** address | **`ValueError`** — would put prompts on the wire in cleartext |
+
+The last case can be overridden with `allow_insecure_transport=True` when that hop is protected by
+other means (VPN, service mesh, IPsec); it then logs a warning naming the exposure.
+
+Two vendor extras are accepted as ordinary keyword arguments and routed into the request body for
+you: `cache_salt` (prompt-cache isolation between tenants) and `chat_template_kwargs`
+(e.g. `{"thinking": False}` to skip Kimi's reasoning pass).
+
+Model ids are discovered live via `provider.list_models()` — no static catalogue is bundled, because
+the vendor retires concrete ids over time. At the time of writing: `kimi-latest` / `kimi-k2.6`
+(256k context, vision) and `gpt-oss-120b` (128k, text).
+
+> **GDPR:** Confidential computing means the operator itself cannot access the plaintext. Hosted in
+> the EU (Scaleway); suitable for the strictest EU-regulated workloads.
+
 ### Temperature clamping
 
 Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
@@ -244,6 +300,7 @@ This is automatic — pass `temperature=0.7` and the library passes through what
 | LiteLLM (gateway) | model-dependent | ✓ | model-dependent | ✓ |
 | IONOS (EU) | model-dependent | ✓ | ✓ | ✓ |
 | Melious (EU) | model-dependent | ✓ | ✓ | ✓ |
+| Privatemode (EU, E2E) | model-dependent | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | model-dependent | ✓ | model-dependent | — |
 
 ### See also
@@ -287,6 +344,7 @@ Alle Provider implementieren das gleiche `BaseLLMProvider`-Interface — `chat_c
 | `litellm` | `LiteLLMProvider` | `api_key` + `base_url` | Beliebiges OpenAI-kompatibles Gateway (LiteLLM-Proxy, vLLM). **Keine Default-URL** — `base_url` ist Pflicht. Unterstützt auch TTS/STT |
 | `ionos` | `IonosProvider` | `api_key` | IONOS AI Model Hub — EU-gehostet (Berlin/de-txl), OpenAI-kompatibel. `base_url` hat einen Default |
 | `melious` | `MeliousProvider` | `api_key` | Melious.ai — souverän EU-gehostet, OpenAI-kompatibel (60+ Open-Weight-Modelle). `base_url` hat einen Default |
+| `privatemode` | `PrivatemodeProvider` | — (hält der Proxy) | Privatemode.ai — Ende-zu-Ende-verschlüsselt über Confidential Computing. Spricht einen **lokalen** privatemode-proxy an; `base_url` default `http://localhost:8080/v1` |
 | `local` | `LocalLLMProvider` | `base_url` | Beliebiger OpenAI-kompatibler Endpoint |
 | `lm_studio` / `lmstudio` | `LocalLLMProvider` | — | Default `localhost:1234/v1` |
 | `ollama` | `LocalLLMProvider` | — | Default `localhost:11434/v1` |
@@ -472,6 +530,63 @@ Antwort-Metadaten (`environment_impact`, `billing_cost`) werden transparent übe
 > **DSGVO:** Melious läuft auf souveräner europäischer Infrastruktur (DSGVO, ISO 27001 in Arbeit,
 > Green Hosting) und eignet sich damit für EU-regulierte Workloads.
 
+### Privatemode.ai Setup
+
+[Privatemode.ai](https://www.privatemode.ai) (Edgeless Systems) ist ein Ende-zu-Ende-verschlüsselter
+GenAI-Dienst auf Basis von Confidential Computing. Prompts und Antworten werden clientseitig
+verschlüsselt und erst innerhalb einer hardware-isolierten Confidential Computing Environment (CCE)
+entschlüsselt. Weder Edgeless Systems noch der Infrastrukturbetreiber (Scaleway, EU) können die Daten
+lesen.
+
+**Dieser Provider unterscheidet sich von allen anderen: Es gibt keine öffentliche API.**
+Verschlüsselung und Remote Attestation übernimmt ein Proxy, den man selbst betreibt:
+
+```bash
+docker run -p 8080:8080 \
+    ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest \
+    --apiKey <dein-api-key>
+```
+
+Die Library spricht dann ganz normales OpenAI Chat Completions gegen diesen Proxy:
+
+```python
+provider = get_provider("privatemode")          # base_url default: http://localhost:8080/v1
+
+response = provider.chat_completion(
+    messages=[{"role": "user", "content": "Hallo!"}],
+    model="kimi-latest",                        # Default; `-latest` überlebt Modell-Abkündigungen
+)
+```
+
+`api_key` ist **optional** — normalerweise hält der Proxy den Schlüssel (`--apiKey`) und
+authentifiziert stellvertretend. Nur wenn der Proxy ohne Key gestartet wurde, muss der Key hier
+übergeben werden; der Proxy reicht dann den `Authorization`-Header weiter.
+
+**Die Ende-zu-Ende-Garantie ist nur so stark wie der Weg zum Proxy** — und eine Fehlkonfiguration
+dieses Wegs würde stillschweigend scheitern. Der Provider klassifiziert `base_url` deshalb schon beim
+Konstruieren:
+
+| `base_url` | Verhalten |
+|------------|-----------|
+| `https://…` (beliebig) | erlaubt — TLS schützt den Hop |
+| Loopback (der Default) | erlaubt, ohne DNS-Lookup |
+| Klartext-HTTP → private/cluster-interne Adresse | erlaubt, INFO-Log (das dokumentierte Helm-Deployment) |
+| Klartext-HTTP → **öffentliche** Adresse | **`ValueError`** — Prompts gingen im Klartext über die Leitung |
+
+Der letzte Fall lässt sich mit `allow_insecure_transport=True` übersteuern, wenn der Hop anderweitig
+geschützt ist (VPN, Service Mesh, IPsec); dann wird die Exposition als Warnung protokolliert.
+
+Zwei herstellerspezifische Extras werden als normale Keyword-Argumente akzeptiert und automatisch in
+den Request-Body geroutet: `cache_salt` (Prompt-Cache-Isolation zwischen Mandanten) und
+`chat_template_kwargs` (z. B. `{"thinking": False}`, um Kimis Reasoning-Durchlauf zu überspringen).
+
+Modell-IDs werden live über `provider.list_models()` ermittelt — ein statischer Katalog ist bewusst
+nicht mitgeliefert, da der Hersteller konkrete IDs über die Zeit abkündigt. Zum Zeitpunkt der
+Erstellung: `kimi-latest` / `kimi-k2.6` (256k Kontext, Vision) und `gpt-oss-120b` (128k, Text).
+
+> **DSGVO:** Confidential Computing bedeutet, dass selbst der Betreiber nicht an den Klartext kommt.
+> Hosting in der EU (Scaleway); geeignet für die strengsten EU-regulierten Workloads.
+
 ### Temperature-Clamping
 
 Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clampt automatisch auf den akzeptierten Bereich pro Modell:
@@ -500,6 +615,7 @@ Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht d
 | LiteLLM (Gateway) | modellabhängig | ✓ | modellabhängig | ✓ |
 | IONOS (EU) | modellabhängig | ✓ | ✓ | ✓ |
 | Melious (EU) | modellabhängig | ✓ | ✓ | ✓ |
+| Privatemode (EU, E2E) | modellabhängig | ✓ | ✓ | ✓ |
 | Local (LM Studio/Ollama) | modellabhängig | ✓ | modellabhängig | — |
 
 ### Siehe auch

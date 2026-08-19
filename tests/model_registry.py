@@ -156,6 +156,16 @@ MODELS: dict[str, ModelChain] = {
         "Primary + fallback ids verified live against /v1/models (71-model catalog). "
         "Requires MELIOUS_API_KEY (base_url defaults to the official Melious endpoint).",
     ),
+    "privatemode": ModelChain(
+        primary="kimi-latest",
+        fallbacks=("gpt-oss-120b",),
+        cost_hint="local proxy (confidential computing, EU)",
+        notes="Privatemode.ai — end-to-end encrypted via a LOCAL privatemode-proxy "
+        "container; there is no public API to reach directly. The primary uses the "
+        "'-latest' alias on purpose: the vendor retires concrete model ids over time. "
+        "Override via PRIVATEMODE_TEST_MODEL. Tests skip unless the proxy answers at "
+        "PRIVATEMODE_BASE_URL (default http://localhost:8080/v1).",
+    ),
 }
 
 

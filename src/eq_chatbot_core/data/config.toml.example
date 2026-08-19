@@ -21,7 +21,7 @@
 
 # Provider used when --provider is omitted (optional).
 # One of: openai, anthropic, langdock, openrouter, mammouth, azure, vertex,
-#         litellm, ionos, melious, local, lm_studio, ollama
+#         litellm, ionos, melious, privatemode, local, lm_studio, ollama
 # default_provider = "melious"
 
 # Global chat defaults (optional); used by `eq-chatbot chat` when the flags are omitted.
@@ -84,6 +84,15 @@
 # api_key  = "sk-mel-..."
 # model    = "minimax-428b-m3"
 # base_url = "https://api.melious.ai/v1"
+
+[providers.privatemode]
+# Privatemode.ai (end-to-end encrypted, confidential computing).
+# Requests go to the LOCAL privatemode-proxy, which encrypts and attests for you:
+#   docker run -p 8080:8080 ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest --apiKey <key>
+# api_key is only needed when the proxy was started WITHOUT --apiKey.
+# api_key  = "..."
+# model    = "kimi-latest"
+# base_url = "http://localhost:8080/v1"
 
 # Local providers need no api_key; set base_url only if you changed the default port.
 [providers.lm_studio]

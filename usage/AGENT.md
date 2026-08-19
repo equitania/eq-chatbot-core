@@ -5,7 +5,7 @@
 -->
 # eq-chatbot — Agent Capability Card
 
-> Unified command-line gateway to many LLM providers (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, IONOS, Melious, LiteLLM, local LM Studio/Ollama) with single-turn JSON chat, model listing, text-to-image generation, batch listing-asset generation, and a localhost HTTP/SSE server.
+> Unified command-line gateway to many LLM providers (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, IONOS, Melious, Privatemode, LiteLLM, local LM Studio/Ollama) with single-turn JSON chat, model listing, text-to-image generation, batch listing-asset generation, and a localhost HTTP/SSE server.
 
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
@@ -27,18 +27,18 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 
 | Command | Purpose | Args / Flags |
 |---|---|---|
-| `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
+| `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
 | `eq-chatbot config init` | Write a commented config template (mode 0600) to the config path. | --force |
 | `eq-chatbot config path` | Print the resolved config file path (whether or not it exists). | — |
 | `eq-chatbot config show` | Show the config path, permissions and a key-masked view of the contents. | — |
 | `eq-chatbot image` | Generate an image from a text prompt. | --provider/-p openai\|openrouter, --api-key/-k TEXT, --model/-m TEXT, --prompt TEXT, --prompt-file PATH, --size TEXT, --fit TEXT, --output/-o TEXT, --base-url/-u TEXT |
 | `eq-chatbot info` | Show package information. | — |
-| `eq-chatbot list-models` | List available models from a provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --base-url/-u TEXT, --json, --vision-only |
+| `eq-chatbot list-models` | List available models from a provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --base-url/-u TEXT, --json, --vision-only |
 | `eq-chatbot listing-assets` | Generate a batch of images from a recipe JSON file. | --recipe PATH, --provider/-p openai\|openrouter, --model/-m TEXT, --api-key/-k TEXT, --base-url/-u TEXT, --dest DIRECTORY, --only TEXT, --dry-run |
 | `eq-chatbot serve` | Run a localhost HTTP/SSE server exposing the LLM provider gateway. | --host TEXT, --port INTEGER, --auth-token TEXT, --auth-token-fd INTEGER, --parent-pid INTEGER, --log-level debug\|info\|warning\|error |
-| `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
+| `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
 
-**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `vertex` (ADC) need no key.
+**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`), `vertex` (ADC) and `privatemode` (the local proxy holds the key) need no key.
 
 ## Recipes
 

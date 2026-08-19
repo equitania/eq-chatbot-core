@@ -39,6 +39,8 @@ One model, two behaviors, selected in the request body. Usually off by default.
 - **Anthropic:** a `thinking` block with an explicit token budget
 - **Google Vertex (Gemini 2.5):** a thinking budget in the generation config
 - **Qwen3 (via local / gateway):** an `enable_thinking` boolean
+- **Privatemode (Kimi):** `chat_template_kwargs={"thinking": False}` — reasoning is *on* by
+  default here; the provider accepts this as a plain keyword and routes it into the request body
 - **Control:** per request, and the budget is a real cost/latency lever
 - **Caveat:** budgets interact with `max_tokens`. Reasoning tokens are billed and count toward the
   output budget on most providers — size `max_tokens` accordingly or responses truncate mid-answer.
@@ -79,6 +81,7 @@ reasoning on inside a given model.
 | `litellm` | Pass-through | gateway/model dependent | model-dependent |
 | `ionos` | Variant | model selection (mostly non-reasoning catalogue) | yes |
 | `melious` | Variant + router hint | model ID, `preset`, `reasoning_effort` | yes |
+| `privatemode` | Toggle | `chat_template_kwargs={"thinking": false}` (Kimi) | yes |
 | `local` / `lm_studio` / `ollama` | Variant | which GGUF you pulled | yes |
 
 > **Verify parameter names per release.** The *mechanisms* are stable; the *spellings* are not.
@@ -261,6 +264,8 @@ Ein Modell, zwei Verhalten, ausgewählt im Request-Body. Meist standardmäßig a
 - **Anthropic:** ein `thinking`-Block mit explizitem Token-Budget
 - **Google Vertex (Gemini 2.5):** ein Thinking-Budget in der Generation-Config
 - **Qwen3 (lokal / via Gateway):** ein `enable_thinking`-Boolean
+- **Privatemode (Kimi):** `chat_template_kwargs={"thinking": False}` — Reasoning ist hier
+  standardmäßig *an*; der Provider nimmt das als normales Keyword und routet es in den Request-Body
 - **Steuerung:** pro Request; das Budget ist ein echter Kosten- und Latenzhebel
 - **Vorsicht:** Budgets interagieren mit `max_tokens`. Reasoning-Tokens werden abgerechnet und
   zählen bei den meisten Providern gegen das Output-Budget — `max_tokens` entsprechend
@@ -303,6 +308,7 @@ aktiviert kein Reasoning innerhalb eines gegebenen Modells.
 | `litellm` | Durchgereicht | gateway-/modellabhängig | modellabhängig |
 | `ionos` | Variante | Modellwahl (überwiegend Non-Reasoning-Katalog) | ja |
 | `melious` | Variante + Router-Hint | Modell-ID, `preset`, `reasoning_effort` | ja |
+| `privatemode` | Toggle | `chat_template_kwargs={"thinking": false}` (Kimi) | ja |
 | `local` / `lm_studio` / `ollama` | Variante | welches GGUF geladen wurde | ja |
 
 > **Parameternamen pro Release verifizieren.** Die *Mechanismen* sind stabil, die *Schreibweisen*

@@ -200,11 +200,12 @@ This lets you store one key per provider on the host and never pass `-k` again:
 set -gx OPENAI_API_KEY     sk-...
 set -gx OPENROUTER_API_KEY sk-or-...
 set -gx MELIOUS_API_KEY    sk-mel-...
+# privatemode: usually none — the local proxy holds the key (PRIVATEMODE_API_KEY otherwise)
 ```
 
 Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
 `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
-`IONOS_API_KEY`, `MELIOUS_API_KEY`. A key set for one provider never satisfies another.
+`IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`. A key set for one provider never satisfies another.
 
 | Variable | Purpose | Used by |
 |----------|---------|---------|
@@ -461,11 +462,12 @@ So lässt sich pro Provider ein Key auf dem Host hinterlegen, ohne je wieder `-k
 set -gx OPENAI_API_KEY     sk-...
 set -gx OPENROUTER_API_KEY sk-or-...
 set -gx MELIOUS_API_KEY    sk-mel-...
+# privatemode: usually none — the local proxy holds the key (PRIVATEMODE_API_KEY otherwise)
 ```
 
 Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
 `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
-`IONOS_API_KEY`, `MELIOUS_API_KEY`. Ein Key für einen Provider erfüllt nie einen anderen.
+`IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`. Ein Key für einen Provider erfüllt nie einen anderen.
 
 | Variable | Zweck | Genutzt von |
 |----------|-------|-------------|

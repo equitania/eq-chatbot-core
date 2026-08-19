@@ -40,6 +40,7 @@ PROVIDER_API_KEY_ENV: dict[str, str] = {
     "litellm": "LITELLM_API_KEY",
     "ionos": "IONOS_API_KEY",
     "melious": "MELIOUS_API_KEY",
+    "privatemode": "PRIVATEMODE_API_KEY",
 }
 
 
@@ -120,7 +121,7 @@ def main() -> None:
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     default=None,
-    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
@@ -236,7 +237,7 @@ def test_provider(
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     default=None,
-    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
@@ -1120,6 +1121,7 @@ def info() -> None:
     click.echo("    • litellm    - LiteLLM / any OpenAI-compatible gateway (base_url required)")
     click.echo("    • ionos      - IONOS AI Model Hub (EU-hosted, OpenAI-compatible)")
     click.echo("    • melious    - Melious.ai (sovereign EU-hosted, OpenAI-compatible)")
+    click.echo("    • privatemode - Privatemode.ai, end-to-end encrypted via local proxy (localhost:8080)")
     click.echo("  Local:")
     click.echo("    • lm_studio - LM Studio (localhost:1234)")
     click.echo("    • ollama    - Ollama (localhost:11434)")
