@@ -1,12 +1,12 @@
 """
 Integration tests for Mammouth AI provider.
 
-These tests require a valid API key in .env.test:
+These tests require a valid API key in ~/.config/eq-chatbot/config.toml:
 - MAMMOUTH_API_KEY for Mammouth AI tests
 
 Run with: pytest -m integration tests/integration/test_mammouth_live.py -v
 
-Set SKIP_LIVE_TESTS=false in .env.test to enable these tests.
+Live tests run by default; export SKIP_LIVE_TESTS=true to skip them.
 """
 
 import pytest

@@ -1,14 +1,14 @@
 """
 Integration tests for OpenAI, Anthropic, and LangDock providers.
 
-These tests require valid API keys in .env.test:
+These tests require valid API keys in ~/.config/eq-chatbot/config.toml:
 - OPENAI_API_KEY for OpenAI tests
 - ANTHROPIC_API_KEY for Anthropic tests
 - LANGDOCK_API_KEY for LangDock tests
 
 Run with: pytest -m integration tests/integration/test_openai_live.py
 
-Set SKIP_LIVE_TESTS=false in .env.test to enable these tests.
+Live tests run by default; export SKIP_LIVE_TESTS=true to skip them.
 """
 
 import pytest

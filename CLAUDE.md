@@ -174,12 +174,15 @@ from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
 ### Test Configuration
 
-Copy `tests/.env.example` to `tests/.env.test` for API keys. Environment variables:
+API keys come from `~/.config/eq-chatbot/config.toml` (`[providers.<name>].api_key`),
+the same file the CLI uses. `conftest.py` mirrors them into `<NAME>_API_KEY` at
+import; a real environment variable wins. `tests/.env.test` was removed in 3.1.0 —
+it lived inside the repository, so the keys were one `git add -f` from publication.
 
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `MAMMOUTH_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`
-- `SKIP_LIVE_TESTS=true` - Skip integration tests
-- `SKIP_LOCAL_TESTS=true` - Skip local server tests
-- `TEST_MAX_TOKENS=20` - Limit tokens for cost control
+- Keys: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `MAMMOUTH_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`, `LITELLM_API_KEY`, `OPENROUTER_API_KEY`
+- `SKIP_LIVE_TESTS=true` - Skip integration tests (default false)
+- `SKIP_LOCAL_TESTS=true` - Skip local server tests (default false)
+- `<PROVIDER>_TEST_MODEL` - Override a model choice; defaults in `tests/model_registry.py`
 
 ### Fixtures (conftest.py)
 

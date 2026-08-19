@@ -44,6 +44,18 @@ if websockets is not None:
     except (ValueError, TypeError):
         pass  # If signature introspection fails, fall back to extra_headers
 
+# websockets >= 14 dropped the boolean `closed` attribute in favour of a `state`
+# enum. Resolve the OPEN sentinel once at import; None means the installed
+# version still exposes `closed`.
+_WS_STATE_OPEN = None
+if websockets is not None:
+    try:
+        from websockets.protocol import State as _WsState
+
+        _WS_STATE_OPEN = _WsState.OPEN
+    except ImportError:
+        pass  # websockets < 14 — the legacy `closed` attribute applies
+
 
 # ---------------------------------------------------------------------------
 # Error hierarchy
@@ -115,8 +127,22 @@ class BaseRealtimeWebsocketClient(ABC):
 
     @property
     def is_connected(self) -> bool:
-        """Return True when the WebSocket connection is open."""
-        return self._ws is not None and not getattr(self._ws, "closed", True)
+        """Return True when the WebSocket connection is open.
+
+        Spans both websockets APIs: < 14 exposes a boolean ``closed``, >= 14
+        replaced it with a ``state`` enum. The previous implementation read
+        ``getattr(ws, "closed", True)``, so on any version from 14 on the
+        missing attribute defaulted to "closed" and this property was
+        permanently False — every send raised "WebSocket is not connected"
+        against a perfectly healthy socket, and the default masked it as a
+        connection problem instead of surfacing an AttributeError.
+        """
+        ws = self._ws
+        if ws is None:
+            return False
+        if _WS_STATE_OPEN is not None:
+            return getattr(ws, "state", None) is _WS_STATE_OPEN
+        return not getattr(ws, "closed", True)
 
     @abstractmethod
     async def _on_connected(self) -> None:

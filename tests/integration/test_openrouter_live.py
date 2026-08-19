@@ -5,7 +5,7 @@ These tests require a valid OPENROUTER_API_KEY in .env.test.
 
 Run with: pytest -m integration tests/integration/test_openrouter_live.py
 
-Set SKIP_LIVE_TESTS=false in .env.test to enable these tests.
+Live tests run by default; export SKIP_LIVE_TESTS=true to skip them.
 
 Costs are minimized by using openai/gpt-4o-mini and max_tokens<=20.
 """

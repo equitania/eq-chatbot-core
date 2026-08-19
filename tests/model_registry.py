@@ -134,11 +134,14 @@ MODELS: dict[str, ModelChain] = {
         "(base_url defaults to the official IONOS endpoint).",
     ),
     "melious": ModelChain(
-        primary="minimax-428b-m3",
+        primary="nemotron-3-nano-30b-a3b",
         fallbacks=("gpt-oss-120b", "deepseek-v3.1"),
-        cost_hint="~EUR 0.4 in / 2.0 out per 1M tok (sovereign EU, MiniMax M3)",
+        cost_hint="not published by the API (sovereign EU gateway, 30B MoE / 3B active)",
         notes="Melious.ai — OpenAI-compatible sovereign EU gateway (60+ open-weight "
-        "models). Primary is the captain-chosen default 'minimax-428b-m3'; override "
+        "models). Primary is the captain-chosen 'nemotron-3-nano-30b-a3b' (19.08.2026), "
+        "replacing 'minimax-428b-m3' which the gateway had silently retired — the "
+        "resolver was falling back on every run and printing an ACTION warning. "
+        "Verified live against /v1/models (73 entries) before the change; override "
         "via MELIOUS_TEST_MODEL. The resolver validates against the live /v1/models "
         "response and walks the fallback chain if the primary is unavailable. "
         "Primary + fallback ids verified live against /v1/models (71-model catalog). "
@@ -156,6 +159,37 @@ MODELS: dict[str, ModelChain] = {
     ),
 }
 
+
+# ---------------------------------------------------------------------------
+# Retired overrides from tests/.env.test (removed 19.08.2026)
+# ---------------------------------------------------------------------------
+# Until 3.1.0 these values overrode the primaries above via <PROVIDER>_TEST_MODEL
+# in tests/.env.test. That file was dropped when credentials moved to
+# ~/.config/eq-chatbot/config.toml; the overrides are preserved here so nothing
+# is lost, but deliberately NOT applied — they date from 21.06.2026 and conflict
+# with the reasoning recorded in the entries above:
+#
+#   openai      gpt-5.4-mini               (registry: gpt-4o-mini, chosen for
+#                                           wider feature support)
+#   openrouter  deepseek/deepseek-v4-flash (registry explicitly warns against
+#                                           this model — reasoning tokens eat
+#                                           max_tokens and cost more)
+#   mammouth    gpt-4.1-mini               (already listed above as a FALLBACK,
+#                                           not as the verified primary)
+#   melious     gpt-oss-20b                (registry primary is the
+#                                           captain-chosen minimax-428b-m3)
+#   local       liquid/lfm2.5-1.2b         (depends on what is downloaded
+#                                           locally — machine-specific)
+#
+# To reinstate one, set <PROVIDER>_TEST_MODEL in the environment, or promote it
+# to `primary` above and update the accompanying rationale.
+#
+# Verified live on 19.08.2026: the melious primary 'minimax-428b-m3' was no longer
+# offered by the gateway, so the resolver fell back on every run. The retired
+# override ('gpt-oss-20b') was closer to reality than the entry that called itself
+# the chosen default — a reminder that a primary nobody re-checks goes stale
+# silently. Replaced with 'nemotron-3-nano-30b-a3b' (captain's choice), verified
+# against the live 73-model catalog together with both fallbacks.
 
 # Test behaviour constants (formerly env vars in .env.test).
 # These are not secrets and benefit from version control.

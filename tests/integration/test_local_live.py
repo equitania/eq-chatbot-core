@@ -7,7 +7,7 @@ These tests require a running local LLM server:
 
 Run with: pytest -m local tests/integration/test_local_live.py
 
-Set SKIP_LOCAL_TESTS=false in .env.test to enable these tests.
+Local tests run by default; export SKIP_LOCAL_TESTS=true to skip them.
 """
 
 import pytest
@@ -29,6 +29,34 @@ def is_lm_studio_available() -> bool:
         return False
 
 
+# Locally hosted models are frequently reasoning models: they spend a variable,
+# sometimes large share of the budget on internal thinking before emitting any
+# visible content. With the suite-wide 300-token budget a run could come back
+# with finish_reason="length" and content="" — and because the split varies per
+# call, the same test passed and failed on consecutive runs. Observed with
+# glm-4.7-flash on Ollama (300 tokens spent, empty content). Mirrors the
+# headroom privatemode_live already grants for Kimi.
+_LOCAL_MAX_TOKENS = 1024
+
+
+def has_chat_model(provider_name: str) -> bool:
+    """True when the server offers at least one non-embedding model.
+
+    A reachable server is not the same as a usable one: LM Studio is commonly
+    run with only an embedding model loaded, and chatting against one returns
+    HTTP 400. Treating that as a test failure makes the suite red for a normal
+    setup, so the callers skip instead.
+    """
+    try:
+        provider = get_provider(provider_name)
+        if not provider.is_server_available():
+            return False
+        ids = [m.get("id", "") for m in provider.list_models()]
+        return any("embed" not in mid.lower() for mid in ids if mid)
+    except Exception:
+        return False
+
+
 def is_ollama_available() -> bool:
     """Check if Ollama server is available."""
     try:
@@ -38,15 +66,39 @@ def is_ollama_available() -> bool:
         return False
 
 
+def active_local_provider() -> str | None:
+    """Return the name of the local server that is actually running, or None.
+
+    Ollama and LM Studio both serve a single machine and are usually not run at
+    the same time, so the suite targets whichever one answers. Ollama is probed
+    first because it is the one started from the CLI on demand; LM Studio is the
+    long-running desktop app. Tests used to hardcode LM Studio, which meant a
+    machine running only Ollama got failures against an endpoint that was not
+    even in use.
+    """
+    if has_chat_model("ollama"):
+        return "ollama"
+    if has_chat_model("lm_studio"):
+        return "lm_studio"
+    return None
+
+
+ACTIVE_LOCAL_PROVIDER = active_local_provider()
+
+skip_if_no_local = pytest.mark.skipif(
+    ACTIVE_LOCAL_PROVIDER is None,
+    reason="no local LLM server reachable (Ollama :11434 / LM Studio :1234)",
+)
+
 # Skip markers
 skip_if_no_lm_studio = pytest.mark.skipif(
-    not is_lm_studio_available(),
-    reason="LM Studio server not available at localhost:1234",
+    not is_lm_studio_available() or not has_chat_model("lm_studio"),
+    reason="LM Studio unreachable at localhost:1234, or running without a chat model loaded",
 )
 
 skip_if_no_ollama = pytest.mark.skipif(
-    not is_ollama_available(),
-    reason="Ollama server not available at localhost:11434",
+    not is_ollama_available() or not has_chat_model("ollama"),
+    reason="Ollama unreachable at localhost:11434, or running without a chat model loaded",
 )
 
 
@@ -84,7 +136,7 @@ class TestLMStudioLive:
         """Test simple chat completion with minimal tokens."""
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],
-            max_tokens=test_config.get("max_tokens", 20),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
             temperature=0.1,  # Low temperature for consistent output
         )
 
@@ -99,7 +151,7 @@ class TestLMStudioLive:
                 {"role": "system", "content": "You are a helpful assistant. Be very brief."},
                 {"role": "user", "content": "What is 2+2?"},
             ],
-            max_tokens=test_config.get("max_tokens", 20),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         assert response.content
@@ -111,7 +163,7 @@ class TestLMStudioLive:
         chunks = list(
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Count from 1 to 3."}],
-                max_tokens=test_config.get("max_tokens", 50),
+                max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
             )
         )
 
@@ -135,7 +187,7 @@ class TestLMStudioLive:
 
         response1 = provider.chat_completion(
             messages=messages,
-            max_tokens=test_config.get("max_tokens", 30),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         messages.append({"role": "assistant", "content": response1.content})
@@ -143,7 +195,7 @@ class TestLMStudioLive:
 
         response2 = provider.chat_completion(
             messages=messages,
-            max_tokens=test_config.get("max_tokens", 30),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         assert response2.content
@@ -223,16 +275,16 @@ class TestLMStudioLive:
 
 @pytest.mark.local
 @pytest.mark.integration
+@skip_if_no_local
 class TestLocalProviderGeneric:
     """Generic tests that work with any available local provider."""
 
     @pytest.fixture
     def provider(self):
-        """Get first available local provider (LM Studio preferred)."""
-        if is_lm_studio_available():
-            return get_provider("lm_studio")
-        else:
-            pytest.skip("LM Studio server not available")
+        """Whichever local server is actually running (Ollama or LM Studio)."""
+        if ACTIVE_LOCAL_PROVIDER is None:
+            pytest.skip("no local LLM server reachable")
+        return get_provider(ACTIVE_LOCAL_PROVIDER)
 
     def test_provider_properties(self, provider):
         """Test provider has correct properties."""
@@ -245,7 +297,7 @@ class TestLocalProviderGeneric:
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Hi"}],
             model=local_resolved_model,
-            max_tokens=test_config.get("max_tokens", 10),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         # Check LLMResponse structure
@@ -265,7 +317,7 @@ class TestLocalProviderGeneric:
             provider.stream_completion(
                 messages=[{"role": "user", "content": "Hi"}],
                 model=local_resolved_model,
-                max_tokens=test_config.get("max_tokens", 10),
+                max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
             )
         )
 
@@ -282,14 +334,14 @@ class TestLocalProviderGeneric:
             messages=[{"role": "user", "content": "What is 1+1?"}],
             model=local_resolved_model,
             temperature=0.0,
-            max_tokens=test_config.get("max_tokens", 10),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         response2 = provider.chat_completion(
             messages=[{"role": "user", "content": "What is 1+1?"}],
             model=local_resolved_model,
             temperature=0.0,
-            max_tokens=test_config.get("max_tokens", 10),
+            max_tokens=max(test_config.get("max_tokens", 300), _LOCAL_MAX_TOKENS),
         )
 
         # Both should contain "2"

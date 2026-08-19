@@ -5,6 +5,87 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-08-19
+
+### Changed
+
+- **Test credentials moved out of the repository.** `tests/.env.test` is gone.
+  `conftest.py` now mirrors `[providers.<name>].api_key` / `.base_url` from
+  `~/.config/eq-chatbot/config.toml` — the file the CLI and library already read
+  — into `<NAME>_API_KEY` / `<NAME>_BASE_URL` at import time. A real environment
+  variable still wins, so CI can inject secrets without any file.
+
+  The old file lived *inside* this repository. It held seven production keys and
+  was protected by a single `.gitignore` line; one `git add -f`, one directory
+  move or one backup tool reaching into `tests/` would have exposed them. It
+  also meant maintaining the same keys twice, since the CLI never read it.
+
+  Two names predate the mapping convention and are special-cased:
+  `[providers.lm_studio].base_url` -> `LM_STUDIO_URL`,
+  `[providers.ollama].base_url` -> `OLLAMA_URL`.
+
+  Behaviour switches (`SKIP_LIVE_TESTS`, `SKIP_LOCAL_TESTS`, now defaulting to
+  `false` in code) and model overrides (`<PROVIDER>_TEST_MODEL`) are not secrets
+  and stay plain environment variables with defaults in
+  `tests/model_registry.py`. The five overrides the retired file carried are
+  recorded there as a comment rather than applied: they date from 2026-06-21 and
+  contradict the rationale written next to the current primaries — the
+  OpenRouter one (`deepseek/deepseek-v4-flash`) is the very model that entry
+  warns against.
+
+### Fixed
+
+- **Realtime clients could never send on websockets >= 14.**
+  `BaseRealtimeWebsocketClient.is_connected` read
+  `not getattr(ws, "closed", True)`. websockets 14 removed the boolean `closed`
+  attribute in favour of a `state` enum, so from that version on the missing
+  attribute fell through to the `True` default and the property was permanently
+  `False` — every `send_json()` raised "Cannot send: WebSocket is not connected"
+  against a healthy socket, and session initialisation aborted immediately.
+  The whole realtime layer (OpenAI, Gemini Live, ElevenLabs) was unusable with
+  any currently installable websockets version; the dependency pin allows
+  `>=13.0,<18.0`, and 16.0 resolves by default.
+
+  The defensive default is what hid it: instead of an `AttributeError` naming
+  the real cause, callers saw a plausible-looking connection error. `is_connected`
+  now resolves the OPEN sentinel once at import (mirroring the existing
+  `_CONNECT_HEADERS_KWARG` detection) and supports both APIs. Regression test:
+  `tests/unit/test_websocket_is_connected.py`, using stand-ins for both socket
+  shapes so it needs no network and holds on either version.
+
+- **Live tests failed instead of skipping when a gateway was unusable.**
+  `litellm_resolved_model` and `ionos_resolved_model` checked only whether a key
+  was configured, so an unreachable or unauthorised endpoint produced four hard
+  failures per provider. A permanently red suite is a suite nobody reads — the
+  same blindness that let `MockLLMResponse` lack `total_tokens` for months. Both
+  now probe with `list_models()` and skip on failure, matching
+  `privatemode_resolved_model`.
+
+- **Melious test model was stale.** `tests/model_registry.py` named
+  `minimax-428b-m3` as the primary, which the gateway no longer offers — every
+  run silently fell back to `gpt-oss-120b` and printed an ACTION warning.
+  Replaced with `nemotron-3-nano-30b-a3b`, verified against the live 73-model
+  catalog along with both fallbacks. Its `cost_hint` records that the API
+  publishes no pricing, rather than carrying an invented figure.
+
+### Added
+
+- **`tests/unit/test_list_models_schema.py`** — pins which keys each provider's
+  `list_models()` reports, and in particular which it does *not*.
+
+  This closes a real gap. `OpenAICompatibleProvider.list_models()` returns only
+  `id`, `name`, `created`, `owned_by` and `provider`; the four providers built
+  on it (LiteLLM, IONOS, Melious, Privatemode) therefore report nothing about
+  tool support. A consumer that reads the missing key as "supported" sends tool
+  schemas to a model that cannot use them, and the provider rejects the whole
+  request — which is exactly what happened downstream in the Odoo integration
+  (fixed in eq_chatbot 19.0.1.21.0 with a runtime probe). The live suites had
+  working keys for seven providers and still missed it, because no test asserted
+  anything about this field.
+
+  The tests need no credentials, run in CI, and make the current gaps explicit:
+  widening one requires updating this file, and closing one becomes visible.
+
 ## [3.0.0] - 2026-08-19
 
 ### Breaking

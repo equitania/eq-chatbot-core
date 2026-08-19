@@ -14,6 +14,7 @@ import platform
 import shutil
 import sys
 import time
+import tomllib
 import warnings
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -28,21 +29,76 @@ from tests.model_registry import MODELS, ModelChain
 from tests.model_registry import TEST_MAX_TOKENS as _TEST_MAX_TOKENS
 from tests.model_registry import TEST_TIMEOUT as _TEST_TIMEOUT
 
-# Load test environment from .env.test if it exists
-_env_file = Path(__file__).parent / ".env.test"
-if _env_file.exists():
-    try:
-        from dotenv import load_dotenv
+# ---------------------------------------------------------------------------
+# Credentials for live tests
+# ---------------------------------------------------------------------------
+# Source of truth is the user config file (~/.config/eq-chatbot/config.toml),
+# the same file the CLI and library already use — see utils/config.py. The
+# former tests/.env.test was dropped in 3.1.0: it lived *inside* the repository,
+# so seven production keys were one `git add -f`, one stray backup or one
+# mismatched .gitignore away from being published, and the keys had to be
+# maintained twice.
+#
+# Only secrets come from the file. Behaviour switches and model overrides stay
+# plain environment variables with defaults in code (see model_registry.py) —
+# they are not secrets and benefit from version control.
+#
+# Mapping: [providers.<name>].api_key -> <NAME>_API_KEY
+#          [providers.<name>].base_url -> <NAME>_BASE_URL
+# with the two historical exceptions below. A real environment variable always
+# wins (setdefault), so CI can inject secrets without touching any file.
 
-        load_dotenv(_env_file)
-    except ImportError:
-        # python-dotenv not installed, read manually
-        with open(_env_file) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), value.strip())
+# Providers whose base URL env var predates the *_BASE_URL convention.
+_BASE_URL_ENV_OVERRIDES = {"lm_studio": "LM_STUDIO_URL", "ollama": "OLLAMA_URL"}
+
+
+def _export_config_credentials() -> None:
+    """Mirror provider credentials from config.toml into the environment.
+
+    Reads the file directly rather than through utils.config so the read happens
+    at import time, before the ``_isolate_user_config`` fixture repoints
+    EQ_CHATBOT_CONFIG. That fixture protects the *code under test* from the host
+    config; the test harness itself is precisely what is meant to read it.
+    """
+    override = os.environ.get("EQ_CHATBOT_CONFIG")
+    if override:
+        path = Path(override).expanduser()
+    else:
+        xdg = os.environ.get("XDG_CONFIG_HOME")
+        base = Path(xdg).expanduser() if xdg else Path.home() / ".config"
+        path = base / "eq-chatbot" / "config.toml"
+
+    if not path.exists():
+        warnings.warn(
+            f"No config file at {path} — live tests will skip. Create it with: eq-chatbot config init",
+            stacklevel=2,
+        )
+        return
+
+    try:
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        warnings.warn(f"Could not read {path}: {exc} — live tests will skip.", stacklevel=2)
+        return
+
+    for name, section in (data.get("providers") or {}).items():
+        if not isinstance(section, dict):
+            continue
+        prefix = name.upper()
+        if section.get("api_key"):
+            os.environ.setdefault(f"{prefix}_API_KEY", str(section["api_key"]))
+        if section.get("base_url"):
+            env_name = _BASE_URL_ENV_OVERRIDES.get(name, f"{prefix}_BASE_URL")
+            os.environ.setdefault(env_name, str(section["base_url"]))
+
+
+_export_config_credentials()
+
+# Behaviour switches: not secrets, so they default in code and are overridable
+# from the environment rather than from a credentials file.
+os.environ.setdefault("SKIP_LIVE_TESTS", "false")
+os.environ.setdefault("SKIP_LOCAL_TESTS", "false")
 
 
 @pytest.fixture(autouse=True)
@@ -559,6 +615,17 @@ def litellm_resolved_model(test_config, resolved_models) -> str:
         from eq_chatbot_core.providers import get_provider
 
         provider = get_provider("litellm", api_key=api_key, base_url=base_url)
+        label = f"LiteLLM gateway at {base_url}"
+        # Probe before resolving: an unreachable or unauthorised gateway is an
+        # environment condition, not a library defect. Without this the resolver
+        # walks the whole fallback chain and every test in the file fails with a
+        # provider error, leaving the suite permanently red — which is how a real
+        # regression goes unnoticed. Same guard as privatemode_resolved_model.
+        try:
+            provider.list_models()
+        except Exception as exc:
+            pytest.skip(f"{label} not usable ({type(exc).__name__}: {exc})")
+
         chain = _select_chain(cache_key, "LITELLM_TEST_MODEL")
         resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
 
@@ -582,6 +649,17 @@ def ionos_resolved_model(test_config, resolved_models) -> str:
         from eq_chatbot_core.providers import get_provider
 
         provider = get_provider("ionos", api_key=api_key, base_url=base_url)
+        label = f"IONOS endpoint at {base_url or 'the default URL'}"
+        # Probe before resolving: an unreachable or unauthorised gateway is an
+        # environment condition, not a library defect. Without this the resolver
+        # walks the whole fallback chain and every test in the file fails with a
+        # provider error, leaving the suite permanently red — which is how a real
+        # regression goes unnoticed. Same guard as privatemode_resolved_model.
+        try:
+            provider.list_models()
+        except Exception as exc:
+            pytest.skip(f"{label} not usable ({type(exc).__name__}: {exc})")
+
         chain = _select_chain(cache_key, "IONOS_TEST_MODEL")
         resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
 
@@ -662,9 +740,14 @@ def local_resolved_model(test_config, resolved_models) -> str:
     if cache_key not in resolved_models:
         from eq_chatbot_core.providers import get_provider
 
-        provider = get_provider("lm_studio")
+        # Target whichever local server is running. Ollama and LM Studio serve the
+        # same machine and are normally not up at the same time; hardcoding LM Studio
+        # meant an Ollama-only machine tested against an endpoint nobody was using.
+        provider = get_provider("ollama")
         if not provider.is_server_available():
-            pytest.skip(f"LM Studio server unreachable at {test_config.get('lm_studio_url')}")
+            provider = get_provider("lm_studio")
+        if not provider.is_server_available():
+            pytest.skip("no local LLM server reachable (Ollama :11434 / LM Studio :1234)")
         chain = _select_chain(cache_key, "LOCAL_TEST_MODEL")
         resolved = _resolve_test_model(chain, provider.list_models, cache_key)
 
@@ -674,6 +757,11 @@ def local_resolved_model(test_config, resolved_models) -> str:
             raw = provider.list_models()
             ids = [mid for mid in (_extract_model_id(m) for m in raw) if mid]
             chat_ids = [mid for mid in ids if "embed" not in mid.lower()]
+            if not chat_ids:
+                # Server up, but only embedding models loaded — a normal state when
+                # LM Studio is used for embeddings. Chatting against one returns
+                # HTTP 400, so this is an environment condition, not a defect.
+                pytest.skip(f"local server has no chat model loaded (only: {', '.join(ids) or 'none'})")
             if chat_ids:
                 resolved = ResolvedModel(
                     requested_primary=resolved.requested_primary,

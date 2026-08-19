@@ -1,7 +1,7 @@
 """
 Live integration test for OpenAI Realtime provider.
 
-Requires OPENAI_API_KEY environment variable (or tests/.env.test entry).
+Requires OPENAI_API_KEY in the environment or [providers.openai] in ~/.config/eq-chatbot/config.toml.
 Test is automatically skipped when the key is absent.
 
 Run with:

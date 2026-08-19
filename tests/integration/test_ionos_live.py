@@ -1,13 +1,13 @@
 """
 Integration tests for the IONOS AI Model Hub provider (EU-hosted, OpenAI-compatible).
 
-These tests require valid credentials in tests/.env.test:
+These tests require valid credentials in ~/.config/eq-chatbot/config.toml:
 - IONOS_API_KEY   — Bearer token from the IONOS DCD Token Manager
 - IONOS_BASE_URL  — optional; defaults to the official IONOS endpoint
 - IONOS_TEST_MODEL — optional; overrides the registry primary model
 
 Run with: pytest -m integration tests/integration/test_ionos_live.py -v
-Set SKIP_LIVE_TESTS=false in tests/.env.test to enable these tests.
+Live tests run by default; export SKIP_LIVE_TESTS=true to skip them.
 """
 
 import pytest

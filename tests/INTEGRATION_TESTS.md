@@ -4,11 +4,16 @@ Comprehensive overview of all integration tests that require real API keys or ru
 
 ## Quick Start
 
-```bash
-# 1. Copy environment template
-cp tests/.env.example tests/.env.test
+Credentials live in the user config file — the same one the CLI and library use.
+It sits outside every git repository on purpose; the former `tests/.env.test`
+was inside this one, which put production keys one mistaken `git add -f` away
+from publication. See "Credentials" below.
 
-# 2. Fill in your API keys in tests/.env.test
+```bash
+# 1. Create the config file (once)
+eq-chatbot config init          # writes ~/.config/eq-chatbot/config.toml
+
+# 2. Fill in your API keys under [providers.<name>]
 
 # 3. Run all integration tests
 pytest -m integration -v
@@ -19,6 +24,20 @@ pytest -m local -v
 # 5. Run everything (unit + integration)
 pytest tests/ -v
 ```
+
+## Credentials
+
+`conftest.py` mirrors `[providers.<name>].api_key` / `.base_url` from
+`~/.config/eq-chatbot/config.toml` into `<NAME>_API_KEY` / `<NAME>_BASE_URL`
+before the suite starts. A real environment variable always wins, so CI can
+inject secrets without a file. Two names predate the convention:
+`[providers.lm_studio].base_url` maps to `LM_STUDIO_URL` and
+`[providers.ollama].base_url` to `OLLAMA_URL`.
+
+Behaviour switches (`SKIP_LIVE_TESTS`, `SKIP_LOCAL_TESTS`) and model overrides
+(`<PROVIDER>_TEST_MODEL`) are **not** secrets: they default in code
+(`tests/model_registry.py`) and are overridden from the environment, not from
+the config file.
 
 ## Environment Configuration
 
