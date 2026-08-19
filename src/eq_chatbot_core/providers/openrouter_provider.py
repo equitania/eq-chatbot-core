@@ -348,7 +348,7 @@ class OpenRouterProvider(BaseLLMProvider):
         List available models from OpenRouter.
 
         Returns:
-            List of model dicts with 'id', 'name', constraints, pricing, and metadata.
+            List of model dicts with 'id', 'name', constraints, and metadata.
         """
         try:
             response = self.client.get("/models")
@@ -359,7 +359,6 @@ class OpenRouterProvider(BaseLLMProvider):
             for model_data in data.get("data", []):
                 model_id = model_data.get("id", "")
                 constraints = self._get_model_constraints(model_data)
-                pricing = self._extract_pricing(model_data)
 
                 models.append(
                     {
@@ -370,7 +369,6 @@ class OpenRouterProvider(BaseLLMProvider):
                         "provider": self.provider_name,
                         "created": model_data.get("created"),
                         **constraints,
-                        **pricing,
                     }
                 )
 
@@ -524,38 +522,6 @@ class OpenRouterProvider(BaseLLMProvider):
             "default_max_tokens": min(max_output, 4096) if max_output else 4096,
             "input_modalities": input_modalities,
             "output_modalities": output_modalities,
-        }
-
-    def _extract_pricing(self, model_data: dict[str, Any]) -> dict[str, Any]:
-        """
-        Extract pricing information from model data.
-
-        OpenRouter provides pricing in the 'pricing' field:
-        - prompt: cost per input token (as string like "0.000001")
-        - completion: cost per output token (as string)
-        """
-        pricing = model_data.get("pricing", {})
-
-        try:
-            prompt_price = float(pricing.get("prompt", "0")) if pricing.get("prompt") else None
-            completion_price = float(pricing.get("completion", "0")) if pricing.get("completion") else None
-            image_price = float(pricing.get("image", "0")) if pricing.get("image") else None
-        except (ValueError, TypeError):
-            prompt_price = None
-            completion_price = None
-            image_price = None
-
-        # Normalized per-1k-token keys (USD) so consumers read one consistent
-        # field regardless of provider. OpenRouter quotes per single token.
-        input_per_1k = round(prompt_price * 1000, 6) if prompt_price is not None else None
-        output_per_1k = round(completion_price * 1000, 6) if completion_price is not None else None
-
-        return {
-            "input_cost_per_token": prompt_price,
-            "output_cost_per_token": completion_price,
-            "image_cost_per_token": image_price,
-            "input_cost_per_1k": input_per_1k,
-            "output_cost_per_1k": output_per_1k,
         }
 
     def _handle_http_error(self, error: httpx2.HTTPStatusError) -> ProviderError:

@@ -30,6 +30,13 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
 
+> **Breaking in v3.0.0 — cost calculation removed:** `calculate_cost()`, `PRICING`,
+> `PricingCatalog`, the bundled price snapshot and the per-model cost fields in `list_models()`
+> are gone with no replacement. Some providers reported prices and others did not, and the
+> bundled rates went stale between releases, so the numbers were a mix of accurate, missing and
+> silently wrong. Every provider shows actual spend in its own dashboard — read it there. See
+> RELEASE_NOTES.md for the full list of removed symbols.
+
 > **Breaking in v2.1.0 — two changes:**
 > 1. **Minimum Python is now 3.12** (was 3.10), aligned with the interpreter used for Odoo 16.
 >    Python 3.10 reaches end of life on 2026-10-31; 3.11 is dropped in the same step so there is
@@ -224,6 +231,14 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
 
+> **Breaking in v3.0.0 — die Kostenberechnung entfällt:** `calculate_cost()`, `PRICING`,
+> `PricingCatalog`, der mitgelieferte Preis-Snapshot und die Kostenfelder in `list_models()`
+> sind ersatzlos entfernt. Manche Anbieter lieferten Preise, andere nicht, und die
+> mitgelieferten Sätze veralteten zwischen den Releases — heraus kam eine Mischung aus
+> korrekten, fehlenden und still falschen Zahlen. Jeder Anbieter zeigt die tatsächlichen
+> Kosten in seinem eigenen Dashboard. Die vollständige Liste der entfernten Symbole steht in
+> RELEASE_NOTES.md.
+
 > **Breaking in v2.1.0 — zwei Änderungen:**
 > 1. **Mindest-Python ist jetzt 3.12** (vorher 3.10), abgestimmt auf den unter Odoo 16 verwendeten
 >    Interpreter. Python 3.10 erreicht am 31.10.2026 sein Lebensende; 3.11 entfällt im selben
@@ -326,7 +341,7 @@ Weitere Härtungshinweise:
 | Field | Value |
 |-------|-------|
 | **Package Name** | eq-chatbot-core |
-| **Version** | 2.1.0 |
+| **Version** | 3.0.0 |
 | **Author** | Equitania Software GmbH |
 | **Contact** | info@ownerp.com |
 | **License** | MIT |

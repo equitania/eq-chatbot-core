@@ -107,7 +107,6 @@ tests/
 │   ├── test_local.py                  # Local provider tests
 │   ├── test_factory.py                # Provider factory tests
 │   ├── test_exceptions.py             # Exception handling tests
-│   ├── test_cost_service.py           # Token cost calculation tests
 │   ├── test_error_handler.py          # Error handler tests
 │   ├── test_injection.py              # Prompt injection tests
 │   ├── test_encryption.py             # Encryption tests

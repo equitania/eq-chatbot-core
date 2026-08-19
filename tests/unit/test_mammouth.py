@@ -611,24 +611,6 @@ class TestMammouthListModels:
             assert gpt4o["provider"] == "mammouth"
             assert gpt4o["max_output_tokens"] == 16384
 
-    def test_list_models_includes_pricing(self, mock_models_response):
-        """Test list_models includes pricing information."""
-        with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:
-            from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
-
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_models_response
-            mock_response.raise_for_status = MagicMock()
-            mock_httpx.get.return_value = mock_response
-
-            provider = MammouthProvider(api_key="mm-test-key")
-
-            models = provider.list_models()
-
-            gpt4o = next(m for m in models if m["id"] == "gpt-4o")
-            assert gpt4o["input_cost_per_million"] == 2.5
-            assert gpt4o["output_cost_per_million"] == 10.0
-
     def test_list_models_sorted(self, mock_models_response):
         """Test list_models returns sorted by ID."""
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx2") as mock_httpx:

@@ -144,15 +144,14 @@ path = "src/eq_chatbot_core/version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eq_chatbot_core"]
-# Ship the bundled pricing snapshot (offline fallback for PricingCatalog) and the
-# CLI config template (used by `eq-chatbot config init`).
+# Ship the bundled capability catalog (offline fallback for CapabilityCatalog)
+# and the CLI config template (used by `eq-chatbot config init`).
 artifacts = ["src/eq_chatbot_core/data/*.json", "src/eq_chatbot_core/data/*.example"]
 
 [tool.hatch.build.targets.wheel.force-include]
 # PEP 561 marker: without it type checkers ignore the inline annotations of this
 # package entirely, so every downstream consumer sees `Any` despite mypy strict.
 "src/eq_chatbot_core/py.typed" = "eq_chatbot_core/py.typed"
-"src/eq_chatbot_core/data/model_prices.json" = "eq_chatbot_core/data/model_prices.json"
 "src/eq_chatbot_core/data/capability_catalog.json" = "eq_chatbot_core/data/capability_catalog.json"
 "src/eq_chatbot_core/data/capability_overrides.json" = "eq_chatbot_core/data/capability_overrides.json"
 "src/eq_chatbot_core/data/config.toml.example" = "eq_chatbot_core/data/config.toml.example"

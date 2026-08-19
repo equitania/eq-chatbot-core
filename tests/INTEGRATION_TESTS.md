@@ -231,7 +231,6 @@ pytest tests/ -v
 | `test_chunker.py` | Text chunking | Split strategies, overlap handling |
 | `test_retriever.py` | Qdrant retriever | Search, filter, score thresholds |
 | `test_context_manager.py` | RAG context | Context assembly, token limits |
-| `test_cost_service.py` | Cost calculation | Token pricing for all providers |
 | `test_error_handler.py` | Error handler | Timeout, rate limit, fallback chains |
 | `test_knowledge_service.py` | Knowledge export | Vector DB export, chunking |
 

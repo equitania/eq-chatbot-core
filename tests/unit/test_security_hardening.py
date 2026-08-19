@@ -5,7 +5,6 @@ Covers the fixes from the security review:
 - secret scrubbing in logs / error surfaces (utils.secret_scrub)
 - SSRF URL validation (utils.url_validation)
 - retry-after clamping (services.error_handler)
-- negative-token guard (services.cost_service)
 - FileValidator fail-closed behaviour (security.file_validator)
 - PDF resource limits (utils.pdf)
 """
@@ -172,31 +171,6 @@ class TestRetryAfterCap:
             context={},
         )
         assert "sk-leakedsecret12345" not in (result.original_error or "")
-
-
-# =============================================================================
-# negative-token guard
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestCostNegativeGuard:
-    def test_negative_input_raises(self):
-        from eq_chatbot_core.services.cost_service import calculate_cost
-
-        with pytest.raises(ValueError):
-            calculate_cost("gpt-4o", -1, 0)
-
-    def test_negative_output_raises(self):
-        from eq_chatbot_core.services.cost_service import calculate_cost
-
-        with pytest.raises(ValueError):
-            calculate_cost("gpt-4o", 100, -5)
-
-    def test_zero_is_allowed(self):
-        from eq_chatbot_core.services.cost_service import calculate_cost
-
-        assert calculate_cost("gpt-4o", 0, 0) == 0.0
 
 
 # =============================================================================

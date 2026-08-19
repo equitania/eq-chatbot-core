@@ -1,8 +1,8 @@
 """Model capability catalog.
 
-Resolves per-model *capabilities* (vision, audio, files, tools, reasoning),
-context/output *limits* and per-1k-token *pricing* across all supported
-providers from a single, curated Equitania catalog.
+Resolves per-model *capabilities* (vision, audio, files, tools, reasoning) and
+context/output *limits* across all supported providers from a single, curated
+Equitania catalog.
 
 Data source: the Equitania-hosted ``capability_catalog.json`` (Single Source of
 Truth, maintained centrally by the ``eq-model-catalog`` sync tool). A snapshot
@@ -11,7 +11,7 @@ is bundled under ``data/capability_catalog.json`` as an offline fallback;
 gracefully to the snapshot on any network error.
 
 Unlike the runtime provider adapters (which guess capabilities from the model
-name), this catalog carries hand-verified flags and unifies the pricing source.
+name), this catalog carries hand-verified flags.
 Each model entry lists ``aliases`` — the per-provider technical model ids — so a
 configured ``model_id`` maps back to the canonical entry regardless of provider.
 """
@@ -47,7 +47,7 @@ CAPABILITY_KEYS: tuple[str, ...] = (
 
 
 class ModelCapabilities(TypedDict, total=False):
-    """Resolved capability/limit/pricing bundle for a single model."""
+    """Resolved capability/limit bundle for a single model."""
 
     # Capabilities (booleans)
     image_input: bool
@@ -61,23 +61,19 @@ class ModelCapabilities(TypedDict, total=False):
     # Limits
     context_length: int
     max_output_tokens: int
-    # Pricing (USD per 1k tokens)
-    input_per_1k: float
-    output_per_1k: float
     # Provenance
     canonical_id: str
     display_name: str
 
 
 class CapabilityCatalog:
-    """Lookup of model capabilities/limits/pricing, backed by the Equitania catalog."""
+    """Lookup of model capabilities and limits, backed by the Equitania catalog."""
 
     def __init__(self, raw: dict[str, Any]):
         self._raw = raw or {}
         self._defaults: dict[str, Any] = dict(self._raw.get("capability_defaults") or {})
         self.capability_meta: dict[str, Any] = dict(self._raw.get("capability_meta") or {})
         self.providers: dict[str, Any] = dict(self._raw.get("providers") or {})
-        self.currency: str = str(self._raw.get("currency") or "USD")
 
         # Index by normalized alias/id -> list of (preferred_providers, entry).
         # A canonical id may be reachable through several providers, so we keep a
@@ -128,7 +124,7 @@ class CapabilityCatalog:
     # ----- Lookup ---------------------------------------------------------
 
     def lookup(self, model_id: str, provider: str | None = None) -> ModelCapabilities | None:
-        """Return the capability/limit/pricing bundle for ``model_id``.
+        """Return the capability/limit bundle for ``model_id``.
 
         Resolution order: exact (provider-prefixed) id -> exact normalized id ->
         longest-prefix match. When several catalog entries share an id, the one
@@ -170,7 +166,6 @@ class CapabilityCatalog:
     def _build(self, entry: dict[str, Any]) -> ModelCapabilities:
         caps = dict(entry.get("capabilities") or {})
         limits = dict(entry.get("limits") or {})
-        pricing = dict(entry.get("pricing") or {})
         result: ModelCapabilities = {}
         for cap in CAPABILITY_KEYS:
             # CAPABILITY_KEYS holds exactly the TypedDict's keys, but mypy
@@ -180,8 +175,6 @@ class CapabilityCatalog:
             result["context_length"] = int(limits["context_length"])
         if limits.get("max_output_tokens") is not None:
             result["max_output_tokens"] = int(limits["max_output_tokens"])
-        result["input_per_1k"] = round(float(pricing.get("input_per_1k") or 0.0), 6)
-        result["output_per_1k"] = round(float(pricing.get("output_per_1k") or 0.0), 6)
         result["canonical_id"] = str(entry.get("id") or "")
         result["display_name"] = str(entry.get("display_name") or entry.get("id") or "")
         return result

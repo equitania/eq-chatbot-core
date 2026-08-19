@@ -71,10 +71,9 @@ class TestOpenRouterLive:
         assert any(mid.startswith("openai/") for mid in model_ids)
         assert any(mid.startswith("anthropic/") for mid in model_ids)
 
-        # Constraints + pricing must be present per model dict
+        # Constraints must be present per model dict
         sample = models[0]
         assert "supports_temperature" in sample
-        assert "input_cost_per_token" in sample
         assert sample["provider"] == "openrouter"
 
         print(f"\n  Found {len(models)} models")

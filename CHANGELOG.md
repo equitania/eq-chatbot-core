@@ -5,6 +5,81 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-08-19
+
+### Breaking
+
+- **Cost calculation removed with no replacement.** `services/cost_service.py`
+  (`PRICING`, `DEFAULT_PRICING`, `calculate_cost()`, `get_model_pricing()`,
+  `estimate_monthly_cost()`), `services/pricing_catalog.py` (`PricingCatalog`),
+  the `utils/pricing.py` compatibility shim, the bundled
+  `data/model_prices.json` snapshot and `scripts/update_pricing_snapshot.py`
+  are gone. The re-exports `eq_chatbot_core.services.PRICING` /
+  `.calculate_cost` and their lazy `eq_chatbot_core.utils` counterparts are gone
+  with them, so the PEP 562 `__getattr__` shim in `utils/__init__.py` is no
+  longer needed.
+
+  The feature never worked reliably: some providers report prices in
+  `list_models()`, others report nothing, and the rates in the bundled tables
+  went stale between releases — so the numbers were a mix of accurate, missing
+  and silently wrong. Providers bill for their own APIs and every one of them
+  shows actual spend in its own dashboard, which is authoritative where this
+  library could only estimate.
+
+  Migration: read the provider's own billing page. Consumers that guarded the
+  import (`try: from eq_chatbot_core.services.pricing_catalog import
+  PricingCatalog / except ImportError:`) degrade silently and need no change.
+
+- **Per-model cost fields removed from `list_models()`.** `openrouter_provider`
+  no longer emits `input_cost_per_token`, `output_cost_per_token`,
+  `image_cost_per_token`, `input_cost_per_1k`, `output_cost_per_1k`;
+  `mammouth_provider` no longer emits `input_cost_per_million`,
+  `output_cost_per_million`, `input_cost_per_1k`, `output_cost_per_1k`.
+  Capabilities, limits and temperature constraints are unchanged.
+
+- **`CapabilityCatalog` no longer carries pricing.** `ModelCapabilities` drops
+  `input_per_1k` / `output_per_1k`, the catalog drops the `currency` attribute,
+  and the bundled `data/capability_catalog.json` no longer contains `pricing`
+  blocks. Capability flags and context/output limits are unchanged.
+
+### Added
+
+- **Privatemode.ai provider** (`get_provider("privatemode")`) — end-to-end
+  encrypted GenAI built on confidential computing (Edgeless Systems,
+  infrastructure Scaleway/EU). Prompts are encrypted client-side and decrypted
+  only inside a hardware-isolated Confidential Computing Environment; neither
+  the service nor the infrastructure provider can read them.
+
+  Privatemode has no public API. Encryption and remote attestation are performed
+  by a `privatemode-proxy` container the operator runs locally; this provider
+  speaks plain OpenAI Chat Completions to it (`http://localhost:8080/v1` by
+  default) and therefore sets `ALLOW_PRIVATE_RANGES = True` — the endpoint is
+  loopback by design. Cloud-metadata and link-local targets stay blocked.
+
+  Because the end-to-end guarantee only holds as far as the hop to the proxy,
+  and a wrong `base_url` would fail *silently*, the endpoint is classified at
+  construction: HTTPS anywhere and loopback pass; plain HTTP to a private or
+  cluster-internal address is allowed with an INFO note (the vendor's documented
+  Helm deployment); plain HTTP to a public address raises `ValueError` naming
+  the resolved address and the legitimate fixes, overridable via
+  `allow_insecure_transport=True`.
+
+  `api_key` is optional (the proxy normally holds it). `cache_salt` and
+  `chat_template_kwargs` are accepted as ordinary keyword arguments and routed
+  into `extra_body`. No static model catalog is bundled — the vendor retires
+  concrete model ids over time, so `list_models()` queries the proxy and the
+  default is the `kimi-latest` alias. Registered in the factory, the CLI
+  (`PRIVATEMODE_API_KEY`) and `config.toml.example`. 29 unit tests plus a live
+  suite that skips when the proxy is not running.
+
+### Removed
+
+- `scripts/update_pricing_snapshot.py`, `tests/unit/test_cost_service.py`,
+  `tests/unit/test_pricing_catalog.py`, `tests/unit/test_pricing_shim.py`, and
+  the pricing assertions in `test_openrouter.py`, `test_mammouth.py`,
+  `test_capability_catalog.py` and `test_security_hardening.py`.
+- The `model_prices.json` force-include in `pyproject.toml`.
+
 ## [2.1.0] - 2026-08-18
 
 ### Breaking

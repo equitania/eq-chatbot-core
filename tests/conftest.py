@@ -1055,7 +1055,6 @@ _MODULE_GROUPS = {
     "Services": {
         "label": "Services & Core",
         "modules": [
-            "test_cost_service",
             "test_error_handler",
             "test_factory",
             "test_exceptions",

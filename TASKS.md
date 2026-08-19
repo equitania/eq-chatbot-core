@@ -123,7 +123,6 @@ audit or surfaced while fixing what it found.
 - [ ] LangDock agent streaming: Implement real streaming when API supports it
 - [ ] Async provider support (for FastAPI use cases)
 - [ ] German error messages in `langdock_provider.py` lines 389, 945
-- [ ] Pricing data auto-update mechanism
 - [x] Coverage target: 80%+ — reached (82% as of v2.1.0)
 - [ ] `langdock_provider.py` consolidation onto `OpenAICompatibleProvider`:
       not possible as-is (one class serves five backends). Coverage is now 64%,

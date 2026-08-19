@@ -3,7 +3,6 @@
   "generated_at": "2026-07-10T00:00:00Z",
   "generator": "manual-seed",
   "source_notes": "Curated Equitania seed (2026-07-10). Values are a best-effort snapshot and will be superseded by the eq-model-catalog sync tool (OpenRouter /models + provider APIs + overrides). Prices are USD per 1,000 tokens.",
-  "currency": "USD",
   "capability_defaults": {
     "text_input": true,
     "text_output": true,
@@ -82,238 +81,642 @@
     }
   },
   "providers": {
-    "openrouter": {"label": "OpenRouter", "status": "active", "needs_api_key": true, "catalog_endpoint": "https://openrouter.ai/api/v1/models"},
-    "openai": {"label": "OpenAI", "status": "active", "needs_api_key": true},
-    "anthropic": {"label": "Anthropic Claude", "status": "active", "needs_api_key": true},
-    "langdock": {"label": "LangDock", "status": "active", "needs_api_key": true},
-    "mammouth": {"label": "Mammouth AI", "status": "active", "needs_api_key": true},
-    "litellm": {"label": "LiteLLM", "status": "active", "needs_api_key": true},
-    "ionos": {"label": "IONOS AI", "status": "active", "needs_api_key": true},
-    "melious": {"label": "Melious.ai", "status": "active", "needs_api_key": true},
-    "ollama": {"label": "Ollama (Local)", "status": "active", "needs_api_key": false},
-    "lm_studio": {"label": "LM Studio (Local)", "status": "active", "needs_api_key": false},
-    "azure": {"label": "Azure AI Foundry", "status": "frozen"},
-    "vertex": {"label": "Google Vertex AI", "status": "frozen"}
+    "openrouter": {
+      "label": "OpenRouter",
+      "status": "active",
+      "needs_api_key": true,
+      "catalog_endpoint": "https://openrouter.ai/api/v1/models"
+    },
+    "openai": {
+      "label": "OpenAI",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "anthropic": {
+      "label": "Anthropic Claude",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "langdock": {
+      "label": "LangDock",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "mammouth": {
+      "label": "Mammouth AI",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "litellm": {
+      "label": "LiteLLM",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "ionos": {
+      "label": "IONOS AI",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "melious": {
+      "label": "Melious.ai",
+      "status": "active",
+      "needs_api_key": true
+    },
+    "ollama": {
+      "label": "Ollama (Local)",
+      "status": "active",
+      "needs_api_key": false
+    },
+    "lm_studio": {
+      "label": "LM Studio (Local)",
+      "status": "active",
+      "needs_api_key": false
+    },
+    "azure": {
+      "label": "Azure AI Foundry",
+      "status": "frozen"
+    },
+    "vertex": {
+      "label": "Google Vertex AI",
+      "status": "frozen"
+    }
   },
   "models": [
     {
       "id": "openai/gpt-4o",
       "display_name": "GPT-4o",
       "family": "gpt-4o",
-      "providers": ["openai", "openrouter", "azure", "langdock"],
-      "aliases": ["gpt-4o", "gpt-4o-2024-11-20", "gpt-4o-2024-08-06", "openai/gpt-4o", "azure/gpt-4o"],
-      "capabilities": {"image_input": true, "audio_input": true, "audio_output": true, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 128000, "max_output_tokens": 16384},
-      "pricing": {"input_per_1k": 0.0025, "output_per_1k": 0.01},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure",
+        "langdock"
+      ],
+      "aliases": [
+        "gpt-4o",
+        "gpt-4o-2024-11-20",
+        "gpt-4o-2024-08-06",
+        "openai/gpt-4o",
+        "azure/gpt-4o"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": true,
+        "audio_output": true,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 128000,
+        "max_output_tokens": 16384
+      },
       "status": "active"
     },
     {
       "id": "openai/gpt-4o-mini",
       "display_name": "GPT-4o mini",
       "family": "gpt-4o",
-      "providers": ["openai", "openrouter", "azure", "langdock"],
-      "aliases": ["gpt-4o-mini", "gpt-4o-mini-2024-07-18", "openai/gpt-4o-mini", "azure/gpt-4o-mini"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 128000, "max_output_tokens": 16384},
-      "pricing": {"input_per_1k": 0.00015, "output_per_1k": 0.0006},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure",
+        "langdock"
+      ],
+      "aliases": [
+        "gpt-4o-mini",
+        "gpt-4o-mini-2024-07-18",
+        "openai/gpt-4o-mini",
+        "azure/gpt-4o-mini"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 128000,
+        "max_output_tokens": 16384
+      },
       "status": "active"
     },
     {
       "id": "openai/gpt-4.1",
       "display_name": "GPT-4.1",
       "family": "gpt-4.1",
-      "providers": ["openai", "openrouter", "azure", "langdock"],
-      "aliases": ["gpt-4.1", "gpt-4.1-2025-04-14", "openai/gpt-4.1", "azure/gpt-4.1"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 1047576, "max_output_tokens": 32768},
-      "pricing": {"input_per_1k": 0.002, "output_per_1k": 0.008},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure",
+        "langdock"
+      ],
+      "aliases": [
+        "gpt-4.1",
+        "gpt-4.1-2025-04-14",
+        "openai/gpt-4.1",
+        "azure/gpt-4.1"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 1047576,
+        "max_output_tokens": 32768
+      },
       "status": "active"
     },
     {
       "id": "openai/gpt-4.1-mini",
       "display_name": "GPT-4.1 mini",
       "family": "gpt-4.1",
-      "providers": ["openai", "openrouter", "azure", "langdock"],
-      "aliases": ["gpt-4.1-mini", "openai/gpt-4.1-mini", "azure/gpt-4.1-mini"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 1047576, "max_output_tokens": 32768},
-      "pricing": {"input_per_1k": 0.0004, "output_per_1k": 0.0016},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure",
+        "langdock"
+      ],
+      "aliases": [
+        "gpt-4.1-mini",
+        "openai/gpt-4.1-mini",
+        "azure/gpt-4.1-mini"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 1047576,
+        "max_output_tokens": 32768
+      },
       "status": "active"
     },
     {
       "id": "openai/o3",
       "display_name": "OpenAI o3",
       "family": "o3",
-      "providers": ["openai", "openrouter", "azure"],
-      "aliases": ["o3", "o3-2025-04-16", "openai/o3", "azure/o3"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 200000, "max_output_tokens": 100000},
-      "pricing": {"input_per_1k": 0.002, "output_per_1k": 0.008},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure"
+      ],
+      "aliases": [
+        "o3",
+        "o3-2025-04-16",
+        "openai/o3",
+        "azure/o3"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 100000
+      },
       "status": "active"
     },
     {
       "id": "openai/o4-mini",
       "display_name": "OpenAI o4-mini",
       "family": "o4",
-      "providers": ["openai", "openrouter", "azure"],
-      "aliases": ["o4-mini", "o4-mini-2025-04-16", "openai/o4-mini", "azure/o4-mini"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 200000, "max_output_tokens": 100000},
-      "pricing": {"input_per_1k": 0.0011, "output_per_1k": 0.0044},
+      "providers": [
+        "openai",
+        "openrouter",
+        "azure"
+      ],
+      "aliases": [
+        "o4-mini",
+        "o4-mini-2025-04-16",
+        "openai/o4-mini",
+        "azure/o4-mini"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 100000
+      },
       "status": "active"
     },
     {
       "id": "anthropic/claude-3.5-sonnet",
       "display_name": "Claude 3.5 Sonnet",
       "family": "claude-3.5-sonnet",
-      "providers": ["anthropic", "openrouter", "langdock", "vertex"],
-      "aliases": ["claude-3-5-sonnet", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest", "anthropic/claude-3.5-sonnet"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 200000, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+      "providers": [
+        "anthropic",
+        "openrouter",
+        "langdock",
+        "vertex"
+      ],
+      "aliases": [
+        "claude-3-5-sonnet",
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-latest",
+        "anthropic/claude-3.5-sonnet"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "anthropic/claude-3.7-sonnet",
       "display_name": "Claude 3.7 Sonnet",
       "family": "claude-3.7-sonnet",
-      "providers": ["anthropic", "openrouter", "langdock"],
-      "aliases": ["claude-3-7-sonnet", "claude-3-7-sonnet-20250219", "claude-3-7-sonnet-latest", "anthropic/claude-3.7-sonnet"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 200000, "max_output_tokens": 64000},
-      "pricing": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+      "providers": [
+        "anthropic",
+        "openrouter",
+        "langdock"
+      ],
+      "aliases": [
+        "claude-3-7-sonnet",
+        "claude-3-7-sonnet-20250219",
+        "claude-3-7-sonnet-latest",
+        "anthropic/claude-3.7-sonnet"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 64000
+      },
       "status": "active"
     },
     {
       "id": "anthropic/claude-3.5-haiku",
       "display_name": "Claude 3.5 Haiku",
       "family": "claude-3.5-haiku",
-      "providers": ["anthropic", "openrouter", "langdock"],
-      "aliases": ["claude-3-5-haiku", "claude-3-5-haiku-20241022", "claude-3-5-haiku-latest", "anthropic/claude-3.5-haiku"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 200000, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.0008, "output_per_1k": 0.004},
+      "providers": [
+        "anthropic",
+        "openrouter",
+        "langdock"
+      ],
+      "aliases": [
+        "claude-3-5-haiku",
+        "claude-3-5-haiku-20241022",
+        "claude-3-5-haiku-latest",
+        "anthropic/claude-3.5-haiku"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "anthropic/claude-sonnet-4",
       "display_name": "Claude Sonnet 4",
       "family": "claude-4-sonnet",
-      "providers": ["anthropic", "openrouter", "langdock"],
-      "aliases": ["claude-sonnet-4", "claude-sonnet-4-20250514", "claude-sonnet-4-5", "claude-sonnet-4-5-20250929", "anthropic/claude-sonnet-4"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 200000, "max_output_tokens": 64000},
-      "pricing": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+      "providers": [
+        "anthropic",
+        "openrouter",
+        "langdock"
+      ],
+      "aliases": [
+        "claude-sonnet-4",
+        "claude-sonnet-4-20250514",
+        "claude-sonnet-4-5",
+        "claude-sonnet-4-5-20250929",
+        "anthropic/claude-sonnet-4"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 64000
+      },
       "status": "active"
     },
     {
       "id": "anthropic/claude-opus-4",
       "display_name": "Claude Opus 4",
       "family": "claude-4-opus",
-      "providers": ["anthropic", "openrouter", "langdock"],
-      "aliases": ["claude-opus-4", "claude-opus-4-20250514", "claude-opus-4-1", "claude-opus-4-1-20250805", "anthropic/claude-opus-4"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 200000, "max_output_tokens": 32000},
-      "pricing": {"input_per_1k": 0.015, "output_per_1k": 0.075},
+      "providers": [
+        "anthropic",
+        "openrouter",
+        "langdock"
+      ],
+      "aliases": [
+        "claude-opus-4",
+        "claude-opus-4-20250514",
+        "claude-opus-4-1",
+        "claude-opus-4-1-20250805",
+        "anthropic/claude-opus-4"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 32000
+      },
       "status": "active"
     },
     {
       "id": "google/gemini-2.5-pro",
       "display_name": "Gemini 2.5 Pro",
       "family": "gemini-2.5",
-      "providers": ["langdock", "openrouter", "vertex"],
-      "aliases": ["gemini-2.5-pro", "gemini-2.5-pro-preview", "google/gemini-2.5-pro", "vertex/gemini-2.5-pro"],
-      "capabilities": {"image_input": true, "audio_input": true, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 1048576, "max_output_tokens": 65536},
-      "pricing": {"input_per_1k": 0.00125, "output_per_1k": 0.01},
+      "providers": [
+        "langdock",
+        "openrouter",
+        "vertex"
+      ],
+      "aliases": [
+        "gemini-2.5-pro",
+        "gemini-2.5-pro-preview",
+        "google/gemini-2.5-pro",
+        "vertex/gemini-2.5-pro"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": true,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1048576,
+        "max_output_tokens": 65536
+      },
       "status": "active"
     },
     {
       "id": "google/gemini-2.5-flash",
       "display_name": "Gemini 2.5 Flash",
       "family": "gemini-2.5",
-      "providers": ["langdock", "openrouter", "vertex"],
-      "aliases": ["gemini-2.5-flash", "gemini-2.5-flash-preview", "google/gemini-2.5-flash", "vertex/gemini-2.5-flash"],
-      "capabilities": {"image_input": true, "audio_input": true, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 1048576, "max_output_tokens": 65536},
-      "pricing": {"input_per_1k": 0.0003, "output_per_1k": 0.0025},
+      "providers": [
+        "langdock",
+        "openrouter",
+        "vertex"
+      ],
+      "aliases": [
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-preview",
+        "google/gemini-2.5-flash",
+        "vertex/gemini-2.5-flash"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": true,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1048576,
+        "max_output_tokens": 65536
+      },
       "status": "active"
     },
     {
       "id": "google/gemini-2.0-flash",
       "display_name": "Gemini 2.0 Flash",
       "family": "gemini-2.0",
-      "providers": ["langdock", "openrouter", "vertex"],
-      "aliases": ["gemini-2.0-flash", "gemini-2.0-flash-001", "google/gemini-2.0-flash", "vertex/gemini-2.0-flash"],
-      "capabilities": {"image_input": true, "audio_input": true, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 1048576, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.0001, "output_per_1k": 0.0004},
+      "providers": [
+        "langdock",
+        "openrouter",
+        "vertex"
+      ],
+      "aliases": [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-001",
+        "google/gemini-2.0-flash",
+        "vertex/gemini-2.0-flash"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": true,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 1048576,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "mistralai/mistral-large",
       "display_name": "Mistral Large",
       "family": "mistral-large",
-      "providers": ["openrouter", "mammouth", "langdock"],
-      "aliases": ["mistral-large", "mistral-large-latest", "mistral-large-2411", "mistralai/mistral-large"],
-      "capabilities": {"image_input": false, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": false},
-      "limits": {"context_length": 128000, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.002, "output_per_1k": 0.006},
+      "providers": [
+        "openrouter",
+        "mammouth",
+        "langdock"
+      ],
+      "aliases": [
+        "mistral-large",
+        "mistral-large-latest",
+        "mistral-large-2411",
+        "mistralai/mistral-large"
+      ],
+      "capabilities": {
+        "image_input": false,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 128000,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "meta-llama/llama-3.3-70b-instruct",
       "display_name": "Llama 3.3 70B Instruct",
       "family": "llama-3.3",
-      "providers": ["ionos", "openrouter"],
-      "aliases": ["meta-llama/Llama-3.3-70B-Instruct", "llama-3.3-70b-instruct", "meta-llama/llama-3.3-70b-instruct"],
-      "capabilities": {"image_input": false, "audio_input": false, "audio_output": false, "file_input": false, "tools": true, "reasoning": false},
-      "limits": {"context_length": 131072, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.0004, "output_per_1k": 0.0004},
+      "providers": [
+        "ionos",
+        "openrouter"
+      ],
+      "aliases": [
+        "meta-llama/Llama-3.3-70B-Instruct",
+        "llama-3.3-70b-instruct",
+        "meta-llama/llama-3.3-70b-instruct"
+      ],
+      "capabilities": {
+        "image_input": false,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": false,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 131072,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "deepseek/deepseek-chat",
       "display_name": "DeepSeek V3",
       "family": "deepseek-v3",
-      "providers": ["openrouter", "mammouth"],
-      "aliases": ["deepseek-chat", "deepseek-v3", "deepseek/deepseek-chat"],
-      "capabilities": {"image_input": false, "audio_input": false, "audio_output": false, "file_input": false, "tools": true, "reasoning": false},
-      "limits": {"context_length": 128000, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.00028, "output_per_1k": 0.00042},
+      "providers": [
+        "openrouter",
+        "mammouth"
+      ],
+      "aliases": [
+        "deepseek-chat",
+        "deepseek-v3",
+        "deepseek/deepseek-chat"
+      ],
+      "capabilities": {
+        "image_input": false,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": false,
+        "tools": true,
+        "reasoning": false
+      },
+      "limits": {
+        "context_length": 128000,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "deepseek/deepseek-r1",
       "display_name": "DeepSeek R1",
       "family": "deepseek-r1",
-      "providers": ["openrouter", "mammouth"],
-      "aliases": ["deepseek-r1", "deepseek-reasoner", "deepseek/deepseek-r1"],
-      "capabilities": {"image_input": false, "audio_input": false, "audio_output": false, "file_input": false, "tools": true, "reasoning": true},
-      "limits": {"context_length": 128000, "max_output_tokens": 8192},
-      "pricing": {"input_per_1k": 0.00055, "output_per_1k": 0.00219},
+      "providers": [
+        "openrouter",
+        "mammouth"
+      ],
+      "aliases": [
+        "deepseek-r1",
+        "deepseek-reasoner",
+        "deepseek/deepseek-r1"
+      ],
+      "capabilities": {
+        "image_input": false,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": false,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 128000,
+        "max_output_tokens": 8192
+      },
       "status": "active"
     },
     {
       "id": "x-ai/grok-4",
       "display_name": "Grok 4",
       "family": "grok-4",
-      "providers": ["openrouter", "mammouth"],
-      "aliases": ["grok-4", "grok-4-0709", "x-ai/grok-4"],
-      "capabilities": {"image_input": true, "audio_input": false, "audio_output": false, "file_input": true, "tools": true, "reasoning": true},
-      "limits": {"context_length": 256000, "max_output_tokens": 64000},
-      "pricing": {"input_per_1k": 0.003, "output_per_1k": 0.015},
+      "providers": [
+        "openrouter",
+        "mammouth"
+      ],
+      "aliases": [
+        "grok-4",
+        "grok-4-0709",
+        "x-ai/grok-4"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 256000,
+        "max_output_tokens": 64000
+      },
       "status": "active"
     },
     {
       "id": "minimax/minimax-m3",
       "display_name": "MiniMax M3 (428B)",
       "family": "minimax",
-      "providers": ["melious", "openrouter"],
-      "aliases": ["minimax-428b-m3", "minimax-m3", "minimax/minimax-m3"],
-      "capabilities": {"image_input": false, "audio_input": false, "audio_output": false, "file_input": false, "tools": true, "reasoning": true},
-      "limits": {"context_length": 1000000, "max_output_tokens": 40000},
-      "pricing": {"input_per_1k": 0.0, "output_per_1k": 0.0},
+      "providers": [
+        "melious",
+        "openrouter"
+      ],
+      "aliases": [
+        "minimax-428b-m3",
+        "minimax-m3",
+        "minimax/minimax-m3"
+      ],
+      "capabilities": {
+        "image_input": false,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": false,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1000000,
+        "max_output_tokens": 40000
+      },
       "status": "active"
     }
   ]

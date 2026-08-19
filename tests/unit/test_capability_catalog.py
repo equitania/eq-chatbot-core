@@ -11,7 +11,6 @@ from eq_chatbot_core.services.capability_catalog import CapabilityCatalog
 # Minimal catalog-shaped fixture.
 RAW = {
     "schema_version": "1.0",
-    "currency": "USD",
     "capability_defaults": {
         "text_input": True,
         "text_output": True,
@@ -34,7 +33,6 @@ RAW = {
             "aliases": ["gpt-4o", "gpt-4o-2024-11-20", "azure/gpt-4o"],
             "capabilities": {"image_input": True, "audio_input": True, "tools": True},
             "limits": {"context_length": 128000, "max_output_tokens": 16384},
-            "pricing": {"input_per_1k": 0.0025, "output_per_1k": 0.01},
         },
         {
             "id": "anthropic/claude-3.7-sonnet",
@@ -43,7 +41,6 @@ RAW = {
             "aliases": ["claude-3-7-sonnet"],
             "capabilities": {"image_input": True, "tools": True, "reasoning": True},
             "limits": {"context_length": 200000, "max_output_tokens": 64000},
-            "pricing": {"input_per_1k": 0.003, "output_per_1k": 0.015},
         },
     ],
 }
@@ -64,12 +61,10 @@ class TestCapabilities:
         assert c["audio_output"] is False
         assert c["reasoning"] is False
 
-    def test_limits_and_pricing(self, catalog):
+    def test_limits(self, catalog):
         c = catalog.lookup("gpt-4o")
         assert c["context_length"] == 128000
         assert c["max_output_tokens"] == 16384
-        assert c["input_per_1k"] == pytest.approx(0.0025)
-        assert c["output_per_1k"] == pytest.approx(0.01)
 
     def test_reasoning_model(self, catalog):
         c = catalog.lookup("claude-3-7-sonnet")
@@ -110,7 +105,6 @@ class TestMetadataExposed:
     def test_meta_and_providers_available(self, catalog):
         assert "image_input" in catalog.capability_meta
         assert "openai" in catalog.providers
-        assert catalog.currency == "USD"
 
 
 class TestSnapshotAndRemote:

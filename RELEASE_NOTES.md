@@ -1,5 +1,87 @@
 # Release Notes
 
+## Version 3.0.0 (19.08.2026)
+
+### ⚠️ Breaking
+
+- **[CHG] Die Kostenberechnung entfällt ersatzlos.** Entfernt sind
+  `services/cost_service.py` (`PRICING`, `DEFAULT_PRICING`, `calculate_cost()`,
+  `get_model_pricing()`, `estimate_monthly_cost()`),
+  `services/pricing_catalog.py` (`PricingCatalog`), der Kompatibilitäts-Shim
+  `utils/pricing.py`, der mitgelieferte Snapshot `data/model_prices.json` und
+  `scripts/update_pricing_snapshot.py`. Damit entfallen auch die Re-Exporte
+  `eq_chatbot_core.services.PRICING` / `.calculate_cost` sowie ihre lazy
+  Gegenstücke in `eq_chatbot_core.utils` — der PEP-562-`__getattr__`-Shim in
+  `utils/__init__.py` wird nicht mehr gebraucht.
+
+  Das Feature hat nie verlässlich funktioniert: Manche Anbieter liefern Preise
+  in `list_models()`, andere gar nichts, und die Sätze in den mitgelieferten
+  Tabellen veralteten zwischen den Releases. Herausgekommen ist eine Mischung
+  aus korrekten, fehlenden und stillschweigend falschen Zahlen. Die Anbieter
+  rechnen ihre APIs selbst ab und zeigen die tatsächlichen Kosten in ihrem
+  eigenen Dashboard — das ist maßgeblich, wo diese Bibliothek nur schätzen
+  konnte.
+
+  Migration: die Abrechnungsseite des jeweiligen Anbieters lesen. Konsumenten,
+  die den Import abgesichert haben (`try: from
+  eq_chatbot_core.services.pricing_catalog import PricingCatalog / except
+  ImportError:`), degradieren still und brauchen keine Änderung.
+
+- **[CHG] `list_models()` liefert keine Kostenfelder mehr.** `openrouter_provider`
+  emittiert `input_cost_per_token`, `output_cost_per_token`,
+  `image_cost_per_token`, `input_cost_per_1k` und `output_cost_per_1k` nicht
+  mehr; `mammouth_provider` entsprechend `input_cost_per_million`,
+  `output_cost_per_million`, `input_cost_per_1k` und `output_cost_per_1k`.
+  Capabilities, Limits und Temperature-Constraints bleiben unverändert.
+
+- **[CHG] `CapabilityCatalog` führt keine Preise mehr.** `ModelCapabilities`
+  verliert `input_per_1k` / `output_per_1k`, der Katalog das Attribut
+  `currency`, und `data/capability_catalog.json` enthält keine
+  `pricing`-Blöcke mehr. Capability-Flags sowie Kontext- und Output-Limits
+  bleiben unverändert.
+
+### ✨ Neu
+
+- **[ADD] Privatemode.ai als Provider** (`get_provider("privatemode")`) —
+  Ende-zu-Ende-verschlüsselte GenAI auf Basis von Confidential Computing
+  (Edgeless Systems, Infrastruktur Scaleway/EU). Prompts werden clientseitig
+  verschlüsselt und erst innerhalb einer hardware-isolierten Confidential
+  Computing Environment entschlüsselt; weder der Dienst noch der
+  Infrastrukturbetreiber können sie lesen.
+
+  Privatemode hat keine öffentliche API. Verschlüsselung und Remote Attestation
+  übernimmt ein `privatemode-proxy`-Container, den der Betreiber lokal
+  betreibt; dieser Provider spricht Klartext-OpenAI-Chat-Completions dagegen
+  (default `http://localhost:8080/v1`) und setzt deshalb
+  `ALLOW_PRIVATE_RANGES = True` — der Endpunkt ist konstruktionsbedingt
+  Loopback. Cloud-Metadata- und Link-Local-Ziele bleiben weiterhin gesperrt.
+
+  Da die Ende-zu-Ende-Garantie nur so weit trägt wie der Weg zum Proxy und eine
+  falsche `base_url` *stillschweigend* scheitern würde, klassifiziert der
+  Provider den Endpunkt schon beim Konstruieren: HTTPS (beliebig) und Loopback
+  passieren; Klartext-HTTP auf eine private oder cluster-interne Adresse ist
+  erlaubt und wird als INFO protokolliert (das dokumentierte Helm-Deployment des
+  Herstellers); Klartext-HTTP auf eine öffentliche Adresse wirft `ValueError`
+  unter Nennung der aufgelösten Adresse und der legitimen Auswege —
+  übersteuerbar mit `allow_insecure_transport=True`.
+
+  `api_key` ist optional (normalerweise hält der Proxy ihn). `cache_salt` und
+  `chat_template_kwargs` werden als normale Keyword-Argumente entgegengenommen
+  und in `extra_body` geroutet. Ein statischer Modellkatalog ist bewusst nicht
+  enthalten — der Hersteller kündigt konkrete Modell-IDs über die Zeit ab, also
+  fragt `list_models()` den Proxy und der Default ist der Alias `kimi-latest`.
+  Registriert in Factory, CLI (`PRIVATEMODE_API_KEY`) und
+  `config.toml.example`. 29 Unit-Tests plus eine Live-Suite, die ohne laufenden
+  Proxy sauber übersprungen wird.
+
+### 🧪 Tests
+
+- 1911 Unit-Tests grün, 5 xfailed. Entfernt: `test_cost_service.py`,
+  `test_pricing_catalog.py`, `test_pricing_shim.py` sowie die Preis-Assertions
+  in `test_openrouter.py`, `test_mammouth.py`, `test_capability_catalog.py` und
+  `test_security_hardening.py`. Neu: `tests/unit/test_privatemode.py` (29) und
+  `tests/integration/test_privatemode_live.py`.
+
 ## Version 2.1.0 (18.08.2026)
 
 ### ⚠️ Breaking

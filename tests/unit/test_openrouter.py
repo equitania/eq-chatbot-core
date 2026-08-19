@@ -649,28 +649,6 @@ class TestOpenRouterListModels:
             assert o1["supports_temperature"] is False
             assert o1["supports_vision"] is False
 
-    def test_list_models_includes_pricing(self, mock_models_response):
-        """Test list_models includes pricing information."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2") as mock_httpx:
-            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
-
-            mock_response = MagicMock()
-            mock_response.json.return_value = mock_models_response
-            mock_response.raise_for_status = MagicMock()
-
-            mock_client = MagicMock()
-            mock_client.get.return_value = mock_response
-            mock_httpx.Client.return_value = mock_client
-
-            provider = OpenRouterProvider(api_key="sk-or-test-key")
-            provider._client = mock_client
-
-            models = provider.list_models()
-
-            gpt4o = next(m for m in models if m["id"] == "openai/gpt-4o")
-            assert gpt4o["input_cost_per_token"] == 0.000005
-            assert gpt4o["output_cost_per_token"] == 0.000015
-
 
 # =============================================================================
 # Model Constraints Tests
@@ -720,41 +698,6 @@ class TestOpenRouterModelConstraints:
             assert constraints["supports_reasoning"] is True
             assert constraints["min_temperature"] == 1.0
             assert constraints["max_temperature"] == 1.0
-
-    def test_pricing_extraction(self):
-        """Test pricing extraction from model data."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
-            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
-
-            provider = OpenRouterProvider(api_key="sk-or-test-key")
-
-            model_data = {
-                "pricing": {
-                    "prompt": "0.000005",
-                    "completion": "0.000015",
-                    "image": "0.001",
-                }
-            }
-
-            pricing = provider._extract_pricing(model_data)
-
-            assert pricing["input_cost_per_token"] == 0.000005
-            assert pricing["output_cost_per_token"] == 0.000015
-            assert pricing["image_cost_per_token"] == 0.001
-
-    def test_pricing_with_missing_values(self):
-        """Test pricing extraction handles missing values."""
-        with patch("eq_chatbot_core.providers.openrouter_provider.httpx2"):
-            from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
-
-            provider = OpenRouterProvider(api_key="sk-or-test-key")
-
-            model_data = {"pricing": {}}
-
-            pricing = provider._extract_pricing(model_data)
-
-            assert pricing["input_cost_per_token"] is None
-            assert pricing["output_cost_per_token"] is None
 
 
 # =============================================================================

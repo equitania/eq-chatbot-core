@@ -167,7 +167,7 @@ produce very different outputs and cost profiles.
 Since **1.19.0** the question "does this model reason?" is answerable from code instead of from
 this page. `eq_chatbot_core.services.capability_catalog` ships a curated catalog
 (`data/capability_catalog.json`) that carries a per-model `capabilities.reasoning` boolean
-alongside the other modality flags, plus limits and pricing:
+alongside the other modality flags, plus context/output limits:
 
 ```python
 from eq_chatbot_core.services.capability_catalog import CapabilityCatalog
@@ -178,8 +178,8 @@ caps["reasoning"]   # True — the resolved bundle is flat, not nested
 ```
 
 `lookup()` returns a `ModelCapabilities` bundle (or `None` for an unknown model) that flattens
-capabilities, limits and pricing into one dict — `reasoning`, `tools`, `image_input`,
-`context_length`, `input_per_1k`, … Aliases resolve, so `lookup("gpt-4o")` and
+capabilities and limits into one dict — `reasoning`, `tools`, `image_input`,
+`context_length`, `max_output_tokens`, … Aliases resolve, so `lookup("gpt-4o")` and
 `lookup("azure/gpt-4o")` hit the same entry.
 
 `capability_meta` in the same JSON provides the icon plus a bilingual label/help string per flag,
@@ -408,8 +408,8 @@ caps["reasoning"]   # True — das aufgelöste Bündel ist flach, nicht verschac
 ```
 
 `lookup()` liefert ein `ModelCapabilities`-Bündel (oder `None` bei unbekanntem Modell), das
-Capabilities, Limits und Preise in ein Dict zusammenzieht — `reasoning`, `tools`, `image_input`,
-`context_length`, `input_per_1k`, … Aliase werden aufgelöst, `lookup("gpt-4o")` und
+Capabilities und Limits in ein Dict zusammenzieht — `reasoning`, `tools`, `image_input`,
+`context_length`, `max_output_tokens`, … Aliase werden aufgelöst, `lookup("gpt-4o")` und
 `lookup("azure/gpt-4o")` treffen denselben Eintrag.
 
 `capability_meta` in derselben JSON-Datei liefert je Flag das Icon plus einen zweisprachigen

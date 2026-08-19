@@ -140,11 +140,10 @@ src/eq_chatbot_core/
 ├── mcp/
 │   └── client.py           # MCP client (HTTP/SSE and stdio transports)
 ├── services/
-│   ├── cost_service.py     # Token cost calculation
 │   ├── error_handler.py    # Centralized error handling
 │   └── knowledge_service.py # Knowledge export for vector DBs
 ├── utils/
-│   ├── pricing.py          # Model pricing data
+│   ├── url_validation.py   # SSRF / DNS-rebinding guard (shared by all providers)
 │   └── pdf.py              # PDF to image (requires [pdf])
 ├── cli.py                  # Click CLI: eq-chatbot
 └── version.py              # Version string

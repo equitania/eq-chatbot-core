@@ -16,10 +16,11 @@ Conventions
 - Update the registry when the test report shows a "WARN: primary deprecated"
   row in the Models In Use section. The fallback chain prevents test breakage
   in the meantime, but a fallback means action is required.
-- ``cost_hint`` is a free-form label. Where the model is in
-  ``eq_chatbot_core.services.cost_service`` PRICING, show concrete prices
-  (e.g. ``"$0.15 / $0.60 per 1M tok"``). For gateways or deployment-dependent
-  models, use ``"gateway"`` / ``"deployment-dependent"``.
+- ``cost_hint`` is a free-form label shown in the Markdown test report to keep
+  model choices cost-aware (e.g. ``"$0.15 / $0.60 per 1M tok"``). For gateways
+  or deployment-dependent models, use ``"gateway"`` /
+  ``"deployment-dependent"``. It is documentation only — the library does not
+  calculate costs.
 """
 
 from __future__ import annotations
@@ -90,8 +91,7 @@ MODELS: dict[str, ModelChain] = {
         primary="mistralai/mistral-nemo",
         fallbacks=("meta-llama/llama-3.1-8b-instruct", "openai/gpt-4o-mini"),
         cost_hint="$0.02 / $0.03 per 1M tok",
-        notes="OpenRouter exposes per-model input/output_cost_per_token in "
-        "list_models(). Picked the cheapest model that passes the test "
+        notes="Picked the cheapest model that passes the test "
         "contract (simple completion + ACKNOWLEDGED system message). "
         "mistral-nemo is 12B and tokenizes English compactly. Avoid reasoning "
         "models like deepseek/deepseek-v4-flash here; they cost more and "
@@ -101,9 +101,8 @@ MODELS: dict[str, ModelChain] = {
         primary="gpt-5.4-nano",
         fallbacks=("gpt-4.1-nano", "gemini-2.5-flash-lite", "gpt-4.1-mini"),
         cost_hint="~$0.05 / $0.40 per 1M tok (gateway, passthrough)",
-        notes="Mammouth is a unified gateway and does NOT expose pricing in "
-        "list_models() (all 74 cataloged models return None for cost fields). "
-        "Pricing follows upstream provider rates approximately. gpt-5.4-nano "
+        notes="Mammouth is a unified gateway; its rates follow the upstream "
+        "provider rates approximately. gpt-5.4-nano "
         "is the newer / cheaper-input GPT nano variant, verified to pass the "
         "test contract (simple completion + ACKNOWLEDGED). gpt-5-nano is "
         "skipped: Mammouth metadata reports supports_reasoning=False but the "
