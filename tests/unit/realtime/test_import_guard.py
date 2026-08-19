@@ -50,6 +50,5 @@ def test_realtime_providers_constant() -> None:
     assert "mock" in REALTIME_PROVIDERS
     assert "openai" in REALTIME_PROVIDERS
     assert "gemini_live" in REALTIME_PROVIDERS
-    assert "nova_sonic" in REALTIME_PROVIDERS
     assert "elevenlabs" in REALTIME_PROVIDERS
-    assert len(REALTIME_PROVIDERS) == 5
+    assert len(REALTIME_PROVIDERS) == 4

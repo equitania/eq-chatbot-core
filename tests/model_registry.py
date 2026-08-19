@@ -109,17 +109,6 @@ MODELS: dict[str, ModelChain] = {
         "model burns through max_tokens=20 with empty content, suggesting "
         "the catalog flag is wrong for that variant.",
     ),
-    "azure": ModelChain(
-        primary="Phi-4",
-        fallbacks=("gpt-4o", "DeepSeek-R1"),
-        cost_hint="deployment-dependent",
-        notes="Use the exact deployed model name in your Azure resource.",
-    ),
-    "vertex": ModelChain(
-        primary="gemini-2.5-flash",
-        fallbacks=("gemini-1.5-flash",),
-        cost_hint="$0.15 / $0.60 per 1M tok",
-    ),
     "local": ModelChain(
         primary="phi-4-mini",
         fallbacks=("nvidia/nemotron-3-nano",),

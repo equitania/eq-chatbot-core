@@ -36,11 +36,11 @@ eq-chatbot test-provider -p local --base-url http://localhost:1234/v1
 
 | Flag | Purpose |
 |------|---------|
-| `-p`, `--provider` | Provider name (`openai`, `anthropic`, `azure`, `vertex`, `langdock`, `openrouter`, `mammouth`, `local`, `lm_studio`, `ollama`) |
+| `-p`, `--provider` | Provider name (`openai`, `anthropic`, `langdock`, `openrouter`, `mammouth`, `ionos`, `melious`, `privatemode`, `local`, `lm_studio`, `ollama`) |
 | `-k`, `--api-key` | API key (cloud providers only) |
 | `-m`, `--model` | Model id (defaults to provider's `default_model`) |
 | `--message` | Custom test prompt (default: a short greeting) |
-| `--base-url` | Custom endpoint (Azure, local OpenAI-compatible) |
+| `--base-url` | Custom endpoint (LiteLLM gateway, Privatemode proxy, local OpenAI-compatible) |
 
 #### `eq-chatbot list-models`
 
@@ -204,7 +204,7 @@ set -gx MELIOUS_API_KEY    sk-mel-...
 ```
 
 Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
-`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
+`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `LITELLM_API_KEY`,
 `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`. A key set for one provider never satisfies another.
 
 | Variable | Purpose | Used by |
@@ -298,11 +298,11 @@ eq-chatbot test-provider -p local --base-url http://localhost:1234/v1
 
 | Flag | Zweck |
 |------|-------|
-| `-p`, `--provider` | Provider-Name (`openai`, `anthropic`, `azure`, `vertex`, `langdock`, `openrouter`, `mammouth`, `local`, `lm_studio`, `ollama`) |
+| `-p`, `--provider` | Provider-Name (`openai`, `anthropic`, `langdock`, `openrouter`, `mammouth`, `ionos`, `melious`, `privatemode`, `local`, `lm_studio`, `ollama`) |
 | `-k`, `--api-key` | API-Key (nur Cloud-Provider) |
 | `-m`, `--model` | Modell-ID (Default: `default_model` des Providers) |
 | `--message` | Eigener Test-Prompt (Default: kurzer Gruß) |
-| `--base-url` | Eigener Endpoint (Azure, lokale OpenAI-kompatible) |
+| `--base-url` | Eigener Endpoint (LiteLLM-Gateway, Privatemode-Proxy, lokale OpenAI-kompatible) |
 
 #### `eq-chatbot list-models`
 
@@ -466,7 +466,7 @@ set -gx MELIOUS_API_KEY    sk-mel-...
 ```
 
 Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`,
-`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`,
+`OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `LITELLM_API_KEY`,
 `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY`. Ein Key für einen Provider erfüllt nie einen anderen.
 
 | Variable | Zweck | Genutzt von |

@@ -27,9 +27,6 @@ pytest tests/ -v
 | `OPENAI_API_KEY` | OpenAI tests | - | API key from platform.openai.com |
 | `ANTHROPIC_API_KEY` | Anthropic tests | - | API key from console.anthropic.com |
 | `LANGDOCK_API_KEY` | LangDock tests | - | API key from app.langdock.com |
-| `AZURE_API_KEY` | Azure AI tests | - | API key from ai.azure.com |
-| `AZURE_ENDPOINT` | Azure AI tests | - | Azure endpoint URL (e.g. `https://your-resource.openai.azure.com/openai/v1/`) |
-| `AZURE_TEST_MODEL` | Azure AI tests | `gpt-4o` | Deployed model name (must be available on your endpoint) |
 | `MCP_TEST_URL` | MCP SSE tests | - | MCP server URL (e.g. `http://localhost:8000/sse`) |
 | `LM_STUDIO_URL` | LM Studio tests | `http://localhost:1234/v1` | LM Studio server URL |
 | `OLLAMA_URL` | Ollama tests | `http://localhost:11434/v1` | Ollama server URL |
@@ -106,26 +103,6 @@ pytest tests/ -v
 | 16 | `TestLangDockAnthropicBackend` | `test_anthropic_list_models` | Lists Anthropic models via LangDock | 0 (metadata call) |
 
 **Estimated cost per full run:** < $0.002
-
----
-
-### File: `tests/integration/test_azure_live.py`
-
-**Required Key:** `AZURE_API_KEY` + `AZURE_ENDPOINT`
-**Default Model:** Depends on deployed models (e.g. `Phi-4`, `DeepSeek-R1`, `Llama-3.3-70B-Instruct`)
-**Extra Required:** `pip install eq-chatbot-core[azure]`
-
-| # | Test Class | Test Method | What It Does | Tokens Used |
-|---|-----------|-------------|--------------|-------------|
-| 18 | `TestAzureLive` | `test_simple_completion` | Chat completion with "Say 'test' only." | ~10 in / ~5 out |
-| 19 | `TestAzureLive` | `test_streaming_completion` | Streaming with "Count: 1, 2, 3" | ~10 in / ~20 out |
-| 20 | `TestAzureLive` | `test_system_message` | System message forcing "ACKNOWLEDGED" response | ~20 in / ~5 out |
-| 21 | `TestAzureLive` | `test_list_models` | Returns static catalog of known Azure models | 0 (local data) |
-| 22 | `TestAzureLive` | `test_context_manager` | Provider works as context manager | ~5 in / ~5 out |
-
-**Estimated cost per full run:** Depends on model (serverless models may be free or pay-per-token)
-
-**Note:** Azure AI Foundry uses serverless model deployments. The `AZURE_ENDPOINT` must point to the OpenAI `/v1` path (e.g. `https://your-resource.openai.azure.com/openai/v1/`), and the `AZURE_TEST_MODEL` must be a model that is actually deployed on your endpoint. Use the Azure AI Foundry portal to check available models.
 
 ---
 
@@ -216,7 +193,6 @@ pytest tests/ -v
 |------|--------------|--------------|
 | `test_openai.py` | OpenAI provider | Init, completion, streaming, error handling |
 | `test_anthropic.py` | Anthropic provider | Init, completion, streaming, system messages |
-| `test_azure.py` | Azure AI provider | Init, completion, streaming, temperature, error handling |
 | `test_langdock.py` | LangDock provider | Both backends, regions, model listing |
 | `test_openrouter.py` | OpenRouter provider | Init, completion, model routing |
 | `test_mammouth.py` | Mammouth AI provider | Init, completion, streaming, model listing |
@@ -244,14 +220,13 @@ pytest tests/ -v
 | Anthropic | 4 | claude-3-haiku | < $0.001 |
 | LangDock (OpenAI) | 5 | gpt-4o-mini | < $0.001 |
 | LangDock (Anthropic) | 2 | claude-haiku-4-5 | < $0.001 |
-| Azure AI | 5 | deployed model | Depends on model |
 | Cost Pattern | 1 | gpt-4o-mini | < $0.0001 |
 | Local (LM Studio) | 6 | local model | Free |
 | Local (Ollama) | 4 | local model | Free |
 | Local (Generic) | 5 | local model | Free |
 | MCP (SSE) | 5 | - | Free |
 | MCP (stdio) | 1 | - | Free |
-| **Total** | **43** | | **< $0.005 + Azure** |
+| **Total** | **38** | | **< $0.005** |
 
 All cloud API tests use `TEST_MAX_TOKENS=20` by default to minimize costs.
 
@@ -269,8 +244,6 @@ pytest tests/integration/test_openai_live.py::TestAnthropicLive -v
 # Only LangDock (both backends)
 pytest tests/integration/test_openai_live.py::TestLangDockLive tests/integration/test_openai_live.py::TestLangDockAnthropicBackend -v
 
-# Only Azure AI
-pytest tests/integration/test_azure_live.py -v
 
 # Only Mammouth AI
 pytest tests/integration/test_mammouth_live.py -v

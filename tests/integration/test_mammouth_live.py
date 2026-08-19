@@ -121,7 +121,7 @@ class TestMammouthLive:
             pytest.skip("MAMMOUTH_API_KEY not set")
 
         with get_provider("mammouth", api_key=mammouth_api_key) as provider:
-            # max_tokens=20 (not 5): newer Azure-backed models like gpt-5.4-nano
+            # max_tokens=20 (not 5): newer models like gpt-5.4-nano
             # enforce a minimum max_output_tokens of 16.
             response = provider.chat_completion(
                 messages=[{"role": "user", "content": "Hi"}],

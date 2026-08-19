@@ -56,7 +56,7 @@ class ChatRequest(BaseModel):
 
     Use this for parameters that bind at provider-construction time rather
     than per-request — e.g. LangDock's ``backend`` / ``agent_id`` /
-    ``region`` / ``reasoning_effort``, Azure's ``deployment``, or any
+    ``region`` / ``reasoning_effort``, Privatemode's ``cache_salt``, or any
     other field the provider's ``__init__`` accepts. Per-call settings
     like ``temperature`` go through dedicated fields or ``extra``."""
 

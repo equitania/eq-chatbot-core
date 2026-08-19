@@ -10,8 +10,10 @@
 | Sprint 4: Infrastructure & Polish | IN PROGRESS | 90% |
 | Sprint 5: Security Remediation & Provider Dedup | DONE | 100% |
 | Sprint 6: Audit Remediation (v2.1.0) | DONE | 100% |
+| Sprint 7: Provider & Legacy Cleanup (v3.0.0) | DONE | 100% |
 
-**Test Suite**: 1935 passed, 0 failed, 5 xfailed (Python 3.12 + 3.13)
+**Test Suite**: 1781 passed, 0 failed, 5 xfailed (Python 3.12 + 3.13) — down from 1935 because
+the pricing, Azure, Vertex and Nova suites were removed with their features in v3.0.0
 **Linting**: Clean (ruff)
 **Typing**: `mypy --strict` clean — 0 errors (was 157)
 **Coverage**: 82%
@@ -115,6 +117,34 @@ audit or surfaced while fixing what it found.
       mypy 1.8 -> 2.3.1); the hook had been formatting by different rules than CI.
 - [x] Test coverage: `server/lifecycle.py` 22% -> 93%, `utils/pdf.py` 40% -> 88%,
       `langdock_provider.py` 29% -> 64%; suite 1748 -> 1935.
+
+---
+
+## Sprint 7: Provider & Legacy Cleanup (DONE — v3.0.0)
+
+Breaking release. Earlier sprints above still reference components that no longer
+exist; those entries are kept as history, not as a description of the code today.
+
+- [x] **Cost calculation removed entirely** — `services/cost_service.py`,
+      `services/pricing_catalog.py`, `utils/pricing.py`,
+      `data/model_prices.json`, `scripts/update_pricing_snapshot.py` and their
+      tests. Some providers reported prices, others did not, and the bundled
+      rates went stale between releases. Providers bill their own APIs and show
+      actual spend in their own dashboards.
+- [x] **Azure and Vertex AI providers removed** — the only two providers with a
+      hand-maintained static model catalog (37 / 8 entries) while every other
+      provider queries `/v1/models` live. Google and Microsoft models stay
+      reachable through `langdock` and `openrouter`. The `gemini_live` realtime
+      provider is untouched (it never used `google-genai`).
+- [x] **`qdrant-client` moved to a new `[rag]` extra** — it pulled grpcio (~37 MB)
+      into every install; nothing imports it at module level. Core install drops
+      from 113 MB to 48 MB of site-packages.
+- [x] **`NovaSonicStub` removed** — a placeholder promising "v1.9.0".
+- [x] **`LangDockExportManager` removed** — orphaned since v1.18.1 dropped the
+      `langdock-export` CLI.
+- [x] **Privatemode.ai added** — end-to-end encrypted via a local attesting proxy,
+      with a confidentiality-boundary check on `base_url`.
+- [x] `data/capability_overrides.json` no longer shipped in the wheel.
 
 ---
 

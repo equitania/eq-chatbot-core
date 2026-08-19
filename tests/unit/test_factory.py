@@ -4,7 +4,6 @@ Unit tests for the provider factory (get_provider function).
 Tests provider instantiation, alias handling, and error cases.
 """
 
-from unittest.mock import patch
 
 import pytest
 
@@ -55,45 +54,6 @@ class TestFactoryCloudProviders:
         assert isinstance(provider, OpenRouterProvider)
         assert provider.api_key == "sk-or-test-key"
         assert provider.provider_name == "openrouter"
-
-    def test_get_azure_provider(self):
-        """Test creating Azure provider.
-
-        Since v2.0.0 this runs on the plain openai SDK (a core dependency), so no
-        optional-SDK patching is needed any more.
-        """
-        from eq_chatbot_core.providers.azure_provider import AzureProvider
-
-        provider = get_provider(
-            "azure",
-            api_key="test-azure-key",
-            base_url="http://localhost:8080/openai/v1/",
-        )
-
-        assert isinstance(provider, AzureProvider)
-        assert provider.api_key == "test-azure-key"
-        assert provider.provider_name == "azure"
-
-    def test_get_azure_provider_rejects_legacy_endpoint(self):
-        """The retired azure-ai-inference endpoint must fail with a migration hint."""
-        with pytest.raises(ValueError, match="retired Azure AI Inference endpoint"):
-            get_provider(
-                "azure",
-                api_key="test-azure-key",
-                base_url="https://my-resource.services.ai.azure.com/models",
-            )
-
-    @patch("eq_chatbot_core.providers.vertex_provider._google_available", True)
-    @patch("eq_chatbot_core.providers.vertex_provider.genai")
-    def test_get_vertex_provider(self, mock_genai):
-        """Test creating Vertex provider."""
-        from eq_chatbot_core.providers.vertex_provider import VertexProvider
-
-        provider = get_provider("vertex", project="test-project")
-
-        assert isinstance(provider, VertexProvider)
-        assert provider.provider_name == "vertex"
-        assert provider.api_key == "not-used"
 
     def test_get_ionos_provider(self):
         """Test creating IONOS provider — base_url defaults to the IONOS endpoint."""
@@ -238,8 +198,8 @@ class TestFactoryErrors:
         assert "anthropic" in error_msg
         assert "langdock" in error_msg
         assert "openrouter" in error_msg
-        assert "azure" in error_msg
-        assert "vertex" in error_msg
+        assert "melious" in error_msg
+        assert "privatemode" in error_msg
         assert "local" in error_msg
         assert "lm_studio" in error_msg
         assert "ollama" in error_msg

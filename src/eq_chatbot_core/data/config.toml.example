@@ -20,8 +20,8 @@
 # Remove or comment out anything you do not need — every field is optional.
 
 # Provider used when --provider is omitted (optional).
-# One of: openai, anthropic, langdock, openrouter, mammouth, azure, vertex,
-#         litellm, ionos, melious, privatemode, local, lm_studio, ollama
+# One of: openai, anthropic, langdock, openrouter, mammouth, litellm,
+#         ionos, melious, privatemode, local, lm_studio, ollama
 # default_provider = "melious"
 
 # Global chat defaults (optional); used by `eq-chatbot chat` when the flags are omitted.
@@ -58,15 +58,6 @@
 # api_key  = "mm-..."
 # model    = "gpt-4o"
 # base_url = "https://api.mammouth.ai/v1"
-
-[providers.azure]
-# api_key  = "..."
-# model    = "gpt-4o"
-# base_url = "https://your-resource.openai.azure.com/openai/v1/"   # required for Azure
-
-[providers.vertex]
-# Vertex uses Google Application Default Credentials — no api_key needed.
-# model = "gemini-2.5-flash"
 
 [providers.litellm]
 # api_key  = "..."

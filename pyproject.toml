@@ -35,7 +35,6 @@ dependencies = [
     # the httpx2 dependency below move together.
     "openai>=3.0.0,<4.0.0",
     "anthropic>=0.90.0,<2.0.0",
-    "qdrant-client>=1.12.0,<2.0.0",
     "tiktoken>=0.9.0,<1.0.0",
     # Floor 50.0.0 excludes PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7
     # decryption) as well as the earlier CVE-2026-26007 / CVE-2026-39892 /
@@ -71,6 +70,14 @@ dev = [
     "pre-commit>=4.0.0,<5.0.0",
     "pip-audit>=2.7.0,<3.0.0",  # Dependency vulnerability scanning (CI security gate)
 ]
+rag = [
+    # Vector store for HybridRetriever. Optional since v3.0.0: it drags in grpcio
+    # (~37 MB) plus protobuf, and nothing imports it at module level — the
+    # retriever takes an already-constructed client and imports qdrant_client
+    # .models inside its methods. Callers that never touch RAG should not pay
+    # for it.
+    "qdrant-client>=1.12.0,<2.0.0",
+]
 local = [
     "sentence-transformers>=3.0.0,<6.0.0",  # For local embeddings
 ]
@@ -94,29 +101,14 @@ docs = [
     "markitdown[docx,pdf,pptx,xlsx]>=0.1.1,<0.2.0",
     "pymupdf>=1.26.0,<2.0.0",  # Embedded-image extraction from PDFs
 ]
-azure = [
-    # Intentionally empty since v2.0.0. The Azure provider now drives the Azure
-    # OpenAI /v1 endpoint through the `openai` SDK (already a core dependency),
-    # because Microsoft retires the azure-ai-inference beta SDK on 2026-08-26.
-    # The extra is kept as a no-op so existing `pip install ...[azure]` commands
-    # and deployment scripts keep working instead of erroring on an unknown extra.
-]
-vertex = [
-    # 2.x verified against the API surface this provider uses: genai.Client(
-    # vertexai=/project=/location=), models.generate_content(_stream)(model=,
-    # contents=, config=), types.Content/Part.from_text/from_function_response/
-    # FunctionDeclaration/Tool/GenerateContentConfig.
-    "google-genai>=2.0.0,<3.0.0",
-]
 image = [
     # Floor 12.3.0 excludes CVE-2026-59205 (ImageCmsTransform buffer overflow),
     # which affects every earlier Pillow release.
     "Pillow>=12.3.0,<13.0",
 ]
 realtime = [
-    # NOTE: google-genai (the [vertex] extra) caps websockets at <17.0, so an
-    # install combining [realtime,vertex] resolves to 16.x regardless of this
-    # ceiling. The wider bound only takes effect for installs without [vertex].
+    # Full range available again since v3.0.0: google-genai (the removed [vertex]
+    # extra) was the only dependency capping websockets at <17.0.
     "websockets>=13.0,<18.0",
 ]
 server = [
@@ -144,16 +136,20 @@ path = "src/eq_chatbot_core/version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/eq_chatbot_core"]
+# Generator-side input for the catalog sync tool; no library code reads it,
+# so it stays in the repo next to the catalog but out of the distribution.
+exclude = ["src/eq_chatbot_core/data/capability_overrides.json"]
 # Ship the bundled capability catalog (offline fallback for CapabilityCatalog)
 # and the CLI config template (used by `eq-chatbot config init`).
-artifacts = ["src/eq_chatbot_core/data/*.json", "src/eq_chatbot_core/data/*.example"]
+# capability_overrides.json is deliberately NOT listed: it is generator-side
+# input for the catalog sync tool, and no library code ever reads it.
+artifacts = ["src/eq_chatbot_core/data/capability_catalog.json", "src/eq_chatbot_core/data/*.example"]
 
 [tool.hatch.build.targets.wheel.force-include]
 # PEP 561 marker: without it type checkers ignore the inline annotations of this
 # package entirely, so every downstream consumer sees `Any` despite mypy strict.
 "src/eq_chatbot_core/py.typed" = "eq_chatbot_core/py.typed"
 "src/eq_chatbot_core/data/capability_catalog.json" = "eq_chatbot_core/data/capability_catalog.json"
-"src/eq_chatbot_core/data/capability_overrides.json" = "eq_chatbot_core/data/capability_overrides.json"
 "src/eq_chatbot_core/data/config.toml.example" = "eq_chatbot_core/data/config.toml.example"
 
 [tool.ruff]

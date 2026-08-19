@@ -42,6 +42,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and the bundled `data/capability_catalog.json` no longer contains `pricing`
   blocks. Capability flags and context/output limits are unchanged.
 
+- **Azure and Vertex AI providers removed.** `get_provider("azure")` and
+  `get_provider("vertex")` now raise `ValueError: Unknown provider`. Gone with
+  them: `AzureProvider`, `VertexProvider`, the `[azure]` and `[vertex]` extras,
+  the `google-genai` dependency, `AZURE_API_KEY` / `AZURE_ENDPOINT` /
+  `VERTEX_PROJECT` handling in the CLI and test harness, and the `[providers.azure]`
+  / `[providers.vertex]` blocks in the config template.
+
+  Neither is in day-to-day use at Equitania, and both were the only two providers
+  carrying a *static* model catalog (37 and 8 hand-maintained entries) that went
+  stale between releases while every other provider queries `/v1/models` live.
+  Google and Microsoft models stay reachable through `langdock` and `openrouter`,
+  which resolve them live; the capability catalog keeps its Gemini and GPT entries
+  and only drops the `azure`/`vertex` provider tags and the `azure/…` / `vertex/…`
+  aliases. If a customer needs a direct Azure or Vertex connection later, the
+  providers can be reintroduced against the current APIs — Azure now has a live
+  `GET /openai/v1/models` endpoint that did not exist in usable form when the
+  static catalog was written.
+
+  Unaffected: the **Gemini Live realtime provider** (`gemini_live`, including its
+  `mode="vertex"` endpoint variant). It speaks WebSocket directly and never used
+  `google-genai`.
+
+- **`qdrant-client` moved out of the core dependencies into a new `[rag]` extra.**
+  It pulled in grpcio (~37 MB) and protobuf for every install, including ones that
+  only ever construct a chat provider. Nothing imports it at module level — the
+  retriever takes an already-constructed client and imports `qdrant_client.models`
+  inside the two methods that need it — so the move costs nothing but an install
+  flag. `HybridRetriever` now raises a pointed `ImportError` naming
+  `pip install 'eq-chatbot-core[rag]'`. Install `[rag]` to keep the previous
+  behaviour.
+
+- **`NovaSonicStub` removed.** The `nova_sonic` realtime provider was a
+  placeholder whose every method raised `NotImplementedError: "available in
+  v1.9.0"` — a version long past. `REALTIME_PROVIDERS` is now
+  `["openai", "gemini_live", "elevenlabs", "mock"]`.
+
+- **`LangDockExportManager` removed** (with `EXPORT_REPORTS` and
+  `_map_status_error`). Orphaned since v1.18.1 dropped the `langdock-export` CLI;
+  only its own unit tests still referenced it. `LangDockAgentManager` and
+  `LangDockKnowledgeManager` are unaffected — both are still used.
+
+- **`data/capability_overrides.json` is no longer shipped in the wheel.** It is
+  generator-side input for the catalog sync tool and no library code reads it. The
+  file stays in the repository next to the catalog.
+
 ### Added
 
 - **Privatemode.ai provider** (`get_provider("privatemode")`) — end-to-end

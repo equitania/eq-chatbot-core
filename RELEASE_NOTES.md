@@ -40,6 +40,55 @@
   `pricing`-Blöcke mehr. Capability-Flags sowie Kontext- und Output-Limits
   bleiben unverändert.
 
+- **[CHG] Die Provider Azure und Vertex AI entfallen.** `get_provider("azure")`
+  und `get_provider("vertex")` werfen jetzt `ValueError: Unknown provider`.
+  Entfernt sind damit auch `AzureProvider`, `VertexProvider`, die Extras
+  `[azure]` und `[vertex]`, die Abhängigkeit `google-genai`, die Behandlung von
+  `AZURE_API_KEY` / `AZURE_ENDPOINT` / `VERTEX_PROJECT` in CLI und
+  Test-Harness sowie die Blöcke `[providers.azure]` / `[providers.vertex]` in der
+  Konfigurationsvorlage.
+
+  Beide werden bei Equitania im Alltag nicht eingesetzt, und beide waren die
+  einzigen Provider mit einem **statischen** Modellkatalog (37 bzw. 8 handgepflegte
+  Einträge), der zwischen Releases veraltete — während jeder andere Provider
+  `/v1/models` live abfragt. Google- und Microsoft-Modelle bleiben über `langdock`
+  und `openrouter` erreichbar, die sie live auflösen; der Capability-Katalog behält
+  seine Gemini- und GPT-Einträge und verliert lediglich die Provider-Tags
+  `azure`/`vertex` und die Aliase `azure/…` / `vertex/…`. Braucht später ein Kunde
+  eine direkte Azure- oder Vertex-Anbindung, lassen sich die Provider gegen die
+  heutigen APIs neu bauen — Azure hat inzwischen einen Live-Endpunkt
+  `GET /openai/v1/models`, den es in brauchbarer Form noch nicht gab, als der
+  statische Katalog entstand.
+
+  Nicht betroffen: der **Gemini-Live-Realtime-Provider** (`gemini_live`, samt
+  seiner Endpunkt-Variante `mode="vertex"`). Er spricht direkt WebSocket und hat
+  `google-genai` nie benutzt.
+
+- **[CHG] `qdrant-client` ist keine Core-Abhängigkeit mehr, sondern das neue Extra
+  `[rag]`.** Es zog grpcio (~37 MB) und protobuf in jede Installation — auch in
+  solche, die nur einen Chat-Provider bauen. Auf Modulebene importiert es niemand:
+  Der Retriever bekommt einen fertigen Client übergeben und importiert
+  `qdrant_client.models` erst in den beiden Methoden, die ihn brauchen. Die
+  Verschiebung kostet also nichts außer einem Install-Flag. `HybridRetriever` wirft
+  jetzt einen präzisen `ImportError`, der
+  `pip install 'eq-chatbot-core[rag]'` nennt. Wer das bisherige Verhalten will,
+  installiert `[rag]` mit.
+
+- **[CHG] `NovaSonicStub` entfernt.** Der Realtime-Provider `nova_sonic` war ein
+  Platzhalter, dessen sämtliche Methoden `NotImplementedError: "available in
+  v1.9.0"` warfen — eine längst vergangene Version. `REALTIME_PROVIDERS` ist jetzt
+  `["openai", "gemini_live", "elevenlabs", "mock"]`.
+
+- **[CHG] `LangDockExportManager` entfernt** (mit `EXPORT_REPORTS` und
+  `_map_status_error`). Verwaist seit v1.18.1 das `langdock-export`-CLI entfernt
+  wurde; nur noch die eigenen Unit-Tests referenzierten die Klasse.
+  `LangDockAgentManager` und `LangDockKnowledgeManager` bleiben unverändert — beide
+  werden weiterhin benutzt.
+
+- **[CHG] `data/capability_overrides.json` wird nicht mehr im Wheel ausgeliefert.**
+  Die Datei ist Generator-Eingabe für das Katalog-Sync-Tool, und kein
+  Bibliothekscode liest sie. Im Repository bleibt sie neben dem Katalog liegen.
+
 ### ✨ Neu
 
 - **[ADD] Privatemode.ai als Provider** (`get_provider("privatemode")`) —
@@ -76,11 +125,16 @@
 
 ### 🧪 Tests
 
-- 1911 Unit-Tests grün, 5 xfailed. Entfernt: `test_cost_service.py`,
-  `test_pricing_catalog.py`, `test_pricing_shim.py` sowie die Preis-Assertions
-  in `test_openrouter.py`, `test_mammouth.py`, `test_capability_catalog.py` und
-  `test_security_hardening.py`. Neu: `tests/unit/test_privatemode.py` (29) und
-  `tests/integration/test_privatemode_live.py`.
+- **1781 Unit-Tests grün, 5 xfailed** (vorher 1935). Entfernt: `test_cost_service.py`,
+  `test_pricing_catalog.py`, `test_pricing_shim.py`, `test_azure.py`, `test_vertex.py`,
+  `test_realtime_nova.py`, `test_azure_live.py`, `test_vertex_live.py` sowie die
+  Preis-Assertions in `test_openrouter.py`, `test_mammouth.py`,
+  `test_capability_catalog.py`, `test_security_hardening.py` und die
+  Export-Manager-Tests in `test_langdock_backends.py`. Neu:
+  `tests/unit/test_privatemode.py` (29) und `tests/integration/test_privatemode_live.py`.
+- Wheel: 195 KB → **183 KB**. Kern-Installation ohne Extras: **113 MB → 48 MB**
+  site-packages (gemessen in einer frischen venv), weil grpcio und protobuf mit
+  `qdrant-client` ins `[rag]`-Extra gewandert sind.
 
 ## Version 2.1.0 (18.08.2026)
 

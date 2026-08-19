@@ -208,8 +208,6 @@ def test_config() -> dict[str, Any]:
         "openrouter_api_key": os.getenv("OPENROUTER_API_KEY"),
         "openrouter_site_url": os.getenv("OPENROUTER_SITE_URL"),
         "openrouter_site_name": os.getenv("OPENROUTER_SITE_NAME"),
-        "azure_api_key": os.getenv("AZURE_API_KEY"),
-        "azure_endpoint": os.getenv("AZURE_ENDPOINT"),
         # LiteLLM / OpenAI-compatible gateway (base_url is required, no default)
         "litellm_api_key": os.getenv("LITELLM_API_KEY"),
         "litellm_base_url": os.getenv("LITELLM_BASE_URL"),
@@ -221,9 +219,6 @@ def test_config() -> dict[str, Any]:
         "melious_base_url": os.getenv("MELIOUS_BASE_URL"),
         "privatemode_api_key": os.getenv("PRIVATEMODE_API_KEY"),
         "privatemode_base_url": os.getenv("PRIVATEMODE_BASE_URL"),
-        # Vertex AI
-        "vertex_project": os.getenv("VERTEX_PROJECT"),
-        "vertex_location": os.getenv("VERTEX_LOCATION", "europe-west1"),
         # Local Server URLs
         "lm_studio_url": os.getenv("LM_STUDIO_URL", "http://localhost:1234/v1"),
         "ollama_url": os.getenv("OLLAMA_URL", "http://localhost:11434/v1"),
@@ -265,12 +260,6 @@ def mammouth_api_key(test_config) -> str | None:
 def openrouter_api_key(test_config) -> str | None:
     """OpenRouter API key from environment."""
     return test_config["openrouter_api_key"]
-
-
-@pytest.fixture
-def azure_api_key(test_config) -> str | None:
-    """Azure API key from environment."""
-    return test_config["azure_api_key"]
 
 
 @pytest.fixture
@@ -369,14 +358,6 @@ def skip_if_no_openrouter_key():
     return pytest.mark.skipif(
         not os.getenv("OPENROUTER_API_KEY"),
         reason="OPENROUTER_API_KEY not set",
-    )
-
-
-def skip_if_no_azure_key():
-    """Skip test if AZURE_API_KEY is not set."""
-    return pytest.mark.skipif(
-        not os.getenv("AZURE_API_KEY"),
-        reason="AZURE_API_KEY not set",
     )
 
 
@@ -560,37 +541,6 @@ def mammouth_resolved_model(test_config, resolved_models) -> str:
 
 
 @pytest.fixture(scope="session")
-def azure_resolved_model(test_config, resolved_models) -> str:
-    """Resolve Azure AI test model from registry against live API.
-
-    Since v2.0.0 the provider runs on the core ``openai`` SDK, so there is no
-    optional-extra ImportError to guard against. A stale ``AZURE_ENDPOINT`` still
-    pointing at the retired ``.services.ai.azure.com/models`` form raises
-    ValueError from the provider's migration guard — surfaced as a skip with the
-    migration hint rather than an opaque failure.
-    """
-    api_key = test_config.get("azure_api_key")
-    endpoint = test_config.get("azure_endpoint")
-    if not api_key:
-        pytest.skip("AZURE_API_KEY not set")
-    if not endpoint:
-        pytest.skip("AZURE_ENDPOINT not set")
-
-    cache_key = "azure"
-    if cache_key not in resolved_models:
-        from eq_chatbot_core.providers import get_provider
-
-        try:
-            provider = get_provider("azure", api_key=api_key, base_url=endpoint)
-            chain = _select_chain(cache_key, "AZURE_TEST_MODEL")
-            resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
-        except ValueError as exc:
-            pytest.skip(f"AZURE_ENDPOINT needs migrating to the OpenAI /v1 form: {exc}")
-
-    return resolved_models[cache_key].actual
-
-
-@pytest.fixture(scope="session")
 def litellm_resolved_model(test_config, resolved_models) -> str:
     """Resolve LiteLLM gateway test model from registry against the live API.
 
@@ -688,32 +638,6 @@ def privatemode_resolved_model(test_config, resolved_models) -> str:
 
         chain = _select_chain(cache_key, "PRIVATEMODE_TEST_MODEL")
         resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
-
-    return resolved_models[cache_key].actual
-
-
-@pytest.fixture(scope="session")
-def vertex_resolved_model(test_config, resolved_models) -> str:
-    """Resolve Vertex AI test model from registry against live API.
-
-    Skips gracefully when the optional ``[vertex]`` extra is not installed
-    (google-genai SDK missing) instead of failing with ImportError.
-    """
-    project = test_config.get("vertex_project")
-    if not project:
-        pytest.skip("VERTEX_PROJECT not set")
-
-    cache_key = "vertex"
-    if cache_key not in resolved_models:
-        from eq_chatbot_core.providers import get_provider
-
-        location = test_config.get("vertex_location") or "europe-west1"
-        try:
-            provider = get_provider("vertex", project=project, location=location)
-            chain = _select_chain(cache_key, "VERTEX_TEST_MODEL")
-            resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
-        except ImportError as exc:
-            pytest.skip(f"Vertex SDK not installed (use [vertex] extra): {exc}")
 
     return resolved_models[cache_key].actual
 
@@ -1016,14 +940,6 @@ _MODULE_GROUPS = {
         "label": "Provider: Mammouth AI",
         "modules": ["test_mammouth", "test_mammouth_live"],
     },
-    "Azure": {
-        "label": "Provider: Azure AI",
-        "modules": ["test_azure", "test_azure_live"],
-    },
-    "Vertex": {
-        "label": "Provider: Google Vertex AI",
-        "modules": ["test_vertex", "test_vertex_live"],
-    },
     "LiteLLM": {
         "label": "Provider: LiteLLM Gateway",
         "modules": ["test_litellm", "test_litellm_live"],
@@ -1076,8 +992,6 @@ _RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
     "langdock.anthropic": ("LangDock (Anthropic backend)", "LANGDOCK_ANTHROPIC_TEST_MODEL"),
     "openrouter": ("OpenRouter", "OPENROUTER_TEST_MODEL"),
     "mammouth": ("Mammouth AI", "MAMMOUTH_TEST_MODEL"),
-    "azure": ("Azure AI", "AZURE_TEST_MODEL"),
-    "vertex": ("Google Vertex AI", "VERTEX_TEST_MODEL"),
     "litellm": ("LiteLLM Gateway", "LITELLM_TEST_MODEL"),
     "ionos": ("IONOS AI Model Hub", "IONOS_TEST_MODEL"),
     "melious": ("Melious.ai", "MELIOUS_TEST_MODEL"),
@@ -1095,8 +1009,6 @@ _RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
     "langdock.anthropic": ["LANGDOCK_API_KEY"],
     "openrouter": ["OPENROUTER_API_KEY"],
     "mammouth": ["MAMMOUTH_API_KEY"],
-    "azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
-    "vertex": ["VERTEX_PROJECT"],
     "litellm": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint
@@ -1114,8 +1026,6 @@ _GROUP_TO_PRIMARY_RESOLVER: dict[str, str] = {
     "LangDock": "langdock.openai",
     "OpenRouter": "openrouter",
     "Mammouth": "mammouth",
-    "Azure": "azure",
-    "Vertex": "vertex",
     "LiteLLM": "litellm",
     "Ionos": "ionos",
     "Melious": "melious",
@@ -1133,8 +1043,6 @@ _GROUP_REQUIRED_ENV = {
     "LangDock": ["LANGDOCK_API_KEY"],
     "OpenRouter": ["OPENROUTER_API_KEY"],
     "Mammouth": ["MAMMOUTH_API_KEY"],
-    "Azure": ["AZURE_API_KEY", "AZURE_ENDPOINT"],
-    "Vertex": ["VERTEX_PROJECT"],  # auth via gcloud ADC, project still required
     "LiteLLM": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],
     "Ionos": ["IONOS_API_KEY"],  # base_url defaults to the official endpoint
     "Melious": ["MELIOUS_API_KEY"],  # base_url defaults to the official endpoint

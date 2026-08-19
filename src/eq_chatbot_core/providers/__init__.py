@@ -1,7 +1,7 @@
 """
-LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI, and local servers.
+LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Privatemode, and local servers.
 
-Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI)
+Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, IONOS, Melious, Privatemode, LiteLLM)
 and local LLM servers (LM Studio, Ollama) that expose OpenAI-compatible APIs.
 
 Usage:
@@ -19,12 +19,8 @@ Usage:
     provider = get_provider("mammouth", api_key="mm-...")
     response = provider.chat_completion(messages=[...], model="gpt-4o")
 
-    # Azure AI Foundry
-    provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
     response = provider.chat_completion(messages=[...], model="gpt-4o")
 
-    # Google Vertex AI (Gemini models)
-    provider = get_provider("vertex", project="my-gcp-project", location="europe-west1")
     response = provider.chat_completion(messages=[...], model="gemini-2.5-flash")
 
     # Local providers (LM Studio or Ollama)
@@ -57,8 +53,6 @@ CLOUD_PROVIDERS: list[str] = [
     "langdock",
     "openrouter",
     "mammouth",
-    "azure",
-    "vertex",
     "litellm",
     "ionos",
     "melious",
@@ -81,7 +75,7 @@ def get_provider(
 
     Args:
         provider_name: One of "openai", "anthropic", "langdock", "openrouter",
-                       "mammouth", "azure", "vertex", "litellm", "local",
+                       "mammouth", "litellm", "ionos", "melious", "privatemode", "local",
                        "lm_studio", "lmstudio", "ollama"
         api_key: API key for the provider (optional for local providers)
         base_url: Optional custom base URL. Required for local providers,
@@ -106,8 +100,6 @@ def get_provider(
         # Mammouth AI (30+ models)
         provider = get_provider("mammouth", api_key="mm-...")
 
-        # Azure AI Foundry
-        provider = get_provider("azure", api_key="...", base_url="https://your-resource.openai.azure.com/openai/v1/")
 
         # Local LM Studio
         provider = get_provider("lm_studio")
@@ -118,7 +110,6 @@ def get_provider(
         provider = get_provider("local", base_url="http://localhost:11434/v1")
     """
     from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
-    from eq_chatbot_core.providers.azure_provider import AzureProvider
     from eq_chatbot_core.providers.ionos_provider import IonosProvider
     from eq_chatbot_core.providers.langdock_provider import LangDockProvider
     from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider
@@ -128,7 +119,6 @@ def get_provider(
     from eq_chatbot_core.providers.openai_provider import OpenAIProvider
     from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
     from eq_chatbot_core.providers.privatemode_provider import PrivatemodeProvider
-    from eq_chatbot_core.providers.vertex_provider import VertexProvider
 
     # Provider class mapping
     providers = {
@@ -137,8 +127,6 @@ def get_provider(
         "langdock": LangDockProvider,
         "openrouter": OpenRouterProvider,
         "mammouth": MammouthProvider,
-        "azure": AzureProvider,
-        "vertex": VertexProvider,
         "local": LocalLLMProvider,
         "litellm": LiteLLMProvider,
         "ionos": IonosProvider,
@@ -162,8 +150,6 @@ def get_provider(
         | type[LangDockProvider]
         | type[OpenRouterProvider]
         | type[MammouthProvider]
-        | type[AzureProvider]
-        | type[VertexProvider]
         | type[LocalLLMProvider]
         | type[LiteLLMProvider]
         | type[IonosProvider]
@@ -183,10 +169,10 @@ def get_provider(
         available = list(providers.keys()) + list(local_aliases.keys())
         raise ValueError(f"Unknown provider: {provider_name}. Available: {', '.join(sorted(set(available)))}")
 
-    # Local providers and Vertex don't require an API key. Privatemode usually
-    # doesn't either — its proxy holds the key — and substitutes its own
-    # placeholder, so an empty string is passed through untouched here.
-    if provider_class in (LocalLLMProvider, VertexProvider):
+    # Local providers don't require an API key. Privatemode usually doesn't
+    # either — its proxy holds the key — and substitutes its own placeholder, so
+    # an empty string is passed through untouched here.
+    if provider_class is LocalLLMProvider:
         api_key = api_key or "not-used"
 
     # api_key is guaranteed to be str at this point for non-local providers
@@ -194,7 +180,6 @@ def get_provider(
 
 
 # Exports for public API - after get_provider to avoid circular imports
-from eq_chatbot_core.providers.azure_provider import AzureProvider  # noqa: E402
 from eq_chatbot_core.providers.base import (  # noqa: E402
     AuthenticationError,
     BaseLLMProvider,
@@ -215,7 +200,6 @@ from eq_chatbot_core.providers.mammouth_provider import MammouthProvider  # noqa
 from eq_chatbot_core.providers.melious_provider import MeliousProvider  # noqa: E402
 from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider  # noqa: E402
 from eq_chatbot_core.providers.privatemode_provider import PrivatemodeProvider  # noqa: E402
-from eq_chatbot_core.providers.vertex_provider import VertexProvider  # noqa: E402
 
 __all__ = [
     "get_provider",
@@ -229,8 +213,6 @@ __all__ = [
     "AuthenticationError",
     "ContextLengthError",
     "OverloadedError",
-    "AzureProvider",
-    "VertexProvider",
     "LocalLLMProvider",
     "LiteLLMProvider",
     "IonosProvider",

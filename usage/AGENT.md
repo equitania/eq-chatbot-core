@@ -5,7 +5,7 @@
 -->
 # eq-chatbot — Agent Capability Card
 
-> Unified command-line gateway to many LLM providers (OpenAI, Anthropic, Azure, Vertex, LangDock, OpenRouter, Mammouth, IONOS, Melious, Privatemode, LiteLLM, local LM Studio/Ollama) with single-turn JSON chat, model listing, text-to-image generation, batch listing-asset generation, and a localhost HTTP/SSE server.
+> Unified command-line gateway to many LLM providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, IONOS, Melious, Privatemode, LiteLLM, local LM Studio/Ollama) with single-turn JSON chat, model listing, text-to-image generation, batch listing-asset generation, and a localhost HTTP/SSE server.
 
 - **Invoke:** `eq-chatbot <command> [options]`
 - **Install:** `pip install eq-chatbot-core` (server mode: `pip install 'eq-chatbot-core[server]'`; image resizing: `pip install 'eq-chatbot-core[image]'`)
@@ -20,6 +20,7 @@
 - Generate a single image from a text prompt (`image`) — OpenAI `gpt-image-1` or OpenRouter image models.
 - Batch-generate App-Store listing assets (icon/banner/eyecatchers) from a recipe JSON (`listing-assets`).
 - Run a localhost-only HTTP/SSE sidecar exposing the gateway to other apps (`serve`) — bearer-auth, streaming.
+- Reach an end-to-end encrypted provider through its local proxy (`-p privatemode`) — confidential computing, no key needed on this side.
 - Provider-agnostic: switch backends by changing `-p` and the key — no code changes.
 
 ## Command reference
@@ -27,18 +28,18 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 
 | Command | Purpose | Args / Flags |
 |---|---|---|
-| `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
+| `eq-chatbot chat` | Single-turn chat with JSON I/O for programmatic use. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --temperature/-t FLOAT, --max-tokens INTEGER, --base-url/-u TEXT |
 | `eq-chatbot config init` | Write a commented config template (mode 0600) to the config path. | --force |
 | `eq-chatbot config path` | Print the resolved config file path (whether or not it exists). | — |
 | `eq-chatbot config show` | Show the config path, permissions and a key-masked view of the contents. | — |
 | `eq-chatbot image` | Generate an image from a text prompt. | --provider/-p openai\|openrouter, --api-key/-k TEXT, --model/-m TEXT, --prompt TEXT, --prompt-file PATH, --size TEXT, --fit TEXT, --output/-o TEXT, --base-url/-u TEXT |
 | `eq-chatbot info` | Show package information. | — |
-| `eq-chatbot list-models` | List available models from a provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --base-url/-u TEXT, --json, --vision-only |
+| `eq-chatbot list-models` | List available models from a provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --base-url/-u TEXT, --json, --vision-only |
 | `eq-chatbot listing-assets` | Generate a batch of images from a recipe JSON file. | --recipe PATH, --provider/-p openai\|openrouter, --model/-m TEXT, --api-key/-k TEXT, --base-url/-u TEXT, --dest DIRECTORY, --only TEXT, --dry-run |
 | `eq-chatbot serve` | Run a localhost HTTP/SSE server exposing the LLM provider gateway. | --host TEXT, --port INTEGER, --auth-token TEXT, --auth-token-fd INTEGER, --parent-pid INTEGER, --log-level debug\|info\|warning\|error |
-| `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|azure\|vertex\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
+| `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
 
-**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `AZURE_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`), `vertex` (ADC) and `privatemode` (the local proxy holds the key) need no key.
+**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `privatemode` (the local proxy holds the key) need no key.
 
 ## Recipes
 
@@ -61,6 +62,14 @@ eq-chatbot test-provider -p ionos -k "$KEY" -msg "ping"
 LLM_API_KEY="$KEY" eq-chatbot test-provider -p openai
 ```
 Human-readable success/usage report; exits non-zero on auth/connection failure. Good as a CI/pre-flight gate.
+
+### Talk to Privatemode through its local proxy (no key)
+```bash
+docker run -d -p 8080:8080 ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest --apiKey "$PM_KEY"
+eq-chatbot list-models   -p privatemode                 # defaults to http://localhost:8080/v1
+eq-chatbot test-provider -p privatemode -m kimi-latest
+```
+The proxy does the encryption and the remote attestation; the CLI speaks plain OpenAI to it and needs no key of its own. Model ids come from the proxy — use `list-models`, do not hardcode them.
 
 ### Talk to a local model (no key)
 ```bash
@@ -98,8 +107,8 @@ Needs the `[server]` extra. `--port 0` picks a free port. All endpoints except `
 - **`chat` blocks on stdin** — it always reads a JSON payload from stdin; never invoke it without piping input or it will hang. Payload cap is 1 MB. It is one-shot: no streaming, no loop.
 - **`serve` requires `[server]` extra** — missing → a clear ClickException telling you to install it. Token passed via `--auth-token` is visible in `argv`/`ps`; prefer `--auth-token-fd` or `EQ_CHATBOT_AUTH_TOKEN`.
 - **`--base-url`/`-u` is SSRF-validated** — non-HTTP schemes and cloud-metadata/link-local targets are rejected; in strict mode an unresolvable host is refused (local providers allow private LAN ranges).
-- **Azure needs the OpenAI `/v1` endpoint (v2.0.0+)** — `--base-url https://<resource>.openai.azure.com/openai/v1/`. It is REQUIRED (no default). The old `https://<resource>.services.ai.azure.com/models` form is rejected up front with a migration hint; do not construct it. No `[azure]` extra is needed any more, and `api_version` is obsolete.
 - **`litellm` also requires an explicit `--base-url`** — there is intentionally no default gateway address.
+- **`privatemode` needs its proxy running locally** — without it every call fails with a connection error; there is no public API. A `--base-url` that resolves to a *public* address over plain `http://` is refused outright, because that would carry prompts in cleartext and void the end-to-end encryption; use `https://`, loopback, or a private address.
 - **Output is not pretty-printed for humans** — `chat` and `--json` are designed to be machine-parsed.
 - **Destructive:** none. All commands are read-only or write into an explicit `--output-dir`/`--dest`/`--output`; image commands overwrite same-named files in that dir without prompting.
 

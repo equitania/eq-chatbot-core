@@ -20,7 +20,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 
 ### Key Features
 
-- **Multi-Provider Support** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Privatemode.ai (end-to-end encrypted, EU), Local (LM Studio/Ollama)
+- **Multi-Provider Support** — OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Privatemode.ai (end-to-end encrypted, EU), Local (LM Studio/Ollama)
 - **Unified API** — same interface regardless of provider
 - **Temperature Safety** — automatic model-specific temperature clamping
 - **Security** — Fernet encryption, prompt-injection detection (direct user input + indirect tool/RAG content), file-upload validation, race-free token-bucket rate limiting
@@ -29,6 +29,13 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **CLI Tool** — provider testing, model discovery, programmatic JSON I/O chat
 - **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
+
+> **Breaking in v3.0.0 — Azure and Vertex AI providers removed:** `get_provider("azure")` and
+> `get_provider("vertex")` now raise `ValueError`. Neither is in day-to-day use here, and both
+> were the only providers carrying a hand-maintained static model catalog. Google and Microsoft
+> models stay reachable live through `langdock` and `openrouter`. The `gemini_live` realtime
+> provider is unaffected. `qdrant-client` also moved out of the core install into a new `[rag]`
+> extra (it pulled in ~37 MB of grpcio for every install). See RELEASE_NOTES.md.
 
 > **Breaking in v3.0.0 — cost calculation removed:** `calculate_cost()`, `PRICING`,
 > `PricingCatalog`, the bundled price snapshot and the per-model cost fields in `list_models()`
@@ -49,11 +56,6 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 > **Security:** v2.1.0 closes a DNS-rebinding hole that affected every LLM provider — see
 > RELEASE_NOTES.md. Upgrading is recommended for anyone who lets callers supply a `base_url`.
 
-> **Breaking in v2.0.0 — Azure users:** the Azure provider moved off the retired `azure-ai-inference`
-> SDK (Microsoft retires it on 2026-08-26) onto the core `openai` SDK. Change `base_url` from
-> `https://<resource>.services.ai.azure.com/models` to `https://<resource>.openai.azure.com/openai/v1/`.
-> The old form is rejected with a migration hint. The `[azure]` extra is no longer needed.
-
 ### Installation
 
 ```bash
@@ -64,15 +66,14 @@ uv pip install eq-chatbot-core
 # With optional extras
 uv pip install eq-chatbot-core[pdf]       # PDF→image conversion (vision)
 uv pip install eq-chatbot-core[security]  # MIME-type file validation
-# Note: [azure] is a no-op since v2.0.0 — the Azure provider uses the core openai SDK
-uv pip install eq-chatbot-core[vertex]    # Google Vertex AI
+uv pip install eq-chatbot-core[rag]       # Qdrant vector retrieval
 uv pip install eq-chatbot-core[image]     # Text-to-image generation (Pillow)
 uv pip install eq-chatbot-core[realtime]  # Realtime voice providers (websockets)
 uv pip install eq-chatbot-core[server]    # HTTP/SSE sidecar (FastAPI + uvicorn)
 uv pip install eq-chatbot-core[local]     # Local sentence-transformers embeddings
 
 # All optional dependencies
-uv pip install eq-chatbot-core[pdf,security,azure,vertex,image,realtime,server,local,dev]
+uv pip install eq-chatbot-core[pdf,security,rag,image,realtime,server,local,dev]
 ```
 
 ### Quick Start
@@ -89,7 +90,7 @@ response = provider.chat_completion(
 print(response.content)
 ```
 
-For more — streaming, other providers, ADC for Vertex, error handling — see [docs/providers.md](docs/providers.md).
+For more — streaming, other providers, error handling — see [docs/providers.md](docs/providers.md).
 
 ### Documentation
 
@@ -221,7 +222,7 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 
 ### Hauptfunktionen
 
-- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, Azure AI, Google Vertex AI, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Melious.ai (souverän EU), Privatemode.ai (Ende-zu-Ende-verschlüsselt, EU), Local (LM Studio/Ollama)
+- **Multi-Provider-Unterstützung** — OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Melious.ai (souverän EU), Privatemode.ai (Ende-zu-Ende-verschlüsselt, EU), Local (LM Studio/Ollama)
 - **Einheitliche API** — gleiche Schnittstelle unabhängig vom Provider
 - **Temperature-Sicherheit** — automatisches modellspezifisches Temperature-Clamping
 - **Sicherheit** — Fernet-Verschlüsselung, Prompt-Injection-Erkennung (direkte Nutzereingaben + indirekte Tool-/RAG-Inhalte), File-Upload-Validierung, Race-freies Token-Bucket-Rate-Limiting
@@ -230,6 +231,14 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **CLI-Tool** — Provider-Tests, Modell-Discovery, programmatische JSON-I/O-Chat-Calls
 - **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
+
+> **Breaking in v3.0.0 — die Provider Azure und Vertex AI entfallen:** `get_provider("azure")`
+> und `get_provider("vertex")` werfen jetzt `ValueError`. Beide werden hier im Alltag nicht
+> genutzt und waren die einzigen Provider mit handgepflegtem statischem Modellkatalog.
+> Google- und Microsoft-Modelle bleiben über `langdock` und `openrouter` live erreichbar. Der
+> Realtime-Provider `gemini_live` ist nicht betroffen. `qdrant-client` ist außerdem aus der
+> Core-Installation in das neue Extra `[rag]` gewandert (es zog ~37 MB grpcio in jede
+> Installation). Details in RELEASE_NOTES.md.
 
 > **Breaking in v3.0.0 — die Kostenberechnung entfällt:** `calculate_cost()`, `PRICING`,
 > `PricingCatalog`, der mitgelieferte Preis-Snapshot und die Kostenfelder in `list_models()`
@@ -253,12 +262,6 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 > **Sicherheit:** v2.1.0 schließt eine DNS-Rebinding-Lücke, die alle LLM-Provider betraf — Details in
 > RELEASE_NOTES.md. Ein Upgrade ist für alle empfohlen, die Aufrufer eine `base_url` setzen lassen.
 
-> **Breaking in v2.0.0 — für Azure-Nutzer:** Der Azure-Provider nutzt nicht mehr das eingestellte
-> `azure-ai-inference`-SDK (Microsoft stellt es zum 26.08.2026 ein), sondern das Core-`openai`-SDK.
-> `base_url` ändert sich von `https://<resource>.services.ai.azure.com/models` zu
-> `https://<resource>.openai.azure.com/openai/v1/`. Die alte Form wird mit Migrationshinweis
-> abgelehnt. Das `[azure]`-Extra wird nicht mehr benötigt.
-
 ### Installation
 
 ```bash
@@ -269,15 +272,14 @@ uv pip install eq-chatbot-core
 # Mit optionalen Extras
 uv pip install eq-chatbot-core[pdf]       # PDF→Bild-Konvertierung (Vision)
 uv pip install eq-chatbot-core[security]  # MIME-Type-File-Validation
-# Note: [azure] is a no-op since v2.0.0 — the Azure provider uses the core openai SDK
-uv pip install eq-chatbot-core[vertex]    # Google Vertex AI
+uv pip install eq-chatbot-core[rag]       # Qdrant vector retrieval
 uv pip install eq-chatbot-core[image]     # Text-zu-Bild-Generierung (Pillow)
 uv pip install eq-chatbot-core[realtime]  # Realtime-Voice-Provider (websockets)
 uv pip install eq-chatbot-core[server]    # HTTP/SSE-Sidecar (FastAPI + uvicorn)
 uv pip install eq-chatbot-core[local]     # Lokale sentence-transformers-Embeddings
 
 # Alle optionalen Abhängigkeiten
-uv pip install eq-chatbot-core[pdf,security,azure,vertex,image,realtime,server,local,dev]
+uv pip install eq-chatbot-core[pdf,security,rag,image,realtime,server,local,dev]
 ```
 
 ### Quick Start
@@ -294,7 +296,7 @@ response = provider.chat_completion(
 print(response.content)
 ```
 
-Für mehr — Streaming, andere Provider, ADC für Vertex, Error-Handling — siehe [docs/providers.md](docs/providers.md).
+Für mehr — Streaming, andere Provider, Error-Handling — siehe [docs/providers.md](docs/providers.md).
 
 ### Dokumentation
 

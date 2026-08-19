@@ -37,9 +37,9 @@ class RealtimeProviderRegistry:
 def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
     """Create a new registry pre-populated with the built-in providers.
 
-    Phase 2 adds 'openai'. Phase 3 adds 'gemini_live' and 'nova_sonic'. Phase 3.1 adds 'elevenlabs'.
-    All provider imports are deferred inside factory_fn to keep this module
-    importable without any extras installed.
+    Registered: 'openai', 'gemini_live', 'elevenlabs', plus the 'mock' test double.
+        All provider imports are deferred inside factory_fn to keep this module
+        importable without any extras installed.
     """
     from eq_chatbot_core.realtime.mock import MockRealtimeProvider  # deferred — stdlib-only
 
@@ -63,13 +63,6 @@ def build_default_realtime_provider_registry() -> RealtimeProviderRegistry:
             name="gemini_live",
             factory_fn=lambda **kwargs: _build_gemini_live_provider(**kwargs),
             description="Google Gemini Live API — BidiGenerateContent, manual turn commit, tool calling.",
-        )
-    )
-    registry.register(
-        RealtimeProviderDefinition(
-            name="nova_sonic",
-            factory_fn=lambda **kwargs: _build_nova_sonic_provider(**kwargs),
-            description="AWS Nova Sonic stub — production implementation in v1.9.0.",
         )
     )
     registry.register(
@@ -130,16 +123,6 @@ def _build_gemini_live_provider(**kwargs: Any) -> Any:
 
     config = GeminiLiveConfig(**kwargs)
     return GeminiLiveClient(config)
-
-
-def _build_nova_sonic_provider(**kwargs: Any) -> Any:
-    """Build a NovaSonicStub from keyword arguments.
-
-    Stdlib-only deferred import — no websockets or AWS packages required (D-08 / SC-5).
-    """
-    from eq_chatbot_core.realtime.providers.nova import NovaSonicStub  # noqa: PLC0415
-
-    return NovaSonicStub()
 
 
 def _build_elevenlabs_provider(**kwargs: Any) -> Any:

@@ -29,7 +29,7 @@ jobs:
         run: uv venv --python 3.12
 
       - name: Install dev dependencies
-        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,rag,server]"
 
       - name: Run ruff lint
         run: uv run ruff check src/ tests/
@@ -61,7 +61,7 @@ jobs:
         run: uv venv --python 3.12
 
       - name: Install package and dev extras
-        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,rag,server]"
 
       # Scans installed dependencies against the PyPI Advisory DB. This is a HARD
       # gate: a disclosed CVE in a (transitive) dependency must be triaged, not
@@ -99,7 +99,7 @@ jobs:
         run: uv venv --python ${{ matrix.python-version }}
 
       - name: Install package and dev extras
-        run: uv pip install -e ".[dev,security,pdf,image,azure,vertex,server]"
+        run: uv pip install -e ".[dev,security,pdf,image,rag,server]"
 
       - name: Run unit tests with coverage
         env:

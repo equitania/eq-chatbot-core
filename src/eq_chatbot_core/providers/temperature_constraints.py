@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 # Per-model temperature constraints.
 # Key: model ID or prefix (lowercase) for case-insensitive longest-prefix matching.
 # get_temperature_constraints() lowercases the input before lookup, so all keys
-# here MUST be lowercase. Mixed-case Azure model IDs (DeepSeek-V3, MAI-DS-R1)
+# here MUST be lowercase. Mixed-case gateway model IDs (DeepSeek-V3, MAI-DS-R1)
 # and lowercase OpenRouter IDs (deepseek-v3) both resolve to the same entry.
 MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     # Reasoning models: temperature fixed at 1.0 (not configurable)

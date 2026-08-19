@@ -26,7 +26,7 @@ explicitly isn't. Sections below say which is which.
 The model reasons by construction. There is no off switch; you can only tune how much effort it
 spends. These models typically also reject sampling parameters.
 
-- **Providers:** OpenAI (`o1`, `o3`, `o4`), Azure when serving those deployments
+- **Providers:** OpenAI (`o1`, `o3`, `o4`), and any gateway serving those models
 - **Control:** `reasoning_effort: "low" | "medium" | "high"`
 - **Library behavior:** temperature is dropped automatically for this family (see
   [Temperature clamping](providers.md#temperature-clamping)). Passing `temperature=0.7` is safe —
@@ -37,7 +37,7 @@ spends. These models typically also reject sampling parameters.
 One model, two behaviors, selected in the request body. Usually off by default.
 
 - **Anthropic:** a `thinking` block with an explicit token budget
-- **Google Vertex (Gemini 2.5):** a thinking budget in the generation config
+- **Gemini 2.5 (via LangDock / OpenRouter):** a thinking budget in the generation config
 - **Qwen3 (via local / gateway):** an `enable_thinking` boolean
 - **Privatemode (Kimi):** `chat_template_kwargs={"thinking": False}` — reasoning is *on* by
   default here; the provider accepts this as a plain keyword and routes it into the request body
@@ -73,8 +73,6 @@ reasoning on inside a given model.
 | --- | --- | --- | --- |
 | `openai` | Intrinsic (o-series) | `reasoning_effort` | n/a — always on |
 | `anthropic` | Toggle | `thinking` block + budget | yes |
-| `azure` | Intrinsic / none | depends on deployed model | model-dependent |
-| `vertex` | Toggle | thinking budget (Gemini 2.5) | yes |
 | `langdock` | Pass-through | whatever the target model accepts | model-dependent |
 | `openrouter` | Pass-through | own reasoning params + suffixes | model-dependent |
 | `mammouth` | Pass-through | target-model dependent | model-dependent |
@@ -87,11 +85,6 @@ reasoning on inside a given model.
 > **Verify parameter names per release.** The *mechanisms* are stable; the *spellings* are not.
 > Upstream providers rename and deprecate reasoning parameters frequently. Treat the middle column
 > as a pointer to the vendor docs, not as a contract.
-
-> **Odoo-layer note:** `azure` and `vertex` stay in this registry but are **frozen in the Odoo
-> chatbot UI** since 09.07.2026 (`FROZEN_PROVIDERS` in `eq.chatbot.config`) — not selectable there.
-> The Odoo layer also has no combined `local` provider; it exposes `ollama` and `lm_studio`
-> separately.
 
 ### Reasoning traces in responses
 
@@ -180,7 +173,7 @@ caps["reasoning"]   # True — the resolved bundle is flat, not nested
 `lookup()` returns a `ModelCapabilities` bundle (or `None` for an unknown model) that flattens
 capabilities and limits into one dict — `reasoning`, `tools`, `image_input`,
 `context_length`, `max_output_tokens`, … Aliases resolve, so `lookup("gpt-4o")` and
-`lookup("azure/gpt-4o")` hit the same entry.
+`lookup("openai/gpt-4o")` hit the same entry.
 
 `capability_meta` in the same JSON provides the icon plus a bilingual label/help string per flag,
 so UIs render the catalog without hardcoding copy.
@@ -251,7 +244,7 @@ das ausdrücklich nicht ist. Die Abschnitte unten sagen, was wo gilt.
 Das Modell denkt konstruktionsbedingt. Es gibt keinen Aus-Schalter; steuerbar ist nur der Aufwand.
 Diese Modelle lehnen typischerweise auch Sampling-Parameter ab.
 
-- **Provider:** OpenAI (`o1`, `o3`, `o4`), Azure bei entsprechenden Deployments
+- **Provider:** OpenAI (`o1`, `o3`, `o4`) sowie Gateways, die diese Modelle ausliefern
 - **Steuerung:** `reasoning_effort: "low" | "medium" | "high"`
 - **Verhalten der Library:** Temperature wird für diese Familie automatisch verworfen (siehe
   [Temperature-Clamping](providers.md#temperature-clamping)). `temperature=0.7` zu übergeben ist
@@ -262,7 +255,7 @@ Diese Modelle lehnen typischerweise auch Sampling-Parameter ab.
 Ein Modell, zwei Verhalten, ausgewählt im Request-Body. Meist standardmäßig aus.
 
 - **Anthropic:** ein `thinking`-Block mit explizitem Token-Budget
-- **Google Vertex (Gemini 2.5):** ein Thinking-Budget in der Generation-Config
+- **Gemini 2.5 (über LangDock / OpenRouter):** ein Thinking-Budget in der Generation-Config
 - **Qwen3 (lokal / via Gateway):** ein `enable_thinking`-Boolean
 - **Privatemode (Kimi):** `chat_template_kwargs={"thinking": False}` — Reasoning ist hier
   standardmäßig *an*; der Provider nimmt das als normales Keyword und routet es in den Request-Body
@@ -300,8 +293,6 @@ aktiviert kein Reasoning innerhalb eines gegebenen Modells.
 | --- | --- | --- | --- |
 | `openai` | Intrinsisch (o-Reihe) | `reasoning_effort` | n/a — immer an |
 | `anthropic` | Toggle | `thinking`-Block + Budget | ja |
-| `azure` | Intrinsisch / keins | je nach deployten Modell | modellabhängig |
-| `vertex` | Toggle | Thinking-Budget (Gemini 2.5) | ja |
 | `langdock` | Durchgereicht | was das Zielmodell akzeptiert | modellabhängig |
 | `openrouter` | Durchgereicht | eigene Reasoning-Parameter + Suffixe | modellabhängig |
 | `mammouth` | Durchgereicht | zielmodellabhängig | modellabhängig |
@@ -314,11 +305,6 @@ aktiviert kein Reasoning innerhalb eines gegebenen Modells.
 > **Parameternamen pro Release verifizieren.** Die *Mechanismen* sind stabil, die *Schreibweisen*
 > nicht. Upstream-Provider benennen Reasoning-Parameter regelmäßig um oder deprecaten sie. Die
 > mittlere Spalte ist ein Zeiger auf die Herstellerdoku, kein Vertrag.
-
-> **Hinweis zur Odoo-Ebene:** `azure` und `vertex` bleiben in dieser Registry, sind in der
-> Odoo-Chatbot-UI aber seit 09.07.2026 **eingefroren** (`FROZEN_PROVIDERS` in `eq.chatbot.config`)
-> — dort nicht wählbar. Die Odoo-Ebene kennt außerdem keinen kombinierten `local`-Provider, sondern
-> `ollama` und `lm_studio` getrennt.
 
 ### Reasoning-Traces in Antworten
 
@@ -410,7 +396,7 @@ caps["reasoning"]   # True — das aufgelöste Bündel ist flach, nicht verschac
 `lookup()` liefert ein `ModelCapabilities`-Bündel (oder `None` bei unbekanntem Modell), das
 Capabilities und Limits in ein Dict zusammenzieht — `reasoning`, `tools`, `image_input`,
 `context_length`, `max_output_tokens`, … Aliase werden aufgelöst, `lookup("gpt-4o")` und
-`lookup("azure/gpt-4o")` treffen denselben Eintrag.
+`lookup("openai/gpt-4o")` treffen denselben Eintrag.
 
 `capability_meta` in derselben JSON-Datei liefert je Flag das Icon plus einen zweisprachigen
 Label-/Hilfetext, sodass UIs den Katalog ohne hartcodierte Texte rendern.

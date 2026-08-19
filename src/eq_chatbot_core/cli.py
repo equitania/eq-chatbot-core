@@ -36,7 +36,6 @@ PROVIDER_API_KEY_ENV: dict[str, str] = {
     "langdock": "LANGDOCK_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "mammouth": "MAMMOUTH_API_KEY",
-    "azure": "AZURE_API_KEY",
     "litellm": "LITELLM_API_KEY",
     "ionos": "IONOS_API_KEY",
     "melious": "MELIOUS_API_KEY",
@@ -52,7 +51,7 @@ def resolve_api_key(provider: str | None, explicit_key: str | None) -> str | Non
         2. <PROVIDER>_API_KEY env var (e.g. OPENROUTER_API_KEY)
         3. LLM_API_KEY env var (generic fallback)
         4. config file ([providers.<name>].api_key)
-        5. None (caller decides; local providers and Vertex need no key)
+        5. None (caller decides; local providers need no key)
     """
     if explicit_key:
         return explicit_key
@@ -121,7 +120,7 @@ def main() -> None:
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     default=None,
-    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
+    help="LLM provider to test (cloud: openai, anthropic, langdock, openrouter, mammouth, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
@@ -176,13 +175,12 @@ def test_provider(
         sys.exit(1)
     assert provider is not None  # narrowed by perr check
 
-    # Check API key requirement (not needed for local providers or Vertex)
+    # Check API key requirement (not needed for local providers)
     api_key = resolve_api_key(provider, api_key)
     base_url = resolve_base_url(provider, base_url)
     model = resolve_model(provider, model)
     is_local = provider.lower() in LOCAL_PROVIDERS
-    is_vertex = provider.lower() == "vertex"
-    if not api_key and not is_local and not is_vertex:
+    if not api_key and not is_local:
         click.echo(
             click.style("Error: ", fg="red")
             + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
@@ -237,7 +235,7 @@ def test_provider(
     "-p",
     type=click.Choice(ALL_PROVIDERS, case_sensitive=False),
     default=None,
-    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, azure, vertex, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
+    help="LLM provider to query (cloud: openai, anthropic, langdock, openrouter, mammouth, litellm, ionos, melious, privatemode; local: local, lm_studio, ollama). Falls back to default_provider in the config file.",
 )
 @click.option(
     "--api-key",
@@ -292,12 +290,11 @@ def list_models(
         sys.exit(1)
     assert provider is not None  # narrowed by perr check
 
-    # Check API key requirement (not needed for local providers or Vertex)
+    # Check API key requirement (not needed for local providers)
     api_key = resolve_api_key(provider, api_key)
     base_url = resolve_base_url(provider, base_url)
     is_local = provider.lower() in LOCAL_PROVIDERS
-    is_vertex = provider.lower() == "vertex"
-    if not api_key and not is_local and not is_vertex:
+    if not api_key and not is_local:
         click.echo(
             click.style("Error: ", fg="red")
             + "API key required for cloud providers. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
@@ -467,8 +464,7 @@ def chat(
         if max_tokens is None:
             max_tokens = 4096
     is_local = provider.lower() in LOCAL_PROVIDERS
-    is_vertex = provider.lower() == "vertex"
-    if not api_key and not is_local and not is_vertex:
+    if not api_key and not is_local:
         error_response = {
             "error": "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         }
@@ -1116,8 +1112,6 @@ def info() -> None:
     click.echo("    • langdock   - Multi-provider gateway (EU/US regions)")
     click.echo("    • openrouter - 400+ models via unified gateway")
     click.echo("    • mammouth   - 30+ AI models via unified API")
-    click.echo("    • azure      - Azure AI Foundry (GPT, Claude, Mistral, Llama, DeepSeek)")
-    click.echo("    • vertex     - Google Vertex AI (Gemini 2.5 Flash/Pro)")
     click.echo("    • litellm    - LiteLLM / any OpenAI-compatible gateway (base_url required)")
     click.echo("    • ionos      - IONOS AI Model Hub (EU-hosted, OpenAI-compatible)")
     click.echo("    • melious    - Melious.ai (sovereign EU-hosted, OpenAI-compatible)")
@@ -1148,8 +1142,6 @@ def info() -> None:
     click.echo("  pip install eq-chatbot-core[image]    # Text-to-image generation")
     click.echo("  pip install eq-chatbot-core[server]   # HTTP/SSE sidecar")
     click.echo("  pip install eq-chatbot-core[realtime] # Realtime voice providers")
-    click.echo("  pip install eq-chatbot-core[azure]    # Azure AI Foundry")
-    click.echo("  pip install eq-chatbot-core[vertex]   # Google Vertex AI")
     click.echo("  pip install eq-chatbot-core[local]    # Local sentence-transformers")
     click.echo()
 

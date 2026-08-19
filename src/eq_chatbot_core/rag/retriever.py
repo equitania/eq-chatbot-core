@@ -1,5 +1,10 @@
 """
 Qdrant-based document retrieval.
+
+Requires the ``[rag]`` extra (``pip install eq-chatbot-core[rag]``). Since
+v3.0.0 ``qdrant-client`` is optional: it pulls in grpcio and protobuf, and
+callers that never touch RAG should not carry them. The import stays inside the
+methods that need it, so importing this module costs nothing.
 """
 
 import logging
@@ -7,6 +12,8 @@ from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
+
+_MISSING_QDRANT = "qdrant-client is required for retrieval. Install it with: pip install 'eq-chatbot-core[rag]'"
 
 
 @dataclass
@@ -77,7 +84,10 @@ class HybridRetriever:
         Returns:
             List of RetrievalResult objects
         """
-        from qdrant_client.models import FieldCondition, Filter, MatchValue
+        try:
+            from qdrant_client.models import FieldCondition, Filter, MatchValue
+        except ImportError as e:  # pragma: no cover - exercised via the guard test
+            raise ImportError(_MISSING_QDRANT) from e
 
         if not query or not query.strip():
             return []
@@ -164,7 +174,10 @@ class HybridRetriever:
         Returns:
             Collection name
         """
-        from qdrant_client.models import Distance, VectorParams
+        try:
+            from qdrant_client.models import Distance, VectorParams
+        except ImportError as e:  # pragma: no cover - exercised via the guard test
+            raise ImportError(_MISSING_QDRANT) from e
 
         try:
             collections = self.client.get_collections().collections

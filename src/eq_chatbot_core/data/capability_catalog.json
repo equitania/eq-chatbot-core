@@ -131,14 +131,6 @@
       "label": "LM Studio (Local)",
       "status": "active",
       "needs_api_key": false
-    },
-    "azure": {
-      "label": "Azure AI Foundry",
-      "status": "frozen"
-    },
-    "vertex": {
-      "label": "Google Vertex AI",
-      "status": "frozen"
     }
   },
   "models": [
@@ -149,15 +141,13 @@
       "providers": [
         "openai",
         "openrouter",
-        "azure",
         "langdock"
       ],
       "aliases": [
         "gpt-4o",
         "gpt-4o-2024-11-20",
         "gpt-4o-2024-08-06",
-        "openai/gpt-4o",
-        "azure/gpt-4o"
+        "openai/gpt-4o"
       ],
       "capabilities": {
         "image_input": true,
@@ -180,14 +170,12 @@
       "providers": [
         "openai",
         "openrouter",
-        "azure",
         "langdock"
       ],
       "aliases": [
         "gpt-4o-mini",
         "gpt-4o-mini-2024-07-18",
-        "openai/gpt-4o-mini",
-        "azure/gpt-4o-mini"
+        "openai/gpt-4o-mini"
       ],
       "capabilities": {
         "image_input": true,
@@ -210,14 +198,12 @@
       "providers": [
         "openai",
         "openrouter",
-        "azure",
         "langdock"
       ],
       "aliases": [
         "gpt-4.1",
         "gpt-4.1-2025-04-14",
-        "openai/gpt-4.1",
-        "azure/gpt-4.1"
+        "openai/gpt-4.1"
       ],
       "capabilities": {
         "image_input": true,
@@ -240,13 +226,11 @@
       "providers": [
         "openai",
         "openrouter",
-        "azure",
         "langdock"
       ],
       "aliases": [
         "gpt-4.1-mini",
-        "openai/gpt-4.1-mini",
-        "azure/gpt-4.1-mini"
+        "openai/gpt-4.1-mini"
       ],
       "capabilities": {
         "image_input": true,
@@ -268,14 +252,12 @@
       "family": "o3",
       "providers": [
         "openai",
-        "openrouter",
-        "azure"
+        "openrouter"
       ],
       "aliases": [
         "o3",
         "o3-2025-04-16",
-        "openai/o3",
-        "azure/o3"
+        "openai/o3"
       ],
       "capabilities": {
         "image_input": true,
@@ -297,14 +279,12 @@
       "family": "o4",
       "providers": [
         "openai",
-        "openrouter",
-        "azure"
+        "openrouter"
       ],
       "aliases": [
         "o4-mini",
         "o4-mini-2025-04-16",
-        "openai/o4-mini",
-        "azure/o4-mini"
+        "openai/o4-mini"
       ],
       "capabilities": {
         "image_input": true,
@@ -327,8 +307,7 @@
       "providers": [
         "anthropic",
         "openrouter",
-        "langdock",
-        "vertex"
+        "langdock"
       ],
       "aliases": [
         "claude-3-5-sonnet",
@@ -474,14 +453,12 @@
       "family": "gemini-2.5",
       "providers": [
         "langdock",
-        "openrouter",
-        "vertex"
+        "openrouter"
       ],
       "aliases": [
         "gemini-2.5-pro",
         "gemini-2.5-pro-preview",
-        "google/gemini-2.5-pro",
-        "vertex/gemini-2.5-pro"
+        "google/gemini-2.5-pro"
       ],
       "capabilities": {
         "image_input": true,
@@ -503,14 +480,12 @@
       "family": "gemini-2.5",
       "providers": [
         "langdock",
-        "openrouter",
-        "vertex"
+        "openrouter"
       ],
       "aliases": [
         "gemini-2.5-flash",
         "gemini-2.5-flash-preview",
-        "google/gemini-2.5-flash",
-        "vertex/gemini-2.5-flash"
+        "google/gemini-2.5-flash"
       ],
       "capabilities": {
         "image_input": true,
@@ -532,14 +507,12 @@
       "family": "gemini-2.0",
       "providers": [
         "langdock",
-        "openrouter",
-        "vertex"
+        "openrouter"
       ],
       "aliases": [
         "gemini-2.0-flash",
         "gemini-2.0-flash-001",
-        "google/gemini-2.0-flash",
-        "vertex/gemini-2.0-flash"
+        "google/gemini-2.0-flash"
       ],
       "capabilities": {
         "image_input": true,

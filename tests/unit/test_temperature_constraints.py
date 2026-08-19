@@ -131,13 +131,13 @@ class TestGetTemperatureConstraints:
     # =========================================================================
 
     def test_case_insensitive_mistral_uppercase(self):
-        """Azure-style 'Mistral-Large-2407' resolves to mistral constraints (max=1.0)."""
+        """Gateway-style 'Mistral-Large-2407' resolves to mistral constraints (max=1.0)."""
         constraints = get_temperature_constraints("Mistral-Large-2407")
         assert constraints["max"] == 1.0
         assert constraints["supports_temperature"] is True
 
-    def test_case_insensitive_deepseek_v3_azure_form(self):
-        """Azure 'DeepSeek-V3' resolves to same constraints as lowercase deepseek-v3."""
+    def test_case_insensitive_deepseek_v3_mixed_case_form(self):
+        """Mixed-case 'DeepSeek-V3' resolves to same constraints as lowercase deepseek-v3."""
         constraints_upper = get_temperature_constraints("DeepSeek-V3")
         constraints_lower = get_temperature_constraints("deepseek-v3")
         assert constraints_upper == constraints_lower
@@ -145,23 +145,23 @@ class TestGetTemperatureConstraints:
         assert constraints_upper["max"] == 2.0
 
     def test_case_insensitive_deepseek_r1_reasoning(self):
-        """Azure 'DeepSeek-R1' (reasoning) resolves to supports_temperature=False."""
+        """Mixed-case 'DeepSeek-R1' (reasoning) resolves to supports_temperature=False."""
         constraints = get_temperature_constraints("DeepSeek-R1")
         assert constraints["supports_temperature"] is False
 
     def test_case_insensitive_mai_ds_r1(self):
-        """Azure 'MAI-DS-R1' (reasoning) resolves to supports_temperature=False."""
+        """Mixed-case 'MAI-DS-R1' (reasoning) resolves to supports_temperature=False."""
         constraints = get_temperature_constraints("MAI-DS-R1")
         assert constraints["supports_temperature"] is False
 
     def test_case_insensitive_llama_uppercase(self):
-        """Azure-style 'Llama-3.1-70B-Instruct' resolves to llama constraints."""
+        """Gateway-style 'Llama-3.1-70B-Instruct' resolves to llama constraints."""
         constraints = get_temperature_constraints("Llama-3.1-70B-Instruct")
         assert constraints["max"] == 2.0
         assert constraints["supports_temperature"] is True
 
     def test_case_insensitive_cohere_kimi(self):
-        """Azure-style 'Cohere-Command-R' and 'Kimi-K2' resolve case-insensitively."""
+        """Gateway-style 'Cohere-Command-R' and 'Kimi-K2' resolve case-insensitively."""
         cohere = get_temperature_constraints("Cohere-Command-R")
         kimi = get_temperature_constraints("Kimi-K2-Instruct")
         assert cohere["max"] == 1.0

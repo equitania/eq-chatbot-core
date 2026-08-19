@@ -24,13 +24,13 @@ RAW = {
         "streaming": True,
     },
     "capability_meta": {"image_input": {"group": "input", "label_en": "Vision"}},
-    "providers": {"openai": {"label": "OpenAI"}, "azure": {"label": "Azure"}},
+    "providers": {"openai": {"label": "OpenAI"}, "openrouter": {"label": "OpenRouter"}},
     "models": [
         {
             "id": "openai/gpt-4o",
             "display_name": "GPT-4o",
-            "providers": ["openai", "azure", "openrouter"],
-            "aliases": ["gpt-4o", "gpt-4o-2024-11-20", "azure/gpt-4o"],
+            "providers": ["openai", "openrouter"],
+            "aliases": ["gpt-4o", "gpt-4o-2024-11-20", "openai/gpt-4o"],
             "capabilities": {"image_input": True, "audio_input": True, "tools": True},
             "limits": {"context_length": 128000, "max_output_tokens": 16384},
         },
@@ -95,9 +95,9 @@ class TestMatching:
 
 class TestProviderScoping:
     def test_provider_hint_disambiguates(self, catalog):
-        # "gpt-4o" reachable via openai and azure; both map to the same entry here,
+        # "gpt-4o" reachable via openai and openrouter; both map to the same entry here,
         # but the provider hint must not break resolution.
-        assert catalog.lookup("gpt-4o", provider="azure")["canonical_id"] == "openai/gpt-4o"
+        assert catalog.lookup("gpt-4o", provider="openrouter")["canonical_id"] == "openai/gpt-4o"
         assert catalog.lookup("gpt-4o", provider="openai")["canonical_id"] == "openai/gpt-4o"
 
 

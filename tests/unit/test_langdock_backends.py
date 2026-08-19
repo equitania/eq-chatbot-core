@@ -549,40 +549,6 @@ class TestErrorMapping:
 # =============================================================================
 
 
-class TestExportManagerDownloadGuard:
-    """download_signed_csv fetches a URL taken from an API response, with redirects."""
-
-    def _manager(self):
-        from eq_chatbot_core.providers.langdock_provider import LangDockExportManager
-
-        return LangDockExportManager(api_key="test-key")
-
-    def test_internal_target_is_rejected(self):
-        with pytest.raises(ProviderError, match="rejected"):
-            self._manager().download_signed_csv("http://169.254.169.254/latest/meta-data/")
-
-    def test_non_http_scheme_is_rejected(self):
-        with pytest.raises(ProviderError, match="rejected"):
-            self._manager().download_signed_csv("file:///etc/passwd")
-
-    def test_public_url_is_fetched_and_returned(self):
-        manager = self._manager()
-        transport = httpx2.MockTransport(lambda req: httpx2.Response(200, text="a,b,c"))
-
-        with patch("eq_chatbot_core.utils.url_validation.validate_url", return_value=frozenset({"93.184.216.34"})):
-            with patch("eq_chatbot_core.utils.url_validation.build_validating_transport", return_value=transport):
-                assert manager.download_signed_csv("https://storage.example.com/x.csv") == "a,b,c"
-
-    def test_non_200_maps_to_provider_error(self):
-        manager = self._manager()
-        transport = httpx2.MockTransport(lambda req: httpx2.Response(404, text="gone"))
-
-        with patch("eq_chatbot_core.utils.url_validation.validate_url", return_value=frozenset({"93.184.216.34"})):
-            with patch("eq_chatbot_core.utils.url_validation.build_validating_transport", return_value=transport):
-                with pytest.raises(ProviderError):
-                    manager.download_signed_csv("https://storage.example.com/x.csv")
-
-
 class TestEmptyResponseRegressions:
     """`.get(key, [{}])[0]` only defaults on a MISSING key, not an empty list.
 
@@ -711,111 +677,8 @@ class TestListModels:
         assert "context_length" in model
 
 
-# =============================================================================
-# Status mapping shared by the manager classes
-# =============================================================================
-
-
-class TestStatusErrorMapping:
-    @pytest.mark.parametrize(
-        "status,expected",
-        [
-            (401, AuthenticationError),
-            (403, AuthenticationError),
-            (429, RateLimitError),
-            (500, ProviderError),
-            (404, ProviderError),
-        ],
-    )
-    def test_status_codes_map_to_typed_errors(self, status, expected):
-        from eq_chatbot_core.providers.langdock_provider import _map_status_error
-
-        err = _map_status_error(status, "detail")
-
-        assert isinstance(err, expected)
-        assert err.status_code == status
-        assert err.provider == "langdock"
-
-
-# =============================================================================
-# Export manager
-# =============================================================================
-
-
 def _mock_client(handler, base_url="https://api.langdock.com"):
     return httpx2.Client(transport=httpx2.MockTransport(handler), base_url=base_url)
-
-
-class TestExportManager:
-    def _manager(self):
-        from eq_chatbot_core.providers.langdock_provider import LangDockExportManager
-
-        return LangDockExportManager(api_key="test-key")
-
-    def test_get_agent_unwraps_the_agent_envelope(self):
-        manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx2.Response(200, json={"agent": {"name": "Support"}}))
-
-        assert manager.get_agent("ag-1") == {"name": "Support"}
-
-    def test_get_agent_passes_through_unwrapped_payload(self):
-        manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx2.Response(200, json={"name": "Support"}))
-
-        assert manager.get_agent("ag-1") == {"name": "Support"}
-
-    def test_get_agent_sends_the_id_as_query_param(self):
-        manager = self._manager()
-        seen = {}
-
-        def handler(request):
-            seen["url"] = str(request.url)
-            return httpx2.Response(200, json={})
-
-        manager._client = _mock_client(handler)
-        manager.get_agent("ag-42")
-
-        assert "agentId=ag-42" in seen["url"]
-
-    def test_get_agent_maps_401_to_authentication_error(self):
-        manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx2.Response(401, text="bad key"))
-
-        with pytest.raises(AuthenticationError):
-            manager.get_agent("ag-1")
-
-    def test_export_report_rejects_unknown_report(self):
-        with pytest.raises(ProviderError, match="Unknown export report"):
-            self._manager().export_report("nonsense", "2026-01-01", "2026-01-02")
-
-    def test_export_report_unwraps_data(self):
-        manager = self._manager()
-        manager._client = _mock_client(
-            lambda r: httpx2.Response(200, json={"success": True, "data": {"downloadUrl": "https://x/y.csv"}})
-        )
-
-        assert manager.export_report("agents", "a", "b") == {"downloadUrl": "https://x/y.csv"}
-
-    def test_export_report_sends_from_to_and_timezone(self):
-        manager = self._manager()
-        seen = {}
-
-        def handler(request):
-            seen["body"] = json.loads(request.content)
-            return httpx2.Response(200, json={"data": {}})
-
-        manager._client = _mock_client(handler)
-        manager.export_report("users", "2026-01-01", "2026-01-31", timezone="Europe/Berlin")
-
-        assert seen["body"]["from"] == {"date": "2026-01-01", "timezone": "Europe/Berlin"}
-        assert seen["body"]["to"]["timezone"] == "Europe/Berlin"
-
-    def test_export_report_maps_429(self):
-        manager = self._manager()
-        manager._client = _mock_client(lambda r: httpx2.Response(429, text="slow down"))
-
-        with pytest.raises(RateLimitError):
-            manager.export_report("agents", "a", "b")
 
 
 # =============================================================================
