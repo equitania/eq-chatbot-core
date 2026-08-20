@@ -528,9 +528,19 @@ class OpenRouterProvider(BaseLLMProvider):
         """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
         status = error.response.status_code
         try:
+            # A streaming response has not read its body yet, so .json() raises
+            # ResponseNotRead — which is not a ValueError and therefore escaped the
+            # handler below, replacing the real upstream failure (e.g. a 504) with a
+            # confusing httpx error. Pull the body in first, exactly as the Mammouth
+            # provider does.
+            if not error.response.is_stream_consumed:
+                try:
+                    error.response.read()
+                except Exception:  # noqa: BLE001 - body unavailable, fall back to str(error)
+                    pass
             error_data = error.response.json()
             message = error_data.get("error", {}).get("message", str(error))
-        except (ValueError, KeyError):
+        except (ValueError, KeyError, httpx2.ResponseNotRead, httpx2.StreamError):
             message = str(error)
 
         # Gateway error bodies can echo request headers/credentials — mask before

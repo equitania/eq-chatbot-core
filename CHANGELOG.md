@@ -5,6 +5,21 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-08-20
+
+### Fixed
+
+- **An HTTP error during an OpenRouter stream no longer hides the real cause.**
+  `OpenRouterProvider._handle_http_error` called `error.response.json()` on a response
+  whose body had not been read yet. On a streamed request that raises
+  `httpx2.ResponseNotRead`, which is not a `ValueError` and so escaped the
+  `except (ValueError, KeyError)` clause: the caller received "Attempted to access
+  streaming response content, without having called `read()`" instead of "OpenRouter
+  returned 504". The handler now pulls the body in first — the same guard the Mammouth
+  provider already had — and also catches the two httpx2 stream errors. Found by a live
+  504 from OpenRouter on 20.08.2026; covered by `tests/unit/test_openrouter_error_handling.py`
+  (no network), which fails on three of four cases without the fix.
+
 ## [3.1.0] - 2026-08-19
 
 ### Changed
