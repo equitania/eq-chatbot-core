@@ -52,6 +52,8 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 >    (Pydantic's maintained continuation of httpx), which openai 3.x also uses. `httpx` stays a
 >    dependency and is not redundant: the Anthropic SDK still requires `httpx<1`, so that one
 >    provider keeps using it. Pin `eq-chatbot-core>=2.1.0` only where openai 3.x is acceptable.
+>    *(No longer true as of 23.08.2026: anthropic 1.0.0 moved to httpx2 as well, so `httpx` was
+>    dropped from the core dependencies and the floor is now `anthropic>=1.0`.)*
 >
 > **Security:** v2.1.0 closes a DNS-rebinding hole that affected every LLM provider — see
 > RELEASE_NOTES.md. Upgrading is recommended for anyone who lets callers supply a `base_url`.
@@ -257,7 +259,9 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 >    über `httpx2` (Pydantics gepflegte Fortführung von httpx), das auch openai 3.x nutzt. `httpx`
 >    bleibt als Abhängigkeit bestehen und ist nicht überflüssig: Das Anthropic-SDK verlangt weiterhin
 >    `httpx<1`, dieser eine Provider nutzt es also weiter. `eq-chatbot-core>=2.1.0` nur dort pinnen,
->    wo openai 3.x akzeptabel ist.
+>    wo openai 3.x akzeptabel ist. *(Seit dem 23.08.2026 überholt: anthropic 1.0.0 nutzt ebenfalls
+>    httpx2, `httpx` ist aus den Kern-Abhängigkeiten entfernt, die Untergrenze lautet jetzt
+>    `anthropic>=1.0`.)*
 >
 > **Sicherheit:** v2.1.0 schließt eine DNS-Rebinding-Lücke, die alle LLM-Provider betraf — Details in
 > RELEASE_NOTES.md. Ein Upgrade ist für alle empfohlen, die Aufrufer eine `base_url` setzen lassen.

@@ -164,7 +164,7 @@ class TestOpenRouterProviderProperties:
             from eq_chatbot_core.providers.openrouter_provider import OpenRouterProvider
 
             provider = OpenRouterProvider(api_key="sk-or-test-key")
-            assert provider.default_model == "openai/gpt-4o"
+            assert provider.default_model == "openai/gpt-5.6-luna"
 
 
 # =============================================================================

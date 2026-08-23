@@ -50,6 +50,42 @@ def _with_http(provider, response):
     return client
 
 
+def _with_google_models(provider, names):
+    """Attach an http_client answering the Gemini model endpoint.
+
+    The Google backend queries LangDock live since 23.08.2026 (the hardcoded
+    catalogue had gone stale), so these tests must mock the client or they hit
+    the network.
+    """
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = {"models": [{"name": n} for n in names]}
+    response.raise_for_status.return_value = None
+    client = MagicMock()
+    client.get.return_value = response
+    provider._http_client = client
+    return client
+
+
+def _with_sse(provider, lines, status=200, text=""):
+    """Attach an http_client whose .stream() replays SSE `lines`.
+
+    The agent stream path moved from .post() to .stream() on 23.08.2026; the
+    detailed protocol coverage lives in test_langdock_agent_streaming.py.
+    """
+    response = MagicMock()
+    response.status_code = status
+    response.iter_lines.return_value = iter(lines)
+    response.text = text
+    ctx = MagicMock()
+    ctx.__enter__.return_value = response
+    ctx.__exit__.return_value = False
+    client = MagicMock()
+    client.stream.return_value = ctx
+    provider._http_client = client
+    return client
+
+
 # =============================================================================
 # Backend dispatch
 # =============================================================================
@@ -85,9 +121,15 @@ class TestBackendDispatch:
             _provider(backend="agent")
 
     def test_default_model_per_backend(self):
-        assert _provider(backend="openai").default_model == "gpt-4o"
-        assert _provider(backend="google").default_model == "gemini-2.5-flash"
-        assert _provider(backend="codestral").default_model == "codestral-latest"
+        """These are perishable fallbacks tied to the workspace's enabled models.
+
+        Three of the four were dead simultaneously on 23.08.2026. The live test
+        TestLangDockDefaultsAreLive is what catches that; this one only pins the
+        per-backend wiring.
+        """
+        assert _provider(backend="openai").default_model == "gpt-5.6-luna"
+        assert _provider(backend="google").default_model == "gemini-3.7-flash"
+        assert _provider(backend="codestral").default_model == "codestral-2501"
         assert _provider(backend="anthropic").default_model.startswith("claude-")
         assert _provider(backend="agent", agent_id="ag-1").default_model is None
 
@@ -200,20 +242,19 @@ class TestAgentMessageConversion:
 
 
 class TestAgentChatCompletion:
-    def test_extracts_last_assistant_message(self):
+    """Since 23.08.2026 the synchronous path streams internally and assembles the
+    answer, so LangDock's 100-second cap on buffered requests cannot bite it.
+    The protocol details live in test_langdock_agent_streaming.py."""
+
+    def test_assembles_the_streamed_deltas(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(
+        _with_sse(
             provider,
-            _resp(
-                200,
-                {
-                    "messages": [
-                        {"role": "assistant", "content": "first"},
-                        {"role": "user", "content": "mid"},
-                        {"role": "assistant", "content": "final"},
-                    ]
-                },
-            ),
+            [
+                'data: {"type":"text-delta","id":"m","delta":"fin"}',
+                'data: {"type":"text-delta","id":"m","delta":"al"}',
+                'data: {"type":"finish"}',
+            ],
         )
 
         result = provider.chat_completion([{"role": "user", "content": "hi"}])
@@ -223,19 +264,20 @@ class TestAgentChatCompletion:
     def test_request_goes_through_the_pinned_client(self):
         """Must not use module-level httpx: that would bypass the rebinding guard."""
         provider = _provider(backend="agent", agent_id="ag-1")
-        client = _with_http(provider, _resp(200, {"messages": [{"role": "assistant", "content": "x"}]}))
+        client = _with_sse(provider, ['data: {"type":"text-delta","id":"m","delta":"x"}'])
 
         provider.chat_completion([{"role": "user", "content": "hi"}])
 
-        client.post.assert_called_once()
-        path, kwargs = client.post.call_args[0][0], client.post.call_args[1]
-        assert path == "/chat/completions"
+        client.stream.assert_called_once()
+        method, path = client.stream.call_args[0]
+        kwargs = client.stream.call_args[1]
+        assert (method, path) == ("POST", "/chat/completions")
         assert kwargs["json"]["agentId"] == "ag-1"
-        assert kwargs["json"]["stream"] is False
+        assert kwargs["json"]["stream"] is True
 
     def test_no_usable_messages_returns_prompt_instead_of_raising(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(200, {}))
+        _with_sse(provider, [])
 
         result = provider.chat_completion([{"role": "system", "content": "only system"}])
 
@@ -244,36 +286,46 @@ class TestAgentChatCompletion:
 
     def test_non_200_raises_provider_error_with_status(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(503, {}, text="upstream down"))
+        _with_sse(provider, [], status=503, text="upstream down")
 
         with pytest.raises(ProviderError) as exc:
             provider.chat_completion([{"role": "user", "content": "hi"}])
 
         assert exc.value.status_code == 503
 
-    def test_missing_assistant_message_yields_empty_content(self):
+    def test_stream_without_text_yields_empty_content(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(200, {"messages": [{"role": "user", "content": "echo"}]}))
+        _with_sse(provider, ['data: {"type":"start-step"}', 'data: {"type":"finish"}'])
 
         assert provider.chat_completion([{"role": "user", "content": "hi"}]).content == ""
 
 
 class TestAgentStreamCompletion:
-    def test_yields_a_single_final_chunk(self):
+    def test_deltas_arrive_as_separate_chunks(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(200, {"messages": [{"role": "assistant", "content": "streamed"}]}))
+        _with_sse(
+            provider,
+            [
+                'data: {"type":"text-delta","id":"m","delta":"stre"}',
+                'data: {"type":"text-delta","id":"m","delta":"amed"}',
+                'data: {"type":"finish"}',
+            ],
+        )
+
+        chunks = list(provider.stream_completion([{"role": "user", "content": "hi"}]))
+
+        assert [c.content for c in chunks] == ["stre", "amed", ""]
+        assert chunks[-1].is_final is True
+
+    def test_empty_stream_still_terminates(self):
+        provider = _provider(backend="agent", agent_id="ag-1")
+        _with_sse(provider, ['data: {"type":"finish"}'])
 
         chunks = list(provider.stream_completion([{"role": "user", "content": "hi"}]))
 
         assert len(chunks) == 1
-        assert chunks[0].content == "streamed"
         assert chunks[0].is_final is True
-
-    def test_no_content_yields_nothing(self):
-        provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(200, {"messages": []}))
-
-        assert list(provider.stream_completion([{"role": "user", "content": "hi"}])) == []
+        assert chunks[0].content == ""
 
 
 # =============================================================================
@@ -509,7 +561,7 @@ class TestModelConstraints:
     def test_context_length_from_table(self):
         provider = _provider()
 
-        assert provider._get_model_constraints("gemini-2.5-flash")["context_length"] == 1000000
+        assert provider._get_model_constraints("gemini-3.7-flash")["context_length"] == 1000000
 
     def test_unknown_model_gets_a_fallback_context_length(self):
         provider = _provider()
@@ -585,7 +637,7 @@ class TestTypedErrorsSurviveTheHandler:
 
     def test_agent_status_code_is_preserved(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(429, {}, text="slow down"))
+        _with_sse(provider, [], status=429, text="slow down")
 
         with pytest.raises(ProviderError) as exc:
             provider.chat_completion([{"role": "user", "content": "hi"}])
@@ -594,7 +646,7 @@ class TestTypedErrorsSurviveTheHandler:
 
     def test_agent_stream_status_code_is_preserved(self):
         provider = _provider(backend="agent", agent_id="ag-1")
-        _with_http(provider, _resp(500, {}, text="boom"))
+        _with_sse(provider, [], status=500, text="boom")
 
         with pytest.raises(ProviderError) as exc:
             list(provider.stream_completion([{"role": "user", "content": "hi"}]))
@@ -608,12 +660,14 @@ class TestTypedErrorsSurviveTheHandler:
 
 
 class TestListModels:
-    def test_google_returns_the_two_supported_gemini_models(self):
+    def test_google_listing_comes_from_the_live_endpoint(self):
+        """No longer a hardcoded pair — see test_langdock_google_models.py for why."""
         provider = _provider(backend="google")
+        _with_google_models(provider, ["models/gemini-3.5-flash", "models/gemini-2.5-pro"])
 
         models = provider.list_models()
 
-        assert {m["id"] for m in models} == {"gemini-2.5-flash", "gemini-2.5-pro"}
+        assert {m["id"] for m in models} == {"gemini-3.5-flash", "gemini-2.5-pro"}
         assert all(m["provider"] == "langdock" and m["backend"] == "google" for m in models)
 
     def test_codestral_listing_is_deliberately_empty(self):
@@ -670,6 +724,7 @@ class TestListModels:
 
     def test_models_carry_capability_constraints(self):
         provider = _provider(backend="google")
+        _with_google_models(provider, ["models/gemini-3.5-flash"])
 
         model = provider.list_models()[0]
 

@@ -63,9 +63,7 @@ class TestPrivatemodeLive:
         assert chunks[-1].is_final is True
         assert chunks[-1].output_tokens > 0
 
-    def test_thinking_can_be_disabled_via_chat_template_kwargs(
-        self, provider, test_config, privatemode_resolved_model
-    ):
+    def test_thinking_can_be_disabled_via_chat_template_kwargs(self, provider, test_config, privatemode_resolved_model):
         # Vendor-documented extra_body field, surfaced as a plain keyword here.
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Say 'test' only."}],

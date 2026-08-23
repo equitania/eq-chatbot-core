@@ -4,7 +4,6 @@ Unit tests for the provider factory (get_provider function).
 Tests provider instantiation, alias handling, and error cases.
 """
 
-
 import pytest
 
 from eq_chatbot_core.providers import get_provider
@@ -305,4 +304,4 @@ class TestFactoryProviderProperties:
         provider = get_provider("openrouter", api_key="test")
 
         assert provider.default_model is not None
-        assert provider.default_model == "openai/gpt-4o"
+        assert provider.default_model == "openai/gpt-5.6-luna"

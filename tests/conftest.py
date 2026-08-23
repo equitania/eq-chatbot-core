@@ -516,6 +516,30 @@ def langdock_anthropic_resolved_model(test_config, resolved_models) -> str:
 
 
 @pytest.fixture(scope="session")
+def langdock_google_resolved_model(test_config, resolved_models) -> str:
+    """Resolve the LangDock Google-backend test model.
+
+    This backend does not go through the OpenAI SDK at all — it posts to
+    LangDock's Gemini endpoint and converts message parts itself, which is
+    exactly why it needs coverage of its own. Registry key is
+    ``langdock.google``; override via ``LANGDOCK_GOOGLE_TEST_MODEL``.
+    """
+    api_key = test_config.get("langdock_api_key")
+    if not api_key:
+        pytest.skip("LANGDOCK_API_KEY not set")
+
+    cache_key = "langdock.google"
+    if cache_key not in resolved_models:
+        from eq_chatbot_core.providers import get_provider
+
+        provider = get_provider("langdock", api_key=api_key, backend="google", region="eu")
+        chain = _select_chain(cache_key, "LANGDOCK_GOOGLE_TEST_MODEL")
+        resolved_models[cache_key] = _resolve_test_model(chain, provider.list_models, cache_key)
+
+    return resolved_models[cache_key].actual
+
+
+@pytest.fixture(scope="session")
 def openai_resolved_model(test_config, resolved_models) -> str:
     """Resolve OpenAI test model from registry against live API."""
     api_key = test_config.get("openai_api_key")
@@ -1078,6 +1102,7 @@ _RESOLUTION_LABELS: dict[str, tuple[str, str]] = {
     "anthropic": ("Anthropic", "ANTHROPIC_TEST_MODEL"),
     "langdock.openai": ("LangDock (OpenAI backend)", "LANGDOCK_TEST_MODEL"),
     "langdock.anthropic": ("LangDock (Anthropic backend)", "LANGDOCK_ANTHROPIC_TEST_MODEL"),
+    "langdock.google": ("LangDock (Google backend)", "LANGDOCK_GOOGLE_TEST_MODEL"),
     "openrouter": ("OpenRouter", "OPENROUTER_TEST_MODEL"),
     "mammouth": ("Mammouth AI", "MAMMOUTH_TEST_MODEL"),
     "litellm": ("LiteLLM Gateway", "LITELLM_TEST_MODEL"),
@@ -1095,6 +1120,7 @@ _RESOLVER_REQUIREMENTS: dict[str, list[str]] = {
     "anthropic": ["ANTHROPIC_API_KEY"],
     "langdock.openai": ["LANGDOCK_API_KEY"],
     "langdock.anthropic": ["LANGDOCK_API_KEY"],
+    "langdock.google": ["LANGDOCK_API_KEY"],
     "openrouter": ["OPENROUTER_API_KEY"],
     "mammouth": ["MAMMOUTH_API_KEY"],
     "litellm": ["LITELLM_API_KEY", "LITELLM_BASE_URL"],

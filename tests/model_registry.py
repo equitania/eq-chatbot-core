@@ -58,34 +58,60 @@ class ModelChain:
 # namespaces.
 MODELS: dict[str, ModelChain] = {
     "openai": ModelChain(
-        primary="gpt-4o-mini",
-        fallbacks=("gpt-4.1-nano",),
+        primary="gpt-5.6-luna",
+        fallbacks=("gpt-5.6-sol", "gpt-5.6-terra"),
         cost_hint="$0.15 / $0.60 per 1M tok",
         notes="Cheapest tier; gpt-4.1-nano ($0.10/$0.40) would be cheaper "
         "but is positioned as fallback because gpt-4o-mini has wider "
         "feature support (e.g. response_format json_object).",
     ),
     "anthropic": ModelChain(
-        primary="claude-haiku-4-5-20251001",
-        fallbacks=("claude-haiku-4-5",),
+        primary="claude-fable-5",
+        fallbacks=("claude-sonnet-5", "claude-opus-5"),
         cost_hint="$1.00 / $5.00 per 1M tok",
-        notes="Anthropic's /v1/models returns dated aliases. The dated "
-        "claude-haiku-4-5-20251001 is the cataloged primary; the unversioned "
-        "claude-haiku-4-5 floats to the latest minor and stays a fallback "
-        "(it works for chat but isn't in list_models, so it triggers INFO). "
-        "claude-3-haiku-20240307 retired 2026-04.",
+        notes="Only the Claude 5 generation is used — everything from 4.x down is "
+        "deliberately out, per the policy of running current models only. Fable 5 "
+        "is the smallest of the tier and answers the test contract; sonnet-5 is "
+        "the safe fallback. All three verified live 23.08.2026.",
     ),
     "langdock.openai": ModelChain(
-        primary="gpt-5.2",
-        fallbacks=("gpt-5.4-mini", "gpt-5.4", "gpt-5.5", "gpt-5.1"),
+        primary="gpt-5.6-luna",
+        fallbacks=("gpt-5.6-sol", "gpt-5.6-terra"),
         cost_hint="LangDock gateway (see langdock.com pricing)",
-        notes="LangDock rotates GPT-5.x slugs frequently. Snapshot 2026-05-08.",
+        notes="LangDock rotates GPT-5.x slugs aggressively — on 23.08.2026 the "
+        "whole catalogue turned over WITHIN one test session: gpt-5.2/5.4/5.5/5.1 "
+        "vanished and the named 5.6 tier (sol/terra/luna) replaced them, so every "
+        "entry of the old chain 400d at once. The workspace enables exactly these "
+        "three (4/17 including GPT Image 2); everything older is switched off "
+        "deliberately, so the chain must never reach back to a 5.x predecessor. "
+        "Cost ordering within the tier is unverified; luna is primary because it "
+        "is what the workspace agent uses. Snapshot 2026-08-23.",
     ),
     "langdock.anthropic": ModelChain(
-        primary="claude-sonnet-4-6-default",
-        fallbacks=("claude-opus-4-7-default", "claude-opus-4-6-default"),
+        primary="claude-sonnet-5-default",
+        fallbacks=("claude-sonnet-5", "claude-opus-5-default"),
         cost_hint="LangDock gateway (see langdock.com pricing)",
-        notes="LangDock uses '-default' suffix for stable Anthropic aliases.",
+        notes="LangDock uses the '-default' suffix for stable Anthropic aliases. "
+        "The workspace enables Opus 5, Sonnet 5 and Fable 5 (3/10 as of "
+        "23.08.2026); everything older is switched off deliberately. "
+        "claude-fable-5-default WORKS but is excluded on purpose: the LangDock "
+        "model settings flag it with 'Erweiterte Datenspeicherung' (extended "
+        "data retention), which breaks the zero-retention property the rest of "
+        "the workspace is selected for. Snapshot 2026-08-23.",
+    ),
+    "langdock.google": ModelChain(
+        primary="gemini-3.7-flash",
+        fallbacks=(),
+        cost_hint="LangDock gateway (see langdock.com pricing)",
+        notes="The Google backend does NOT speak the OpenAI wire format — it "
+        "posts to LangDock's Gemini endpoint and converts parts itself, so it "
+        "needs its own live coverage. NO fallbacks on purpose: the workspace "
+        "enables exactly one Gemini model (1/7 as of 23.08.2026), and every "
+        "other id answers 'Invalid model, available models are: "
+        "gemini-3.7-flash'. list_models() is live and reflects the workspace, "
+        "so the resolver stays correct on its own — a listing that briefly "
+        "disagreed on 23.08.2026 was a propagation lag while the workspace "
+        "settings were being changed, not a catalogue-vs-entitlement split.",
     ),
     "openrouter": ModelChain(
         primary="mistralai/mistral-nemo",
@@ -98,8 +124,8 @@ MODELS: dict[str, ModelChain] = {
         "burn most of max_tokens on internal reasoning_content.",
     ),
     "mammouth": ModelChain(
-        primary="gpt-5.4-nano",
-        fallbacks=("gpt-4.1-nano", "gemini-2.5-flash-lite", "gpt-4.1-mini"),
+        primary="gpt-5.6-luna",
+        fallbacks=("gpt-5.6-sol", "gpt-5.6-terra"),
         cost_hint="~$0.05 / $0.40 per 1M tok (gateway, passthrough)",
         notes="Mammouth is a unified gateway; its rates follow the upstream "
         "provider rates approximately. gpt-5.4-nano "

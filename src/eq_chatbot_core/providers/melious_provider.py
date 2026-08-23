@@ -41,7 +41,9 @@ class MeliousProvider(OpenAICompatibleProvider):
     # Official Melious OpenAI-compatible endpoint (sovereign EU infrastructure).
     DEFAULT_BASE_URL = "https://api.melious.ai/v1"
     # Soft default — overridable per call or via the ``model`` constructor argument.
-    DEFAULT_MODEL = "minimax-428b-m3"
+    # minimax-428b-m3 was retired by the gateway; verified live on 23.08.2026
+    # that it is no longer listed and nemotron-3-nano-30b-a3b answers.
+    DEFAULT_MODEL = "nemotron-3-nano-30b-a3b"
     # Fixed public cloud endpoint: private/internal targets are never legitimate.
     ALLOW_PRIVATE_RANGES = False
 

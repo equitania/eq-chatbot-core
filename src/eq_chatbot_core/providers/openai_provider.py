@@ -91,7 +91,11 @@ class OpenAIProvider(BaseLLMProvider):
 
     @property
     def default_model(self) -> str:
-        return "gpt-4o"
+        # Verified live on 23.08.2026: the previous default had either been
+        # retired or belonged to a generation we no longer run. Policy is to
+        # default to the current one — see the live test that fails when this
+        # id stops being served.
+        return "gpt-5.6-luna"
 
     @property
     def client(self) -> Any:

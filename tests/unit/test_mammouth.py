@@ -143,7 +143,7 @@ class TestMammouthProviderProperties:
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
-            assert provider.default_model == "gpt-4o"
+            assert provider.default_model == "gpt-5.6-luna"
 
 
 # =============================================================================
@@ -166,17 +166,23 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("o3", 0.5) is None
             assert provider._clamp_temperature("o4-mini", 0.3) is None
 
-    def test_gpt5_temperature_passthrough(self):
-        """Test GPT-5.x models pass through temperature (min=0.0)."""
+    def test_gpt5_temperature_is_generation_specific(self):
+        """GPT-5 support for `temperature` is NOT uniform across the family.
+
+        This test previously asserted that every gpt-5* model passes temperature
+        through — which is what let gpt-5, gpt-5.5 and the whole gpt-5.6 tier fail
+        with HTTP 400. Measured live on 23.08.2026: 5.1/5.2/5.4 accept it, plain
+        gpt-5 and 5.5/5.6 refuse it. See tests/unit/test_gpt5_temperature.py.
+        """
         with patch("eq_chatbot_core.providers.mammouth_provider.httpx2"):
             from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
 
             provider = MammouthProvider(api_key="mm-test-key")
 
-            # Temperature within range should pass through (min=0.0)
             assert provider._clamp_temperature("gpt-5.2-chat", 0.3) == 0.3
             assert provider._clamp_temperature("gpt-5.1-chat", 0.7) == 0.7
-            assert provider._clamp_temperature("gpt-5-mini", 0.0) == 0.0
+            assert provider._clamp_temperature("gpt-5-mini", 0.0) is None
+            assert provider._clamp_temperature("gpt-5.6-luna", 0.7) is None
 
     def test_gpt41_temperature_passthrough(self):
         """Test GPT-4.1 models pass through temperature (min=0.0)."""

@@ -160,12 +160,11 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
 def _http_lib(http: Any = None) -> Any:
     """Return the HTTP client library a transport should be built against.
 
-    Two libraries are unavoidably in play: httpx2 is Pydantic's maintained
-    continuation of httpx and carries this library's own requests plus the
-    OpenAI SDK, while the Anthropic SDK still declares ``httpx<1`` in every
-    release up to 0.122 and rejects an httpx2 client. Rather than duplicate the
-    guard for each, the transports below are built against whichever module the
-    caller passes.
+    Every SDK this library drives now speaks httpx2 — Pydantic's maintained
+    continuation of httpx — so the default covers all of them. The parameter
+    stays because it costs nothing and keeps one guard implementation usable
+    against either module; anthropic < 1.0.0 needed exactly that, and a future
+    SDK may again.
 
     Args:
         http: The ``httpx`` or ``httpx2`` module. Defaults to httpx2.

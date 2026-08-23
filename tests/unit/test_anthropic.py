@@ -116,7 +116,7 @@ class TestAnthropicProviderInit:
 
         assert provider.api_key == "sk-ant-test-key"
         assert provider.provider_name == "anthropic"
-        assert provider.default_model == "claude-sonnet-4-20250514"
+        assert provider.default_model == "claude-sonnet-5"
         assert provider.timeout == 60.0
         assert provider.max_retries == 2
 
@@ -408,7 +408,32 @@ class TestAnthropicChatCompletion:
         assert call_args.kwargs["model"] == "claude-3-5-haiku-20241022"
 
     def test_completion_with_temperature(self, mock_anthropic_response):
-        """Test completion with temperature."""
+        """Temperature must reach the SDK through extra_body, never as a kwarg.
+
+        anthropic 1.0.0 removed the parameter from messages.create(); a top-level
+        kwarg raises TypeError.
+        """
+        mock_client = MagicMock()
+        mock_client.messages.create.return_value = mock_anthropic_response
+        mock_anthropic_module.Anthropic.return_value = mock_client
+
+        provider = AnthropicProvider(api_key="sk-ant-test")
+        provider._client = None
+        provider.chat_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            # Explicit: the Claude 5 generation (and thus the current default)
+            # takes no temperature at all, so the transport path needs a model
+            # that still accepts one.
+            model="claude-sonnet-4-6",
+            temperature=0.5,
+        )
+
+        call_args = mock_client.messages.create.call_args
+        assert "temperature" not in call_args.kwargs
+        assert call_args.kwargs["extra_body"]["temperature"] == 0.5
+
+    def test_no_temperature_at_all_for_the_default_model(self, mock_anthropic_response):
+        """Claude 5 dropped the parameter — not even extra_body should carry it."""
         mock_client = MagicMock()
         mock_client.messages.create.return_value = mock_anthropic_response
         mock_anthropic_module.Anthropic.return_value = mock_client
@@ -421,7 +446,8 @@ class TestAnthropicChatCompletion:
         )
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs["temperature"] == 0.5
+        assert "temperature" not in call_args.kwargs
+        assert "extra_body" not in call_args.kwargs
 
     def test_completion_claude_opus3_gets_temperature(self, mock_anthropic_response):
         """Test that claude-3-opus receives clamped temperature (max 1.0)."""
@@ -438,7 +464,7 @@ class TestAnthropicChatCompletion:
         )
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs["temperature"] == 0.5
+        assert call_args.kwargs["extra_body"]["temperature"] == 0.5
 
     def test_completion_temperature_clamped_above_max(self, mock_anthropic_response):
         """Test temperature > 1.0 is clamped to 1.0 for Claude models."""
@@ -455,7 +481,7 @@ class TestAnthropicChatCompletion:
         )
 
         call_args = mock_client.messages.create.call_args
-        assert call_args.kwargs["temperature"] == 1.0
+        assert call_args.kwargs["extra_body"]["temperature"] == 1.0
 
     def test_completion_with_max_tokens(self, mock_anthropic_response):
         """Test completion with max_tokens."""
@@ -839,7 +865,7 @@ class TestAnthropicProviderProperties:
     def test_default_model(self):
         """Test default_model property."""
         provider = AnthropicProvider(api_key="sk-ant-test")
-        assert provider.default_model == "claude-sonnet-4-20250514"
+        assert provider.default_model == "claude-sonnet-5"
 
     def test_default_base_url(self):
         """Test default base URL constant."""

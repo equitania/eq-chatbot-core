@@ -304,11 +304,15 @@ class TestLangDockLive:
         # Verify region is set correctly
         assert provider.region == "eu"
 
-        # Make a simple API call to verify it works
+        # Make a simple API call to verify it works. The budget is generous on
+        # purpose: LangDock's current GPT-5.6 tier reasons before answering and
+        # spent all of the previous 5 tokens thinking, returning empty content —
+        # which failed this test for a reason that has nothing to do with the
+        # region it is meant to check.
         response = provider.chat_completion(
             messages=[{"role": "user", "content": "Hi"}],
             model=langdock_resolved_model,
-            max_tokens=5,
+            max_tokens=512,
         )
 
         assert response.content
@@ -395,3 +399,174 @@ class TestCostEffectivePatterns:
         # This should cost < $0.0001
         print(f"\n  Tokens used: {response.input_tokens + response.output_tokens}")
         print(f"  Estimated cost: ~${(response.input_tokens * 0.15 + response.output_tokens * 0.60) / 1_000_000:.6f}")
+
+
+@pytest.mark.integration
+class TestLangDockGoogleBackend:
+    """Live integration tests for LangDock with the Google backend.
+
+    This backend is not OpenAI-compatible: `_google_chat_completion` posts to
+    LangDock's Gemini endpoint with its own payload shape and converts message
+    content into Gemini `parts` itself. Nothing the OpenAI-backend tests exercise
+    covers that code, which is why it gets its own class.
+    """
+
+    @pytest.fixture
+    def provider(self, langdock_api_key):
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+        return get_provider("langdock", api_key=langdock_api_key, backend="google", region="eu")
+
+    def test_google_completion(self, provider, test_config, langdock_google_resolved_model):
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Say 'test' only."}],
+            model=langdock_google_resolved_model,
+            max_tokens=test_config.get("max_tokens", 10),
+            temperature=0.0,
+        )
+
+        assert response.content
+        assert "test" in response.content.lower()
+        assert response.model
+
+        print(f"\n  Model: {response.model}")
+        print(f"  Response: {response.content}")
+
+    def test_google_system_message(self, provider, test_config, langdock_google_resolved_model):
+        """Gemini takes instructions separately — the conversion must not drop them."""
+        response = provider.chat_completion(
+            messages=[
+                {"role": "system", "content": "Reply with exactly: ACKNOWLEDGED"},
+                {"role": "user", "content": "Hello"},
+            ],
+            model=langdock_google_resolved_model,
+            max_tokens=test_config.get("max_tokens", 10),
+            temperature=0.0,
+        )
+
+        assert response.content
+        assert "acknowledged" in response.content.lower()
+
+    def test_google_streaming(self, provider, test_config, langdock_google_resolved_model):
+        chunks = list(
+            provider.stream_completion(
+                messages=[{"role": "user", "content": "Count: 1 2 3"}],
+                model=langdock_google_resolved_model,
+                max_tokens=test_config.get("max_tokens", 20),
+                temperature=0.0,
+            )
+        )
+
+        assert chunks
+        assert "".join(c.content or "" for c in chunks).strip()
+        assert chunks[-1].is_final
+
+    def test_google_list_models(self, provider):
+        models = provider.list_models()
+
+        assert isinstance(models, list)
+        assert len(models) > 0
+        assert all("id" in m for m in models)
+
+
+@pytest.mark.integration
+class TestLangDockDefaultsAreLive:
+    """Nothing about model choice may quietly go stale.
+
+    list_models() asks LangDock and gets back exactly the models this workspace
+    enabled, so discovery is live everywhere. The one unavoidable constant is the
+    per-backend default id — and that is precisely what broke on 23.08.2026, when
+    the Google default still pointed at the retired gemini-2.5-flash and every
+    default-model call answered 400. This test turns that class of failure into a
+    red run instead of a production incident.
+    """
+
+    @pytest.mark.parametrize("backend", ["openai", "anthropic", "google"])
+    def test_backend_defaults_are_actually_available(self, langdock_api_key, backend):
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+
+        provider = get_provider("langdock", api_key=langdock_api_key, backend=backend, region="eu")
+        available = {m["id"] for m in provider.list_models()}
+
+        assert provider.default_model in available, (
+            f"LangDock no longer serves the {backend} default "
+            f"{provider.default_model!r} — available: {sorted(available)}"
+        )
+
+    def test_listing_reflects_the_workspace_not_a_catalogue(self, langdock_api_key):
+        """A model the listing offers must be one the endpoint actually accepts."""
+        if not langdock_api_key:
+            pytest.skip("LANGDOCK_API_KEY not set")
+
+        provider = get_provider("langdock", api_key=langdock_api_key, backend="google", region="eu")
+
+        for model in provider.list_models():
+            response = provider.chat_completion(
+                messages=[{"role": "user", "content": "Hi"}],
+                model=model["id"],
+                max_tokens=512,
+            )
+            assert response.content, f"listing offers {model['id']} but it returned nothing"
+
+
+@pytest.mark.integration
+class TestProviderDefaultsAreLive:
+    """Every provider's default model must be one the provider still serves.
+
+    On 23.08.2026 four of them were not: anthropic pointed at
+    claude-sonnet-4-20250514 and melious at minimax-428b-m3, both withdrawn, while
+    openai/mammouth/openrouter still named gpt-4o — a generation this workspace no
+    longer runs. A default is the id a caller gets when they pass none, so a stale
+    one fails the very first call of anyone who did not choose explicitly.
+    """
+
+    @pytest.mark.parametrize(
+        "provider_name,key_fixture",
+        [
+            ("openai", "openai_api_key"),
+            ("anthropic", "anthropic_api_key"),
+            ("openrouter", "openrouter_api_key"),
+            ("mammouth", "mammouth_api_key"),
+            ("melious", "melious_api_key"),
+        ],
+    )
+    def test_default_model_is_still_served(self, request, provider_name, key_fixture):
+        api_key = request.getfixturevalue(key_fixture)
+        if not api_key:
+            pytest.skip(f"{key_fixture.upper()} not set")
+
+        provider = get_provider(provider_name, api_key=api_key)
+        available = {m["id"] for m in provider.list_models()}
+
+        assert provider.default_model in available, (
+            f"{provider_name} no longer serves its default {provider.default_model!r}"
+        )
+
+    @pytest.mark.parametrize(
+        "provider_name,key_fixture",
+        [
+            ("openai", "openai_api_key"),
+            ("anthropic", "anthropic_api_key"),
+            ("melious", "melious_api_key"),
+        ],
+    )
+    def test_default_model_actually_answers(self, request, provider_name, key_fixture):
+        """Being listed is not enough — the temperature handling must fit too.
+
+        gpt-5.6 refuses the `temperature` parameter outright, so a provider that
+        sends it anyway gets HTTP 400 on a model that looks perfectly available.
+        """
+        api_key = request.getfixturevalue(key_fixture)
+        if not api_key:
+            pytest.skip(f"{key_fixture.upper()} not set")
+
+        provider = get_provider(provider_name, api_key=api_key)
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Say OK"}],
+            model=provider.default_model,
+            temperature=0.7,
+            max_tokens=512,
+        )
+
+        assert response.content.strip()

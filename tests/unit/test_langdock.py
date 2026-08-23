@@ -575,7 +575,8 @@ class TestLangDockAnthropicChatCompletion:
             )
 
             call_kwargs = mock_client.messages.create.call_args.kwargs
-            assert call_kwargs.get("temperature") == 0.5
+            assert "temperature" not in call_kwargs
+            assert call_kwargs["extra_body"]["temperature"] == 0.5
 
 
 # =============================================================================

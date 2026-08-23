@@ -31,8 +31,21 @@ MODEL_TEMPERATURE_CONSTRAINTS: dict[str, dict[str, Any]] = {
     "gpt-4.1": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4.1-mini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4.1-nano": {"min": 0.0, "max": 2.0, "supports_temperature": True},
-    # GPT-5 family: 0.0-2.0 (prefix match covers all gpt-5* variants)
-    "gpt-5": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    # GPT-5 family — the support is NOT continuous, so the generic prefix says NO
+    # and the generations that do accept the parameter are listed explicitly.
+    # Measured against the live API on 23.08.2026: gpt-5 and gpt-5-mini refuse it
+    # ("Only the default (1) value is supported"), 5.1 / 5.2 / 5.4 accept it, and
+    # 5.5 / 5.6 refuse it again. A single permissive prefix entry meant every call
+    # to gpt-5, gpt-5.5 and the whole current gpt-5.6 tier failed with HTTP 400.
+    #
+    # Failing SAFE means omitting: a model that would have accepted temperature is
+    # unaffected by leaving it out, while sending it to one that refuses breaks
+    # every call. An untested future generation therefore inherits "no".
+    "gpt-5": {"min": 1.0, "max": 1.0, "supports_temperature": False},
+    "gpt-5.1": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "gpt-5.2": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "gpt-5.3": {"min": 0.0, "max": 2.0, "supports_temperature": True},
+    "gpt-5.4": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     # Legacy OpenAI: 0.0-2.0
     "gpt-4o": {"min": 0.0, "max": 2.0, "supports_temperature": True},
     "gpt-4o-mini": {"min": 0.0, "max": 2.0, "supports_temperature": True},
@@ -103,12 +116,16 @@ def get_temperature_constraints(model: str) -> dict[str, Any]:
     falling back to DEFAULT_TEMP_CONSTRAINTS.
 
     Args:
-        model: Model ID (without provider prefix). Case is ignored.
+        model: Model ID, with or without a provider prefix. Case is ignored.
 
     Returns:
         Dict with keys: min, max, supports_temperature
     """
-    lookup = model.lower()
+    # Strip a provider prefix here rather than trusting every caller to do it.
+    # Without this "openai/gpt-5.6-luna" matched no key and fell through to the
+    # permissive default — a model that REFUSES temperature silently got it sent.
+    # strip_provider_prefix() is idempotent, so a bare id is unaffected.
+    lookup = strip_provider_prefix(model).lower()
 
     # Exact match
     if lookup in MODEL_TEMPERATURE_CONSTRAINTS:
@@ -168,3 +185,36 @@ def clamp_temperature(model: str, temperature: float) -> float | None:
         return max_temp
 
     return temperature
+
+
+def apply_anthropic_temperature(params: dict[str, Any], model: str, temperature: float) -> bool:
+    """Put a clamped temperature where the Anthropic SDK still accepts it.
+
+    anthropic 1.0.0 removed ``temperature``, ``top_p`` and ``top_k`` from
+    ``messages.create()`` / ``messages.stream()`` and their beta counterparts:
+    passing one raises ``TypeError``, it is not merely deprecated. Current models
+    ignore the parameter regardless, but older ones still honour it when it
+    travels in ``extra_body`` — which is what the SDK's own migration guide
+    prescribes.
+
+    Callers therefore must not write ``params["temperature"]`` themselves. This
+    helper folds the clamping rules and the transport decision into one place, so
+    the next SDK move is a single edit rather than four.
+
+    Args:
+        params: Request kwargs, mutated in place. An existing ``extra_body`` is
+            merged into, never replaced.
+        model: Model id, used to resolve the clamping constraints.
+        temperature: Requested temperature.
+
+    Returns:
+        True if a temperature was applied, False for models that take none
+        (reasoning models, and every Claude line from Opus 4.7 onwards).
+    """
+    clamped = clamp_temperature(model, temperature)
+    if clamped is None:
+        return False
+
+    extra_body = params.setdefault("extra_body", {})
+    extra_body["temperature"] = clamped
+    return True

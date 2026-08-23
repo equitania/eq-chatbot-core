@@ -13,7 +13,7 @@ Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 
 import json
 import logging
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from typing import Any
 
 import httpx2
@@ -31,6 +31,7 @@ from eq_chatbot_core.providers.base import (
 )
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import (
+    apply_anthropic_temperature,
     clamp_temperature,
     get_temperature_constraints,
 )
@@ -39,6 +40,9 @@ _logger = logging.getLogger(__name__)
 
 # Max length of an upstream error body surfaced in logs / exceptions.
 _ERROR_DETAIL_MAX = 500
+
+# SSE payload marker of the AI SDK 5 data stream the Agent endpoint speaks.
+_SSE_MARKER = "data: "
 
 
 def _scrub(text: str) -> str:
@@ -56,6 +60,79 @@ def _safe_detail(text: str) -> str:
     before logging or embedding in a raised exception.
     """
     return _scrub(text or "")[:_ERROR_DETAIL_MAX]
+
+
+# The Agent API answers three unrelated situations with the same HTTP 400 and an
+# upstream body no end user can act on: the agent is unknown, the agent is not
+# shared with this API key, or the agent resolves to no model at all. Verified
+# live on 23.08.2026: an agent whose model is set to "Auto" fails this way, and a
+# top-level `model` in the payload does NOT override it — the Auto router is only
+# available in the chat UI, so the setting has to change in LangDock itself.
+_AGENT_NO_MODEL_MARKERS = ("no valid model", "no default model")
+
+
+def _iter_sse_data(lines: Iterable[str]) -> Iterator[dict[str, Any]]:
+    """Yield the JSON objects of an AI SDK 5 data stream, one per `data:` block.
+
+    LangDock's Agent endpoint streams Server-Sent Events whose payloads are typed
+    objects (`text-delta`, `finish`, …). Two properties of the real stream shape
+    this parser:
+
+    * `data:` blocks are NOT reliably separated by a blank line — a captured run
+      contained two events glued into a single line — so the split is on the
+      marker itself, not on line boundaries.
+    * A malformed block must not abort a live answer. A stream that dies on one
+      bad frame loses everything the model already produced, so unparseable
+      blocks are logged and skipped.
+
+    The `[DONE]` sentinel is consumed here and never surfaces to the caller.
+    """
+    for line in lines:
+        if not line:
+            continue
+        text = line.decode() if isinstance(line, bytes) else line
+        if _SSE_MARKER not in text:
+            continue
+        # Skip whatever precedes the first marker (an SSE `event:` field, say).
+        for block in text.split(_SSE_MARKER)[1:]:
+            payload = block.strip()
+            if not payload or payload == "[DONE]":
+                continue
+            try:
+                event = json.loads(payload)
+            except ValueError:
+                _logger.debug("Agent stream: skipping unparseable SSE block: %s", _safe_detail(payload))
+                continue
+            if isinstance(event, dict):
+                yield event
+
+
+def _agent_error_message(status_code: int, detail: str) -> str:
+    """Turn an Agent API error body into an actionable, German-language message.
+
+    The upstream text is appended verbatim (already scrubbed by _safe_detail) so
+    the original cause stays diagnosable in logs and support tickets.
+    """
+    lowered = (detail or "").lower()
+    base = f"Agent API error {status_code}"
+
+    if any(marker in lowered for marker in _AGENT_NO_MODEL_MARKERS):
+        hint = (
+            "Der LangDock-Agent liefert kein Modell. Steht das Modell des Agenten in "
+            "LangDock auf „Auto“, stelle dort ein festes Modell ein — der "
+            "Auto-Modus wird über die Agent-API nicht unterstützt."
+        )
+    elif status_code == 400:
+        hint = (
+            "Der Agent wurde nicht gefunden. Prüfe die Agent-ID und ob der Agent in "
+            "LangDock mit diesem API-Key geteilt ist."
+        )
+    elif status_code in (401, 403):
+        hint = "Der API-Key wurde abgelehnt. Prüfe den LangDock-API-Key und ob er die Agent-API nutzen darf."
+    else:
+        hint = ""
+
+    return f"{base}: {hint} ({detail})" if hint else f"{base}: {detail}"
 
 
 class LangDockProvider(BaseLLMProvider):
@@ -111,8 +188,10 @@ class LangDockProvider(BaseLLMProvider):
         "claude-3-5-haiku": 200000,
         "claude-sonnet-4": 200000,
         "claude-opus-4": 200000,
-        # Google models (LangDock supports 2.5 series)
-        "gemini-2.5-flash": 1000000,
+        # Google models — ids come from the live endpoint, these are only the
+        # context hints. Unknown ids fall back to the generic default.
+        "gemini-3.7-flash": 1000000,
+        "gemini-3.5-flash": 1000000,
         "gemini-2.5-pro": 1000000,
         # Codestral
         "codestral": 32000,
@@ -179,10 +258,23 @@ class LangDockProvider(BaseLLMProvider):
     def default_model(self) -> str:
         """Return default model based on backend."""
         defaults = {
-            "openai": "gpt-4o",
-            "anthropic": "claude-sonnet-4-20250514",
-            "google": "gemini-2.5-flash",
-            "codestral": "codestral-latest",
+            "openai": "gpt-5.6-luna",
+            "anthropic": "claude-sonnet-5-default",
+            # These are FALLBACKS, not a catalogue. Model discovery is live
+            # everywhere — list_models() asks LangDock and gets back exactly the
+            # models the workspace enabled — but `model or self.default_model`
+            # needs something when a caller passes nothing, so one id per backend
+            # has to be written down.
+            #
+            # Treat them as perishable: which models a LangDock workspace enables
+            # is a per-customer setting, so no constant here can be right for
+            # everyone. On 23.08.2026 three of the four were dead at once (gpt-4o,
+            # claude-sonnet-4-20250514, gemini-2.5-flash) and every default-model
+            # call answered 400. The live test
+            # test_backend_defaults_are_actually_available turns that into a red
+            # run; callers who need certainty should take list_models()[0].
+            "google": "gemini-3.7-flash",
+            "codestral": "codestral-2501",
             "agent": None,  # Agent uses its configured model
         }
         # The "agent" backend maps to None on purpose: its model is configured
@@ -253,9 +345,8 @@ class LangDockProvider(BaseLLMProvider):
             except ImportError as e:
                 raise ImportError("Anthropic package not installed. Install with: pip install anthropic") from e
 
-            # As above, this client was never pinned. The Anthropic SDK requires
-            # httpx (not httpx2), so its guard is built against that library.
-            import httpx
+            # As above, this client was never pinned.
+            import httpx2
 
             from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
 
@@ -265,8 +356,8 @@ class LangDockProvider(BaseLLMProvider):
                 base_url=backend_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
-                http_client=httpx.Client(
-                    transport=build_pinned_transport_for_url(backend_url, http=httpx),
+                http_client=httpx2.Client(
+                    transport=build_pinned_transport_for_url(backend_url),
                     timeout=self.timeout,
                 ),
             )
@@ -479,6 +570,63 @@ class LangDockProvider(BaseLLMProvider):
 
         return agent_messages
 
+    def _agent_request_events(self, agent_messages: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+        """POST the agent request as a stream and yield its SSE events.
+
+        Both agent paths go through here — the streaming one and the synchronous
+        one, which assembles the deltas itself. Nothing asks LangDock for a
+        buffered response any more: it aborts a non-streaming request with HTTP
+        524 after 100 seconds, which an agent that runs tools or searches a
+        knowledge base reaches without trying.
+
+        Raises:
+            ProviderError: On a non-200 status, and on an ``error`` event, which
+                the stream can still emit after a successful 200.
+        """
+        payload = {
+            "agentId": self.agent_id,
+            "messages": agent_messages,
+            "stream": True,
+        }
+
+        agent_url = f"{self.base_url}/agent/v1/chat/completions"
+        _logger.info(f"Agent request to {agent_url}")
+        _logger.info(f"Agent payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
+        if _logger.isEnabledFor(logging.DEBUG):
+            _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
+
+        # Go through the pinned client rather than the module-level httpx2 API:
+        # agent_url is derived from a caller-supplied base_url, so a bare request
+        # here would bypass the DNS-rebinding guard every other path uses.
+        # http_client's base_url is _get_backend_url(), which for this backend is
+        # "<base_url>/agent/v1" — the relative path below resolves to agent_url.
+        with self.http_client.stream(
+            "POST",
+            "/chat/completions",
+            json=payload,
+            timeout=120.0,
+        ) as response:
+            if response.status_code != 200:
+                # A streamed response has no body yet; reading it first is what
+                # keeps this from raising ResponseNotRead instead of reporting
+                # the actual upstream error.
+                response.read()
+                detail = _safe_detail(response.text)
+                message = _agent_error_message(response.status_code, detail)
+                _logger.error(message)
+                raise ProviderError(
+                    message,
+                    provider="langdock",
+                    status_code=response.status_code,
+                )
+
+            for event in _iter_sse_data(response.iter_lines()):
+                if event.get("type") == "error":
+                    detail = _safe_detail(str(event.get("errorText") or event.get("error") or event))
+                    _logger.error(f"Agent stream error event: {detail}")
+                    raise ProviderError(f"Agent stream error: {detail}", provider="langdock")
+                yield event
+
     def _agent_chat_completion(
         self,
         messages: list[dict[str, Any]],
@@ -492,8 +640,6 @@ class LangDockProvider(BaseLLMProvider):
         System messages are filtered out - agent instructions are in LangDock.
         """
         try:
-            agent_url = f"{self.base_url}/agent/v1/chat/completions"
-
             _logger.info(f"Agent sync: Original messages count: {len(messages)}")
 
             # Convert to Vercel AI SDK UIMessage format
@@ -513,66 +659,34 @@ class LangDockProvider(BaseLLMProvider):
                     raw_response={},
                 )
 
-            payload = {
-                "agentId": self.agent_id,
-                "messages": agent_messages,
-                "stream": False,
-            }
+            content_parts: list[str] = []
+            model_name = ""
+            metadata: dict[str, Any] = {}
 
-            _logger.info(f"Agent request to {agent_url}")
-            _logger.info(f"Agent payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
-            if _logger.isEnabledFor(logging.DEBUG):
-                _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
+            for event in self._agent_request_events(agent_messages):
+                kind = event.get("type")
+                if kind == "text-delta":
+                    delta = event.get("delta") or ""
+                    if delta:
+                        content_parts.append(delta)
+                elif kind == "start":
+                    metadata = event.get("messageMetadata") or {}
+                    model_name = metadata.get("modelName") or ""
 
-            # Go through the pinned client rather than the module-level
-            # httpx2.post: agent_url is derived from a caller-supplied base_url,
-            # so a bare request here would bypass the DNS-rebinding guard that
-            # every other request path uses. http_client's base_url is
-            # _get_backend_url(), which for this backend is
-            # "<base_url>/agent/v1" — the relative path below resolves to
-            # agent_url. Reached only via the "agent" dispatch branch.
-            response = self.http_client.post(
-                "/chat/completions",
-                json=payload,
-                timeout=120.0,
-            )
-
-            if response.status_code != 200:
-                detail = _safe_detail(response.text)
-                _logger.error(f"Agent API error {response.status_code}: {detail}")
-                raise ProviderError(
-                    f"Agent API error {response.status_code}: {detail}",
-                    provider="langdock",
-                    status_code=response.status_code,
-                )
-
-            data = response.json()
-            _logger.info(f"Agent sync response keys: {list(data.keys())}")
-            _logger.debug(f"Agent response: {json.dumps(data, default=str)[:500]}")
-
-            content = ""
-            finish_reason = "stop"
-
-            # Vercel AI SDK format: {"messages": [{"id": "...", "role": "assistant", "content": "..."}]}
-            resp_messages = data.get("messages", [])
-            if resp_messages:
-                _logger.info(f"Agent sync: Found {len(resp_messages)} response messages")
-                # Find the last assistant message
-                for item in reversed(resp_messages):
-                    if item.get("role") == "assistant":
-                        content = item.get("content", "")
-                        if content:
-                            _logger.info(f"Agent sync: Found text content with {len(content)} chars")
-                            break
+            content = "".join(content_parts)
+            if not content:
+                _logger.warning("Agent sync: stream carried no text-delta events")
+            else:
+                _logger.info(f"Agent sync: assembled {len(content)} chars from {len(content_parts)} deltas")
 
             return LLMResponse(
                 content=content,
-                model=data.get("model", f"agent:{self.agent_id}"),
+                model=model_name or f"agent:{self.agent_id}",
                 input_tokens=0,
                 output_tokens=0,
-                finish_reason=finish_reason,
+                finish_reason="stop",
                 tool_calls=[],
-                raw_response=data,
+                raw_response={"messageMetadata": metadata},
             )
 
         except httpx2.HTTPError as e:
@@ -607,9 +721,7 @@ class LangDockProvider(BaseLLMProvider):
             }
 
             # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-            if clamped is not None:
-                params["temperature"] = clamped
+            apply_anthropic_temperature(params, model, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -732,11 +844,8 @@ class LangDockProvider(BaseLLMProvider):
 
             response = self.http_client.post(url, json=payload)
 
-            # Log error details before raising
             if response.status_code >= 400:
-                _logger.error(f"Google API error {response.status_code}: {_safe_detail(response.text)}")
-
-            response.raise_for_status()
+                self._raise_http_error(response, "Google API")
 
             data = response.json()
 
@@ -811,11 +920,8 @@ class LangDockProvider(BaseLLMProvider):
 
             response = self.http_client.post("/fim/completions", json=payload)
 
-            # Log error details before raising
             if response.status_code >= 400:
-                _logger.error(f"Codestral FIM error {response.status_code}: {_safe_detail(response.text)}")
-
-            response.raise_for_status()
+                self._raise_http_error(response, "Codestral FIM")
 
             data = response.json()
 
@@ -990,15 +1096,17 @@ class LangDockProvider(BaseLLMProvider):
         max_tokens: int | None,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
-        """LangDock Agent streaming using httpx directly.
+        """LangDock Agent streaming over the AI SDK 5 data-stream protocol.
 
-        LangDock Agent API requires agentId parameter, not model.
-        Uses Vercel AI SDK UIMessage format. Currently non-streaming POST.
-        System messages are filtered out - agent instructions are in LangDock.
+        Sends the UIMessage payload with ``stream: true`` and translates the
+        Server-Sent Events into StreamChunks as they arrive. Until 23.08.2026
+        this sent ``stream: false`` and yielded one final chunk — which not only
+        defeated streaming but risked LangDock's HTTP 524, raised on any
+        non-streaming request that runs past 100 seconds.
+
+        System messages are filtered out — agent instructions live in LangDock.
         """
         try:
-            agent_url = f"{self.base_url}/agent/v1/chat/completions"
-
             _logger.info(f"Agent stream: Original messages count: {len(messages)}")
 
             # Convert to Vercel AI SDK UIMessage format
@@ -1017,71 +1125,44 @@ class LangDockProvider(BaseLLMProvider):
                 )
                 return
 
-            payload = {
-                "agentId": self.agent_id,
-                "messages": agent_messages,
-                "stream": False,
-            }
-
             # Remove any conflicting kwargs
             kwargs.pop("model", None)
             kwargs.pop("temperature", None)
             kwargs.pop("max_tokens", None)
 
-            _logger.info(f"Agent stream request to {agent_url}")
-            _logger.info(f"Agent stream payload: agentId={self.agent_id}, messages_count={len(agent_messages)}")
-            if _logger.isEnabledFor(logging.DEBUG):
-                _logger.debug(f"Full payload: {_scrub(json.dumps(payload, default=str))}")
+            emitted = 0
+            for event in self._agent_request_events(agent_messages):
+                kind = event.get("type")
 
-            # Go through the pinned client rather than the module-level
-            # httpx2.post: agent_url is derived from a caller-supplied base_url,
-            # so a bare request here would bypass the DNS-rebinding guard that
-            # every other request path uses. http_client's base_url is
-            # _get_backend_url(), which for this backend is
-            # "<base_url>/agent/v1" — the relative path below resolves to
-            # agent_url. Reached only via the "agent" dispatch branch.
-            response = self.http_client.post(
-                "/chat/completions",
-                json=payload,
-                timeout=120.0,
+                if kind == "text-delta":
+                    delta = event.get("delta") or ""
+                    if delta:
+                        emitted += 1
+                        yield StreamChunk(
+                            content=delta,
+                            is_final=False,
+                            finish_reason=None,
+                            input_tokens=0,
+                            output_tokens=0,
+                        )
+                elif kind == "start":
+                    model_name = (event.get("messageMetadata") or {}).get("modelName")
+                    if model_name:
+                        _logger.info(f"Agent stream: answering with {model_name}")
+                # reasoning-*, text-start/-end, start-step, finish-step, tool-*
+                # and data-* carry no user-visible text; ignoring unknown types
+                # keeps a protocol addition from breaking us.
+
+            if not emitted:
+                _logger.warning("Agent stream: no text-delta events in the response")
+
+            yield StreamChunk(
+                content="",
+                is_final=True,
+                finish_reason="stop",
+                input_tokens=0,
+                output_tokens=0,
             )
-
-            if response.status_code != 200:
-                detail = _safe_detail(response.text)
-                _logger.error(f"Agent error {response.status_code}: {detail}")
-                raise ProviderError(
-                    f"Agent API error {response.status_code}: {detail}",
-                    provider="langdock",
-                    status_code=response.status_code,
-                )
-
-            data = response.json()
-            _logger.info(f"Agent stream response keys: {list(data.keys())}")
-
-            content = ""
-            finish_reason = "stop"
-
-            # Vercel AI SDK format: {"messages": [{"id": "...", "role": "assistant", "content": "..."}]}
-            resp_messages = data.get("messages", [])
-            if resp_messages:
-                _logger.info(f"Agent stream: Found {len(resp_messages)} response messages")
-                for item in reversed(resp_messages):
-                    if item.get("role") == "assistant":
-                        content = item.get("content", "")
-                        if content:
-                            _logger.info(f"Agent stream: Found content with {len(content)} chars")
-                            break
-
-            if content:
-                yield StreamChunk(
-                    content=content,
-                    is_final=True,
-                    finish_reason=finish_reason,
-                    input_tokens=0,
-                    output_tokens=0,
-                )
-            else:
-                _logger.warning(f"Agent stream: No content found. Keys: {list(data.keys())}")
 
         except httpx2.HTTPError as e:
             safe = _scrub(str(e))
@@ -1115,9 +1196,7 @@ class LangDockProvider(BaseLLMProvider):
             }
 
             # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-            if clamped is not None:
-                params["temperature"] = clamped
+            apply_anthropic_temperature(params, model, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -1347,18 +1426,21 @@ class LangDockProvider(BaseLLMProvider):
                 # LangDock expects systemInstruction as simple string
                 payload["systemInstruction"] = system_instruction
 
-            # LangDock Google API uses standard streaming endpoint
-            url = f"/models/{model}:streamGenerateContent"
+            # `alt=sse` is not optional: without it the endpoint answers
+            # Content-Type application/json with a single JSON *array* of chunks,
+            # the `data: ` parser below matches nothing, and the caller gets an
+            # empty stream with no error to show for it. With it, the same
+            # endpoint returns text/event-stream. Verified live 23.08.2026.
+            url = f"/models/{model}:streamGenerateContent?alt=sse"
             if _logger.isEnabledFor(logging.DEBUG):
                 _logger.debug(f"Google streaming URL: {_scrub(self._get_backend_url() + url)}")
                 _logger.debug(f"Google streaming payload: {_scrub(json.dumps(payload, indent=2))}")
 
             with self.http_client.stream("POST", url, json=payload) as response:
-                # Log error details before raising
                 if response.status_code >= 400:
-                    error_text = response.read().decode("utf-8", errors="replace")
-                    _logger.error(f"Google streaming error {response.status_code}: {_safe_detail(error_text)}")
-                response.raise_for_status()
+                    # A streamed response has no body yet — read it before use.
+                    response.read()
+                    self._raise_http_error(response, "Google streaming")
 
                 total_input_tokens = 0
                 total_output_tokens = 0
@@ -1599,20 +1681,32 @@ class LangDockProvider(BaseLLMProvider):
         return result
 
     def _list_google_models(self) -> list[dict[str, Any]]:
-        """List Google Gemini models available via LangDock."""
-        # LangDock supports only Gemini 2.5 series
-        known_models = [
-            ("gemini-2.5-flash", "Gemini 2.5 Flash"),
-            ("gemini-2.5-pro", "Gemini 2.5 Pro"),
-        ]
+        """List Google Gemini models by asking LangDock, not from a hardcoded list.
+
+        This used to return a hand-maintained ("gemini-2.5-flash", "gemini-2.5-pro")
+        pair. LangDock retired 2.5-flash, so both the catalogue and the backend
+        default pointed at a model that answers
+        ``400 Invalid model, available models are: …`` — every default-model call
+        to this backend failed. The endpoint below is the same one that error
+        message is generated from, so it cannot go stale.
+
+        Gemini reports ids as ``models/<id>``; the prefix is stripped because
+        sending it back is itself a 400.
+        """
+        response = self.http_client.get("/models")
+        response.raise_for_status()
+        data = response.json()
 
         result = []
-        for model_id, name in known_models:
+        for model in data.get("models", []):
+            model_id = str(model.get("name", "")).removeprefix("models/")
+            if not model_id:
+                continue
             constraints = self._get_model_constraints(model_id)
             result.append(
                 {
                     "id": model_id,
-                    "name": name,
+                    "name": model_id.replace("-", " ").title(),
                     "provider": self.provider_name,
                     "backend": self.backend,
                     "region": self.region,
@@ -1622,12 +1716,15 @@ class LangDockProvider(BaseLLMProvider):
         return result
 
     def _list_codestral_models(self) -> list[dict[str, Any]]:
-        """List Codestral models available via LangDock.
+        """Deliberately empty: Codestral is FIM-only, not a chat model.
 
-        NOTE: Codestral is disabled for chat - it only supports FIM (fill-in-the-middle)
-        code completion, which is not suitable for conversational chat interfaces.
+        LangDock does serve ``GET /mistral/eu/v1/models`` (it returns
+        ``codestral-2501``), but surfacing that here would put a
+        fill-in-the-middle model into a chat model picker, where it cannot
+        answer. Callers who want it address it explicitly via the backend
+        default. The default id is checked by a unit test against what the
+        endpoint actually serves.
         """
-        # Disabled: Codestral only supports FIM, not chat
         return []
 
     def _list_agent_models(self) -> list[dict[str, Any]]:
@@ -1654,6 +1751,23 @@ class LangDockProvider(BaseLLMProvider):
         except (AttributeError, KeyError, TypeError, ConnectionError) as e:
             _logger.warning("Agent model listing failed, returning empty list: %s", e)
             return []
+
+    def _raise_http_error(self, response: Any, label: str) -> None:
+        """Raise a typed error that carries the upstream body, not just the status.
+
+        ``response.raise_for_status()`` produces "Client error '400 Bad Request'
+        for url …" and nothing else, so the reason — a retired model id, a
+        missing workspace entitlement — only ever reached a log line. Feeding the
+        body through _handle_error keeps the typed mapping (401 -> Authentication,
+        429 -> RateLimit) while making the cause visible to the caller.
+        """
+        detail = _safe_detail(response.text)
+        message = f"{label} error {response.status_code}: {detail}"
+        _logger.error(message)
+        error = self._handle_error(Exception(message))
+        if error.status_code is None:
+            error.status_code = response.status_code
+        raise error
 
     def _handle_error(self, error: Exception) -> ProviderError:
         """Convert exceptions to ProviderError types."""

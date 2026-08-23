@@ -175,7 +175,7 @@ provider = get_provider(
     "melious",
     api_key="sk-mel-YOUR_KEY",
     # base_url defaults to https://api.melious.ai/v1
-    model="minimax-428b-m3",  # optional default (overridable per call)
+    model="nemotron-3-nano-30b-a3b",  # optional default (overridable per call)
 )
 
 response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])
@@ -458,7 +458,7 @@ provider = get_provider(
     "melious",
     api_key="sk-mel-DEIN_KEY",
     # base_url default: https://api.melious.ai/v1
-    model="minimax-428b-m3",  # optionales Default (pro Call überschreibbar)
+    model="nemotron-3-nano-30b-a3b",  # optionales Default (pro Call überschreibbar)
 )
 
 response = provider.chat_completion(messages=[{"role": "user", "content": "Hallo!"}])

@@ -109,7 +109,7 @@ class TestOpenAIProviderInit:
 
         assert provider.api_key == "sk-test-key"
         assert provider.provider_name == "openai"
-        assert provider.default_model == "gpt-4o"
+        assert provider.default_model == "gpt-5.6-luna"
         assert provider.timeout == 60.0
         assert provider.max_retries == 2
         assert provider.organization is None
@@ -243,7 +243,30 @@ class TestOpenAIChatCompletion:
         assert call_args.kwargs["model"] == "gpt-4o-mini"
 
     def test_completion_with_temperature(self, mock_openai_response):
-        """Test completion with custom temperature."""
+        """Temperature reaches models that accept it — and only those.
+
+        The model matters: gpt-4.1 takes the parameter, while the current default
+        (gpt-5.6) refuses it outright, so it must be omitted there. Pinning an
+        explicit model keeps this test about the pass-through path even when the
+        default moves to a new generation.
+        """
+        mock_client = MagicMock()
+        mock_client.chat.completions.create.return_value = mock_openai_response
+        mock_openai_module.OpenAI.return_value = mock_client
+
+        provider = OpenAIProvider(api_key="sk-test")
+        provider._client = None
+        provider.chat_completion(
+            messages=[{"role": "user", "content": "Hello"}],
+            model="gpt-4.1",
+            temperature=0.5,
+        )
+
+        call_args = mock_client.chat.completions.create.call_args
+        assert call_args.kwargs["temperature"] == 0.5
+
+    def test_temperature_is_omitted_for_the_default_model(self, mock_openai_response):
+        """gpt-5.6 answers 400 when temperature is sent, so it must not be."""
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
@@ -255,8 +278,7 @@ class TestOpenAIChatCompletion:
             temperature=0.5,
         )
 
-        call_args = mock_client.chat.completions.create.call_args
-        assert call_args.kwargs["temperature"] == 0.5
+        assert "temperature" not in mock_client.chat.completions.create.call_args.kwargs
 
     def test_completion_with_max_tokens_legacy(self, mock_openai_response):
         """Test completion with max_tokens for legacy models."""
@@ -768,7 +790,7 @@ class TestOpenAIProviderProperties:
     def test_default_model(self):
         """Test default_model property."""
         provider = OpenAIProvider(api_key="sk-test")
-        assert provider.default_model == "gpt-4o"
+        assert provider.default_model == "gpt-5.6-luna"
 
     def test_default_base_url(self):
         """Test default base URL constant."""

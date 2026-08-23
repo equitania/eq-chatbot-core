@@ -1,5 +1,110 @@
 # Release Notes
 
+## Version 3.2.0 (23.08.2026)
+
+### ⚠️ Breaking
+
+- **[CHG] `anthropic` erfordert jetzt >= 1.0.0, `httpx` entfällt als Kern-Abhängigkeit.**
+  Das Anthropic-SDK ist in 1.0.0 auf `httpx2` gewechselt und **lehnt einen
+  `httpx`-Client seitdem hart ab** (`TypeError: Expected an instance of
+  httpx2.Client`). Da `pyproject.toml` bisher `<2.0.0` erlaubte, hätte ein
+  `pip install -U` den Anthropic-Provider stillschweigend zerlegt. Der Floor
+  liegt jetzt bei 1.0.0, beide SDK-Clients laufen über `httpx2`, und die
+  separate `httpx>=0.27,<1`-Abhängigkeit ist ersatzlos entfallen — sie existierte
+  ausschließlich wegen dieser einen Inkompatibilität.
+
+  Dasselbe Release hat `temperature`, `top_p` und `top_k` aus `messages.create()`
+  und `messages.stream()` **entfernt**; ein Aufruf mit dem Parameter ist ein
+  `TypeError`, keine Verwarnung. Die Release Notes des SDK nennen das „some minor
+  breaking changes" — real scheiterte damit jeder temperatursetzende Aufruf. Der
+  neue Helfer `providers.temperature_constraints.apply_anthropic_temperature()`
+  klemmt den Wert und routet ihn nach `extra_body`; **schreiben Sie nie wieder
+  `params["temperature"]` für einen Anthropic-Aufruf.**
+
+### [FIX]
+
+- **Die GPT-5-Familie unterstützt `temperature` nicht durchgängig — bisher schlug
+  jeder Aufruf an `gpt-5`, `gpt-5.5` und die gesamte aktuelle `gpt-5.6`-Reihe mit
+  HTTP 400 fehl.** Die Constraint-Tabelle trug einen einzigen `gpt-5`-Präfix, der
+  die ganze Familie für temperaturfähig erklärte. Live gemessen am 23.08.2026:
+  `gpt-5` und `gpt-5-mini` lehnen ab („Only the default (1) value is supported"),
+  `gpt-5.1`/`5.2`/`5.4` akzeptieren, `gpt-5.5` und `gpt-5.6` lehnen wieder ab. Der
+  generische Präfix sagt jetzt **nein**, die akzeptierenden Generationen stehen
+  einzeln darin. Eine ungetestete künftige Generation erbt damit „kein
+  temperature" — das Weglassen bricht nie, das Senden schon.
+
+- **`get_temperature_constraints()` fiel bei einem Modell MIT Anbieter-Präfix
+  still auf die freizügige Vorgabe zurück.** `openai/gpt-5.6-luna` traf keinen
+  Eintrag, bekam 0.0–2.0 und damit einen Parameter, den das Modell ablehnt. Die
+  Funktion löst das Präfix jetzt selbst auf, statt sich auf jeden Aufrufer zu
+  verlassen.
+
+- **LangDock-Agenten streamen wirklich.** `_agent_stream_completion` sendete
+  `"stream": false` und lieferte die fertige Antwort als einen einzigen Chunk —
+  kein Streaming, und LangDock bricht nicht-streamende Anfragen nach 100 Sekunden
+  mit HTTP 524 ab, was ein Agent mit Tools oder Wissenssuche mühelos erreicht.
+  Beide Agent-Pfade laufen jetzt über `_agent_request_events()` und das
+  AI-SDK-5-Datenstromprotokoll; auch der synchrone Pfad streamt intern und setzt
+  die Antwort selbst zusammen. Der Parser trennt an `data: ` statt an
+  Zeilengrenzen (LangDock klebt Ereignisse zusammen) und überspringt unlesbare
+  Blöcke, statt eine laufende Antwort daran sterben zu lassen.
+
+- **Das Google-Backend von LangDock war vollständig defekt.** `list_models()`
+  lieferte einen von Hand gepflegten Katalog (`gemini-2.5-flash`,
+  `gemini-2.5-pro`), den das Gateway zurückgezogen hat — inklusive des
+  Backend-Standardmodells, sodass jeder Aufruf ohne explizites Modell mit 400
+  endete. Die Liste kommt jetzt live vom selben Endpunkt, aus dem die
+  Fehlermeldung stammt. Zusätzlich lieferte der Streaming-Pfad **stillschweigend
+  gar nichts**: Der Parser sucht SSE-Zeilen, LangDock antwortet ohne `?alt=sse`
+  aber mit einem JSON-Array — kein Treffer, keine Chunks, kein Fehler. Der
+  Parameter wird jetzt gesetzt.
+
+- **Google- und Codestral-Fehler verschluckten ihre Ursache.** Beide protokollierten
+  den Antworttext und riefen dann `raise_for_status()`, sodass der Aufrufer nur
+  „Client error '400 Bad Request'" sah, während der eigentliche Grund — ein
+  zurückgezogenes Modell, eine fehlende Freischaltung — in einer Logzeile stand.
+  Das gemeinsame `_raise_http_error()` hängt den Text jetzt an, ohne die typisierte
+  Zuordnung zu verlieren (401 bleibt `AuthenticationError`, 429 `RateLimitError`).
+
+- **Der HTTP-400 der Agent-API ist übersetzt.** Er deckt drei völlig verschiedene
+  Fälle ab: Agent unbekannt, Agent nicht für den API-Schlüssel freigegeben, oder
+  gar kein Modell auflösbar. Letzteres passiert, wenn das Modell des Agenten in
+  LangDock auf „Auto" steht — der automatische Modellwechsel funktioniert nur im
+  Chat-UI, und ein `model` im Anfragekörper überschreibt ihn nachweislich nicht.
+  Die Meldung nennt jetzt die nötige Abhilfe im Klartext.
+
+### [CHG]
+
+- **Alle Standardmodelle auf die aktuelle Generation gehoben.** Vier waren
+  unbrauchbar oder überholt: `anthropic` zeigte auf `claude-sonnet-4-20250514` und
+  `melious` auf `minimax-428b-m3` — beide zurückgezogen —, während `openai`,
+  `mammouth` und `openrouter` weiter `gpt-4o` nannten. Neu: `gpt-5.6-luna`,
+  `claude-sonnet-5`, `openai/gpt-5.6-luna`, `nemotron-3-nano-30b-a3b`. Bei
+  LangDock waren drei von vier Backend-Standards tot (`gpt-4o`,
+  `claude-sonnet-4-20250514`, `gemini-2.5-flash`).
+
+  Ein Standardmodell ist die einzige unvermeidliche Konstante — alles andere wird
+  live ermittelt. Neue Live-Tests (`TestProviderDefaultsAreLive`,
+  `TestLangDockDefaultsAreLive`) schlagen fehl, sobald ein Anbieter eines davon
+  nicht mehr ausliefert, und prüfen zusätzlich, dass es tatsächlich antwortet —
+  gelistet zu sein genügt nicht.
+
+- **Abhängigkeits-Untergrenzen auf die jeweils aktuelle Veröffentlichung
+  angehoben** (21 Einträge), darunter `sentence-transformers` 3 → 6,
+  `websockets` 13 → 17.0.1, `pytest-asyncio` 0.24 → 1.4, `pytest` 8 → 9.1.1,
+  `mypy` 1.15 → 2.3.1, `pytest-cov` 6 → 7.1, `qdrant-client` 1.12 → 1.19,
+  `fastapi` 0.115 → 0.141, `uvicorn` 0.32 → 0.52. Eine alte Untergrenze ist eine
+  offene Sicherheitslücke, die auf eine Neuinstallation wartet. Die Testsuite
+  läuft auf allen neuen Hauptversionen ohne Codeänderung.
+
+- **Die Live-Abdeckung von LangDock umfasst jetzt alle Backends.** Getestet waren
+  bisher nur `openai` und `anthropic`; das Google-Backend spricht ein völlig
+  anderes Protokoll und war nie live berührt — genau deshalb blieb sein Defekt
+  unbemerkt. Der Codestral-Pfad hat keine Testabdeckung mehr: Mistral ist über
+  LangDock nicht von Interesse.
+
+**Testsuite:** 1858 Unit-Tests, 51 Live-Tests (0 Fehler), mypy `--strict` sauber.
+
 ## Version 3.0.0 (19.08.2026)
 
 ### ⚠️ Breaking

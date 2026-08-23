@@ -33,42 +33,45 @@ dependencies = [
     # 3.x is the release that moved to httpx2; the pinned DNS-rebinding transport
     # is built against whichever client library each SDK expects, so the floor and
     # the httpx2 dependency below move together.
-    "openai>=3.0.0,<4.0.0",
-    "anthropic>=0.90.0,<2.0.0",
-    "tiktoken>=0.9.0,<1.0.0",
+    "openai>=3.3.1,<4.0.0",
+    # Floor 1.0.0: the SDK moved to httpx2 in that release and now REJECTS an
+    # httpx client ("Expected an instance of httpx2.Client"). Allowing <1.0.0
+    # alongside it would let an upgrade silently break anthropic_provider.
+    "anthropic>=1.0.0,<2.0.0",
+    "tiktoken>=0.14.0,<1.0.0",
     # Floor 50.0.0 excludes PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7
     # decryption) as well as the earlier CVE-2026-26007 / CVE-2026-39892 /
     # CVE-2026-34073 (wildcard SAN name-constraint bypass). This library only
     # uses Fernet, but pinning below the fix keeps `pip-audit --strict` red and
     # holds shared environments on a vulnerable range.
     "cryptography>=50.0.0,<51.0.0",
-    # Both are needed and neither is redundant: httpx2 is Pydantic's maintained
-    # continuation and carries our own networking plus the OpenAI SDK, while the
-    # Anthropic SDK still requires httpx<1 in every release up to 0.122 — so the
-    # Anthropic client stays on httpx until that changes.
+    # One HTTP library again since anthropic 1.0.0: httpx2 is Pydantic's
+    # maintained continuation of httpx and now carries our own networking, the
+    # OpenAI SDK and the Anthropic SDK alike. The separate httpx<1 dependency
+    # existed solely because the Anthropic SDK rejected an httpx2 client.
     "httpx2>=2.12.0,<3.0.0",
-    "httpx>=0.27.0,<1.0.0",
-    "pydantic>=2.11.0,<3.0.0",
+    "pydantic>=2.13.4,<3.0.0",
     # Floor 8.3.3 excludes CVE-2026-7246 (command injection in click.edit()).
-    "click>=8.3.3,<9.0.0",
+    "click>=8.4.2,<9.0.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=8.0.0,<10.0.0",
-    "pytest-cov>=6.0.0,<8.0.0",
-    "pytest-asyncio>=0.24.0,<2.0.0",
+    "pytest>=9.1.1,<10.0.0",
+    "pytest-cov>=7.1.0,<8.0.0",
+    "pytest-asyncio>=1.4.0,<2.0.0",
     # Floor 1.2.2 excludes PYSEC-2026-2270.
-    "python-dotenv>=1.2.2,<2.0.0",  # .env loading for consumers; the test suite reads config.toml
-    "ruff>=0.12.0,<1.0.0",
-    # 2.x verified against this codebase: `mypy --strict src/` is clean on both
-    # 1.19 and 2.3, so the ceiling no longer needs to hold back a major.
-    "mypy>=1.15.0,<3.0.0",
+    "python-dotenv>=1.2.3,<2.0.0",  # .env loading for consumers; the test suite reads config.toml
+    "ruff>=0.16.4,<1.0.0",
+    # Floors track the current release on purpose (policy: always run the
+    # newest version — an old floor is an open CVE waiting for a fresh install).
+    # mypy --strict src/ is clean on 2.3.
+    "mypy>=2.3.1,<3.0.0",
     # Floor 7.0.0: hatchling now emits Metadata-Version 2.5, which twine 6.x
     # rejects as invalid — `twine check dist/*` fails on every build otherwise.
     "twine>=7.0.0,<8.0.0",
-    "pre-commit>=4.0.0,<5.0.0",
-    "pip-audit>=2.7.0,<3.0.0",  # Dependency vulnerability scanning (CI security gate)
+    "pre-commit>=4.6.2,<5.0.0",
+    "pip-audit>=2.10.1,<3.0.0",  # Dependency vulnerability scanning (CI security gate)
 ]
 rag = [
     # Vector store for HybridRetriever. Optional since v3.0.0: it drags in grpcio
@@ -76,17 +79,17 @@ rag = [
     # retriever takes an already-constructed client and imports qdrant_client
     # .models inside its methods. Callers that never touch RAG should not pay
     # for it.
-    "qdrant-client>=1.12.0,<2.0.0",
+    "qdrant-client>=1.19.0,<2.0.0",
 ]
 local = [
-    "sentence-transformers>=3.0.0,<6.0.0",  # For local embeddings
+    "sentence-transformers>=6.0.0,<7.0.0",  # For local embeddings
 ]
 security = [
     # Pure Python MIME type verification (no libmagic dependency).
     # puremagic 2.x requires Python >=3.12, which this project now mandates, so
     # the 1.x allowance for 3.10/3.11 users is gone. 2.x exposes the
     # from_string(..., mime=True) and PureError API used by file_validator.
-    "puremagic>=2.0,<3.0",
+    "puremagic>=2.2.0,<3.0",
 ]
 pdf = [
     # NOTE: pymupdf is AGPL-3.0-or-later (commercial license available from
@@ -94,12 +97,12 @@ pdf = [
     # library stays permissively licensed. Installing this extra subjects the
     # resulting distribution to AGPL obligations unless a commercial PyMuPDF
     # license is held. The same applies to the [docs] extra below.
-    "pymupdf>=1.26.0,<2.0.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
+    "pymupdf>=1.28.2,<2.0.0",  # For PDF to image conversion (OpenAI/LangDock vision support)
 ]
 docs = [
     # Document-to-Markdown extraction for knowledge ingestion (services/document_extractor.py)
-    "markitdown[docx,pdf,pptx,xlsx]>=0.1.1,<0.2.0",
-    "pymupdf>=1.26.0,<2.0.0",  # Embedded-image extraction from PDFs
+    "markitdown[docx,pdf,pptx,xlsx]>=0.1.7,<0.2.0",
+    "pymupdf>=1.28.2,<2.0.0",  # Embedded-image extraction from PDFs
 ]
 image = [
     # Floor 12.3.0 excludes CVE-2026-59205 (ImageCmsTransform buffer overflow),
@@ -107,19 +110,20 @@ image = [
     "Pillow>=12.3.0,<13.0",
 ]
 realtime = [
-    # Full range available again since v3.0.0: google-genai (the removed [vertex]
-    # extra) was the only dependency capping websockets at <17.0.
-    "websockets>=13.0,<18.0",
+    # Floor 17.0.1: websockets 14 replaced the boolean `closed` attribute with a
+    # `state` enum, which silently killed the whole realtime layer until v3.1.0.
+    # Nothing below the current release should be reachable by a fresh install.
+    "websockets>=17.0.1,<18.0",
 ]
 server = [
     # Localhost HTTP gateway for cross-language integrations (e.g. fr-designer
     # Avalonia desktop app spawning eq-chatbot as a sidecar).
-    "fastapi>=0.115.0,<1.0.0",
-    "uvicorn>=0.32.0,<1.0.0",
+    "fastapi>=0.141.1,<1.0.0",
+    "uvicorn>=0.52.4,<1.0.0",
     # 3.x verified: the only API used is EventSourceResponse(<async generator of
     # {"event": ..., "data": ...} dicts>), exercised end-to-end by the server
     # streaming tests.
-    "sse-starlette>=3.0.0,<4.0.0",
+    "sse-starlette>=3.4.8,<4.0.0",
 ]
 
 [project.scripts]

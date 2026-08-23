@@ -21,7 +21,7 @@ from eq_chatbot_core.providers.base import (
     normalize_tools,
 )
 from eq_chatbot_core.providers.temperature_constraints import (
-    clamp_temperature,
+    apply_anthropic_temperature,
     get_temperature_constraints,
 )
 
@@ -89,7 +89,11 @@ class AnthropicProvider(BaseLLMProvider):
 
     @property
     def default_model(self) -> str:
-        return "claude-sonnet-4-20250514"
+        # Verified live on 23.08.2026: the previous default had either been
+        # retired or belonged to a generation we no longer run. Policy is to
+        # default to the current one — see the live test that fails when this
+        # id stops being served.
+        return "claude-sonnet-5"
 
     @property
     def client(self) -> Any:
@@ -104,7 +108,7 @@ class AnthropicProvider(BaseLLMProvider):
             # on every connect. Without it the constructor's validate_url() only
             # covers one point in time and an attacker-controlled hostname can
             # re-resolve to an internal address before the socket opens.
-            import httpx
+            import httpx2
 
             from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
 
@@ -114,11 +118,8 @@ class AnthropicProvider(BaseLLMProvider):
                 base_url=effective_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
-                # The Anthropic SDK declares httpx<1 and rejects an httpx2 client,
-                # so this provider — alone among them — stays on httpx and builds
-                # its guard against that library.
-                http_client=httpx.Client(
-                    transport=build_pinned_transport_for_url(effective_url, http=httpx),
+                http_client=httpx2.Client(
+                    transport=build_pinned_transport_for_url(effective_url),
                     timeout=self.timeout,
                 ),
             )
@@ -312,9 +313,7 @@ class AnthropicProvider(BaseLLMProvider):
         }
 
         # Clamp temperature per model constraints
-        clamped = clamp_temperature(model, temperature)
-        if clamped is not None:
-            params["temperature"] = clamped
+        apply_anthropic_temperature(params, model, temperature)
 
         if system_prompt:
             params["system"] = system_prompt
@@ -405,9 +404,7 @@ class AnthropicProvider(BaseLLMProvider):
         }
 
         # Clamp temperature per model constraints
-        clamped = clamp_temperature(model, temperature)
-        if clamped is not None:
-            params["temperature"] = clamped
+        apply_anthropic_temperature(params, model, temperature)
 
         if system_prompt:
             params["system"] = system_prompt

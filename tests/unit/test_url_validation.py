@@ -306,15 +306,16 @@ class TestValidatingTransport:
 
 
 @pytest.mark.unit
-class TestClientLibrarySplit:
-    """Two HTTP client libraries are in play, and which one is used matters.
+class TestClientLibraryChoice:
+    """Which HTTP client library a transport is built against still matters.
 
-    httpx2 (Pydantic's maintained continuation of httpx) carries this library's
-    own requests and the OpenAI SDK, which moved to it in 3.x. The Anthropic SDK
-    still declares ``httpx<1`` in every release up to 0.122 and rejects an httpx2
-    client, so that one provider stays on httpx. Mixing them up produces a
-    transport the SDK will not accept, so the split is asserted rather than
-    assumed.
+    Since anthropic 1.0.0 every SDK this library drives speaks httpx2 (Pydantic's
+    maintained continuation of httpx), so httpx2 is the answer everywhere and the
+    separate httpx dependency is gone. The SDKs type-check the client they are
+    handed — anthropic 1.0.0 raises "Expected an instance of httpx2.Client" for
+    an httpx one — so the choice is asserted rather than assumed. The ``http=``
+    parameter keeps working against either module; anthropic < 1.0.0 needed
+    exactly that, and a future SDK may again.
     """
 
     def test_default_transport_is_built_against_httpx2(self):
@@ -325,8 +326,8 @@ class TestClientLibrarySplit:
 
         assert isinstance(transport, httpx2.HTTPTransport)
 
-    def test_transport_can_be_built_against_httpx_for_the_anthropic_sdk(self):
-        import httpx
+    def test_transport_can_still_be_built_against_httpx(self):
+        httpx = pytest.importorskip("httpx")
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
             transport = build_pinned_transport_for_url("https://api.example.com/v1", http=httpx)
@@ -334,13 +335,13 @@ class TestClientLibrarySplit:
         assert isinstance(transport, httpx.HTTPTransport)
 
     def test_validating_transport_honours_the_same_choice(self):
-        import httpx
+        httpx = pytest.importorskip("httpx")
 
         assert isinstance(build_validating_transport(http=httpx), httpx.HTTPTransport)
 
     def test_guard_still_fires_on_the_httpx_variant(self):
-        """The Anthropic island must not be a hole in the SSRF protection."""
-        import httpx
+        """A transport built against the other module must guard just as hard."""
+        httpx = pytest.importorskip("httpx")
 
         with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
             transport = build_pinned_transport_for_url("https://api.example.com/v1", http=httpx)
@@ -349,9 +350,13 @@ class TestClientLibrarySplit:
             with pytest.raises(httpx.ConnectError, match="DNS rebinding blocked"):
                 transport.handle_request(httpx.Request("GET", "https://api.example.com/v1/models"))
 
-    def test_anthropic_provider_builds_an_httpx_client(self):
-        """AnthropicProvider must hand the SDK a client it accepts."""
-        import httpx
+    def test_anthropic_provider_builds_an_httpx2_client(self):
+        """AnthropicProvider must hand the SDK a client it accepts.
+
+        anthropic 1.0.0 rejects an httpx client outright, so handing it the wrong
+        module is not a style question — every call raises TypeError.
+        """
+        import httpx2
 
         mock_anthropic = MagicMock()
         with patch.dict("sys.modules", {"anthropic": mock_anthropic}):
@@ -362,4 +367,4 @@ class TestClientLibrarySplit:
             _ = provider.client
 
         http_client = mock_anthropic.Anthropic.call_args[1]["http_client"]
-        assert isinstance(http_client, httpx.Client)
+        assert isinstance(http_client, httpx2.Client)

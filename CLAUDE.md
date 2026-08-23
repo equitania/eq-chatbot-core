@@ -201,12 +201,19 @@ it lived inside the repository, so the keys were one `git add -f` from publicati
 
 ### Core (always installed)
 
-openai (>=3), anthropic, httpx2, httpx, pydantic, cryptography, tiktoken, qdrant-client, click
+openai (>=3), anthropic (>=1), httpx2, pydantic, cryptography, tiktoken, qdrant-client, click
 
-Two HTTP client libraries are intentional: `httpx2` (Pydantic's maintained continuation of
-httpx) carries this library's own requests and the OpenAI SDK, which moved to it in 3.x.
-The Anthropic SDK still requires `httpx<1`, so `anthropic_provider` alone stays on `httpx`.
-`build_pinned_transport_for_url(..., http=httpx)` builds the SSRF guard against either.
+One HTTP client library: `httpx2` (Pydantic's maintained continuation of httpx) carries this
+library's own requests, the OpenAI SDK and — since anthropic 1.0.0 — the Anthropic SDK too.
+The separate `httpx<1` dependency is gone; anthropic 1.0.0 rejects an httpx client with
+`TypeError: Expected an instance of httpx2.Client`, so the floor is `>=1.0.0`.
+`build_pinned_transport_for_url()` still takes an `http=` argument and works against either
+module, which is why one guard implementation covers a future SDK that diverges again.
+
+That release also removed `temperature`, `top_p` and `top_k` from `messages.create()` and
+`messages.stream()`. Never write `params["temperature"]` for an Anthropic call — use
+`apply_anthropic_temperature()` from `providers/temperature_constraints.py`, which clamps and
+routes the value into `extra_body`.
 
 ### Optional
 
