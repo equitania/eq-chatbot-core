@@ -27,6 +27,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `.pdf` through pymupdf, none of which route via pandas. Verified against all ten supported
   extensions after the change.
 
+## [3.2.0] - 2026-08-23
+
+### Breaking
+
+- **`anthropic` floor raised to >= 1.0.0; `httpx` is no longer a core dependency.**
+  The Anthropic SDK moved to `httpx2` in 1.0.0 and now rejects an `httpx` client outright
+  (`TypeError: Expected an instance of httpx2.Client`). Since `pyproject.toml` allowed
+  `<2.0.0`, a `pip install -U` would have silently broken the Anthropic provider. Both SDK
+  clients run on `httpx2` now, and the separate `httpx>=0.27,<1` dependency is gone — it
+  existed solely because of that one incompatibility.
+
+  The same SDK release **removed** `temperature`, `top_p` and `top_k` from `messages.create()`
+  and `messages.stream()`; passing one is a `TypeError`, not a warning. The SDK notes call this
+  "some minor breaking changes" — in practice every temperature-setting call failed. The new
+  helper `providers.temperature_constraints.apply_anthropic_temperature()` clamps the value and
+  routes it into `extra_body`. **Never write `params["temperature"]` for an Anthropic call again.**
+
+### Fixed
+
+- **GPT-5 temperature support is not uniform — every call to `gpt-5`, `gpt-5.5` and the whole
+  current `gpt-5.6` tier failed with HTTP 400.** The constraint table carried a single permissive
+  `gpt-5` prefix declaring the entire family temperature-capable. Measured live on 23.08.2026:
+  `gpt-5` and `gpt-5-mini` refuse ("Only the default (1) value is supported"), `gpt-5.1`/`5.2`/`5.4`
+  accept, `gpt-5.5` and `gpt-5.6` refuse again. The generic prefix now says **no** and the
+  accepting generations are listed individually, so an untested future generation inherits "no
+  temperature" — omitting it never breaks, sending it does.
+
+- **`get_temperature_constraints()` fell through to the permissive default for a prefixed model.**
+  `openai/gpt-5.6-luna` matched no entry, got 0.0-2.0, and was therefore sent a parameter the model
+  rejects. The function now strips the provider prefix itself instead of trusting every caller to.
+
+- **LangDock agents really stream now.** `_agent_stream_completion` sent `"stream": false` and
+  yielded the finished answer as a single chunk — no streaming, and LangDock aborts non-streaming
+  requests after 100 seconds with HTTP 524, which an agent with tools or knowledge search reaches
+  easily. Both agent paths now go through `_agent_request_events()` and the AI SDK 5 data-stream
+  protocol; the synchronous path streams internally and assembles the answer itself. The parser
+  splits on the `data: ` marker rather than on line boundaries (LangDock glues events together) and
+  skips unparseable blocks instead of letting one kill a running answer.
+
+- **The LangDock Google backend was entirely broken.** `list_models()` served a hand-maintained
+  catalogue (`gemini-2.5-flash`, `gemini-2.5-pro`) the gateway had retired — including the backend
+  default model, so every call without an explicit model ended in 400. The list now comes live from
+  the same endpoint the error came from. On top of that the streaming path silently yielded
+  **nothing**: the parser looks for SSE lines, but without `?alt=sse` LangDock answers with a JSON
+  array — no match, no chunks, no error. The parameter is now set.
+
+- **Google and Codestral errors swallowed their own cause.** Both logged the response body and then
+  called `raise_for_status()`, so the caller saw only "Client error '400 Bad Request'" while the
+  actual reason — a retired model, a missing entitlement — sat in a log line. The shared
+  `_raise_http_error()` now appends the body without losing the typed mapping (401 stays
+  `AuthenticationError`, 429 `RateLimitError`).
+
+- **The Agent API's HTTP 400 is translated.** It covers three entirely different cases: agent
+  unknown, agent not shared with the API key, or no model resolvable at all. The last happens when
+  the agent's model is set to "Auto" in LangDock — the auto-router works only in the chat UI, and a
+  top-level `model` demonstrably does not override it. The message now names the remedy in plain
+  words.
+
+### Changed
+
+- **Every default model raised to the current generation.** Four were unusable or outdated:
+  `anthropic` pointed at `claude-sonnet-4-20250514` and `melious` at `minimax-428b-m3` — both
+  withdrawn — while `openai`, `mammouth` and `openrouter` still named `gpt-4o`. Now:
+  `gpt-5.6-luna`, `claude-sonnet-5`, `openai/gpt-5.6-luna`, `nemotron-3-nano-30b-a3b`. Three of
+  LangDock's four backend defaults were dead (`gpt-4o`, `claude-sonnet-4-20250514`,
+  `gemini-2.5-flash`).
+
+  A default model is the one unavoidable constant — everything else is resolved live. The new live
+  guards `TestProviderDefaultsAreLive` and `TestLangDockDefaultsAreLive` fail the moment a provider
+  stops serving one, and additionally check that it actually answers: being listed is not enough.
+
+- **Dependency floors raised to the current release** (21 entries), among them
+  `sentence-transformers` 3 -> 6, `websockets` 13 -> 17.0.1, `pytest-asyncio` 0.24 -> 1.4,
+  `pytest` 8 -> 9.1.1, `mypy` 1.15 -> 2.3.1, `pytest-cov` 6 -> 7.1, `qdrant-client` 1.12 -> 1.19,
+  `fastapi` 0.115 -> 0.141, `uvicorn` 0.32 -> 0.52. An old floor is an open vulnerability waiting
+  for a fresh install. The suite runs green on all new majors without a code change.
+
+- **Live coverage now spans all LangDock backends.** Only `openai` and `anthropic` were tested;
+  the Google backend speaks an entirely different protocol and was never touched live — which is
+  precisely why its defect went unnoticed. The Codestral path has no coverage any more: Mistral is
+  not of interest via LangDock.
+
+**Test suite:** 1858 unit tests, 51 live tests (0 failures), mypy `--strict` clean.
+
 ## [3.1.1] - 2026-08-20
 
 ### Fixed
