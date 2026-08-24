@@ -103,6 +103,13 @@ docs = [
     # Document-to-Markdown extraction for knowledge ingestion (services/document_extractor.py)
     "markitdown[docx,pdf,pptx,xlsx]>=0.1.7,<0.2.0",
     "pymupdf>=1.28.2,<2.0.0",  # Embedded-image extraction from PDFs
+    # Stated here because nothing else states it. markitdown's [xlsx] extra asks for
+    # a bare "openpyxl" and a bare "pandas"; the floor openpyxl>=3.1.5 lives only in
+    # pandas' own "excel" extra, which markitdown does not request. So a resolver is
+    # free to leave an older openpyxl in place - and Odoo pins exactly 3.1.2 - after
+    # which every .xlsx conversion dies with "Pandas requires version '3.1.5' or
+    # newer of 'openpyxl'". The consumer sees "no text could be extracted".
+    "openpyxl>=3.1.5,<4.0.0",
 ]
 image = [
     # Floor 12.3.0 excludes CVE-2026-59205 (ImageCmsTransform buffer overflow),

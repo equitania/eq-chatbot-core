@@ -5,6 +5,28 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.1] - 2026-08-24
+
+### Fixed
+
+- **`.xlsx` conversion failed with an error about pandas.** The `[docs]` extra pulls
+  `markitdown[xlsx]`, which asks for a bare `openpyxl` and a bare `pandas` - no version on
+  either. The floor `openpyxl>=3.1.5` exists only inside pandas' own `excel` extra, and
+  markitdown does not request that extra, so nothing in the chain ever states it. A resolver
+  is therefore free to leave an older `openpyxl` in place, and Odoo pins exactly 3.1.2, so the
+  combination is not hypothetical - it is the normal case inside an Odoo install. Every
+  spreadsheet ended in:
+
+      XlsxConverter threw ImportError with message: Pandas requires version '3.1.5' or
+      newer of 'openpyxl' (version '3.1.2' currently installed).
+
+  Downstream that surfaces as "no text could be extracted", which names neither the library
+  nor the version. The `[docs]` extra now declares `openpyxl>=3.1.5,<4.0.0` itself.
+
+  Only `.xlsx` was affected - `.docx` goes through mammoth, `.pptx` through python-pptx and
+  `.pdf` through pymupdf, none of which route via pandas. Verified against all ten supported
+  extensions after the change.
+
 ## [3.1.1] - 2026-08-20
 
 ### Fixed

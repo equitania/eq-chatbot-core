@@ -1,5 +1,28 @@
 # Release Notes
 
+## Version 3.2.1 (24.08.2026)
+
+### [FIX]
+
+- **Die Umwandlung von `.xlsx` scheiterte mit einer Meldung über pandas.** Das `[docs]`-Extra
+  zieht `markitdown[xlsx]`, und das verlangt schlicht „openpyxl" und „pandas" — ohne jede
+  Fassungsangabe. Die Untergrenze `openpyxl>=3.1.5` steht allein im `excel`-Extra von pandas,
+  das markitdown nicht anfordert; in der ganzen Kette nennt sie also niemand. Ein Auflöser darf
+  damit eine ältere Fassung stehen lassen, und Odoo legt sich genau auf 3.1.2 fest — die
+  Kombination ist demnach kein Sonderfall, sondern der Regelfall in einer Odoo-Installation.
+  Jede Tabellenkalkulation endete mit:
+
+      XlsxConverter threw ImportError with message: Pandas requires version '3.1.5' or
+      newer of 'openpyxl' (version '3.1.2' currently installed).
+
+  Beim Aufrufer kommt davon „Es konnte kein Text extrahiert werden" an — eine Meldung, die
+  weder die Bibliothek noch die Fassung nennt. Das `[docs]`-Extra verlangt jetzt selbst
+  `openpyxl>=3.1.5,<4.0.0`.
+
+  Betroffen war ausschließlich `.xlsx`: `.docx` läuft über mammoth, `.pptx` über python-pptx
+  und `.pdf` über pymupdf, keines davon über pandas. Nach der Änderung gegen alle zehn
+  unterstützten Endungen geprüft.
+
 ## Version 3.2.0 (23.08.2026)
 
 ### ⚠️ Breaking
