@@ -1,8 +1,9 @@
 """
 MCP client implementations for tool execution.
 
-Supports both SSE (HTTP) and stdio (subprocess) transport modes.
-Implements the MCP specification 2024-11-05.
+Supports the SSE (HTTP) and stdio (subprocess) transport modes of the MCP
+specification 2024-11-05. The Streamable HTTP transport (2025-03-26 and later)
+lives in :mod:`eq_chatbot_core.mcp.streamable_http`.
 
 SSE Transport:
 - Connect to /sse endpoint to establish SSE connection
@@ -181,6 +182,8 @@ class MCPClient:
         base_url: str,
         api_key: str | None = None,
         timeout: float = 30.0,
+        *,
+        allow_private_ranges: bool = False,
     ):
         """
         Initialize MCP SSE client.
@@ -189,16 +192,20 @@ class MCPClient:
             base_url: MCP server base URL (e.g., http://localhost:8000)
             api_key: Optional API key for authentication
             timeout: Request timeout in seconds
+            allow_private_ranges: LAN mode — permit private and loopback
+                targets (an MCP server on the intranet). Link-local, reserved
+                and multicast addresses remain blocked either way.
 
         Raises:
-            ValueError: If the URL scheme is not http/https or resolves to a private network
+            ValueError: If the URL scheme is not http/https or, outside LAN
+                mode, resolves to a private network
         """
         # Pin the base_url's resolved IPs for DNS rebinding protection.
         # Both the SSE client and the request client use a transport that
         # re-checks DNS against this map on every connection.
         self._pinned_ips: dict[str, frozenset[str]] = {}
         self._pinned_lock = threading.Lock()
-        ips = _validate_url(base_url)
+        ips = _validate_url(base_url, allow_private_ranges=allow_private_ranges)
         base_host = urlparse(base_url).hostname
         if base_host and ips:
             self._pinned_ips[base_host] = ips
@@ -206,6 +213,7 @@ class MCPClient:
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.timeout = timeout
+        self.allow_private_ranges = allow_private_ranges
 
         self._client: Any = None
         self._sse_thread: threading.Thread | None = None
@@ -353,7 +361,7 @@ class MCPClient:
             # A hostile MCP server could otherwise redirect POST traffic to
             # an internal address (which the initial base_url check would block).
             try:
-                endpoint_ips = _validate_url(candidate)
+                endpoint_ips = _validate_url(candidate, allow_private_ranges=self.allow_private_ranges)
             except ValueError as e:
                 logger.error(f"Rejecting MCP endpoint URL: {e}")
                 return

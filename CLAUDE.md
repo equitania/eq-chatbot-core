@@ -136,7 +136,8 @@ src/eq_chatbot_core/
 │   ├── retriever.py        # Qdrant vector retrieval
 │   └── context_manager.py  # RAG context assembly
 ├── mcp/
-│   └── client.py           # MCP client (HTTP/SSE and stdio transports)
+│   ├── client.py           # MCP client (legacy HTTP/SSE and stdio transports)
+│   └── streamable_http.py  # MCP client (Streamable HTTP, the current remote transport)
 ├── services/
 │   ├── error_handler.py    # Centralized error handling
 │   └── knowledge_service.py # Knowledge export for vector DBs

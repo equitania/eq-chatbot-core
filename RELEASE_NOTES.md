@@ -1,5 +1,38 @@
 # Release Notes
 
+## Version 3.3.0 (08.09.2026)
+
+### [ADD]
+
+- **MCP-Client für den Streamable-HTTP-Transport** (`mcp/streamable_http.py`,
+  `StreamableHTTPMCPClient`, Fabrik `get_mcp_client(transport="http", …)`). Bisher sprach die
+  Bibliothek nur den HTTP+SSE-Transport der Spec 2024-11-05 (`GET /sse`, vom Server gemeldete
+  POST-URL). Aktuelle Server-SDKs — .NET, TypeScript, Python — bieten für den Fernbetrieb
+  Streamable HTTP (Spec ab 2025-03-26): ein einziger POST-Endpunkt wie `http://host:5100/mcp`,
+  Antwort als JSON oder als SSE-Stream. Gegen so einen Server lief der alte Client in einen
+  Verbindungs-Timeout, bevor überhaupt ein `initialize` gesendet wurde. Der neue Client
+  liest beide Antwortformen, führt eine vom Server vergebene `Mcp-Session-Id` mit und
+  initialisiert einmal neu, wenn der Server die Sitzung mit HTTP 404 als abgelaufen meldet;
+  zustandslose Server brauchen nichts davon. Nach der Aushandlung sendet er
+  `MCP-Protocol-Version`. `list_tools()` folgt der `nextCursor`-Blätterung; ein Werkzeug mit
+  `isError: true` kommt als `success=False` samt Text zurück. Öffentliche Oberfläche wie beim
+  SSE-Client, daher ohne Änderung am Aufrufer austauschbar. Live geprüft gegen das offizielle
+  Python-SDK 1.x in beiden Betriebsarten (zustandsbehaftet mit SSE-Antworten, zustandslos mit
+  JSON-Antworten). Die Transportnamen `sse` und `stdio` bleiben unverändert; die Doku hatte
+  bereits `transport="http"` versprochen, das die Fabrik bis jetzt gar nicht kannte.
+- **LAN-Modus für beide HTTP-Transports** — `allow_private_ranges=True` an
+  `get_mcp_client()`, `MCPClient` und `StreamableHTTPMCPClient`. Die SSRF-Prüfung der
+  Server-URL lief für MCP-Server immer im strikten Modus: private Adressen, Loopback und
+  nicht auflösbare Hostnamen wurden abgewiesen — ein MCP-Server im Firmen-Intranet war damit
+  grundsätzlich unerreichbar, obwohl `validate_url()` den LAN-Modus für lokale LLM-Server
+  längst kannte. Im LAN-Modus werden private und Loopback-Ziele erreichbar und ein nur intern
+  auflösbarer Hostname ohne IP-Pin akzeptiert; Link-Local (Cloud-Metadaten-Endpunkt),
+  reservierte und Multicast-Adressen bleiben gesperrt. Beim SSE-Client gilt derselbe Modus
+  auch für die im `endpoint`-Event gemeldete POST-URL. Standard bleibt strikt.
+
+Tests: 1913 Unit-Tests (52 neu in `tests/unit/test_mcp_streamable_http.py`), mypy --strict
+sauber.
+
 ## Version 3.2.1 (24.08.2026)
 
 ### [FIX]

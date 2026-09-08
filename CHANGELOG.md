@@ -5,6 +5,37 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-09-08
+
+### Added
+
+- **MCP client for the Streamable HTTP transport** (`mcp/streamable_http.py`,
+  `StreamableHTTPMCPClient`, factory `get_mcp_client(transport="http", ...)`). Until now the
+  library only spoke the HTTP+SSE transport of the 2024-11-05 spec (`GET /sse` plus a
+  server-announced POST URL). Current server SDKs - .NET, TypeScript, Python - offer Streamable
+  HTTP (spec 2025-03-26 and later) for remote operation: one POST endpoint such as
+  `http://host:5100/mcp`, answered with JSON or with an SSE stream. Against such a server the
+  old client ran into a connect timeout before it ever sent `initialize`. The new client reads
+  both answer shapes, carries a server-assigned `Mcp-Session-Id`, re-initialises once when the
+  server reports the session as gone (HTTP 404), and sends `MCP-Protocol-Version` after the
+  negotiation; stateless servers need none of that. `list_tools()` follows `nextCursor`
+  pagination; a tool reporting `isError: true` comes back as `success=False` with its text.
+  Same public surface as the SSE client, so callers switch without code changes. Verified
+  live against the official Python SDK 1.x in both modes (stateful with SSE answers, stateless
+  with JSON answers). `sse` and `stdio` are unchanged; the docs had promised
+  `transport="http"` all along, which the factory never accepted.
+- **LAN mode for both HTTP transports** - `allow_private_ranges=True` on `get_mcp_client()`,
+  `MCPClient` and `StreamableHTTPMCPClient`. The SSRF check of the server URL always ran in
+  strict mode for MCP servers: private addresses, loopback and unresolvable hostnames were
+  rejected, so an MCP server on the company intranet was unreachable by construction even
+  though `validate_url()` has had a LAN mode for local LLM servers for a long time. In LAN
+  mode private and loopback targets become reachable and a hostname only the on-prem resolver
+  knows is accepted without an IP pin; link-local (cloud-metadata endpoint), reserved and
+  multicast addresses stay blocked. The SSE client applies the same mode to the POST URL it
+  receives in the `endpoint` event. Strict remains the default.
+
+Tests: 1913 unit tests (52 new in `tests/unit/test_mcp_streamable_http.py`), mypy --strict clean.
+
 ## [3.2.1] - 2026-08-24
 
 ### Fixed

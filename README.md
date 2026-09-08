@@ -25,7 +25,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 - **Temperature Safety** — automatic model-specific temperature clamping
 - **Security** — Fernet encryption, prompt-injection detection (direct user input + indirect tool/RAG content), file-upload validation, race-free token-bucket rate limiting
 - **RAG Pipeline** — chunking, embeddings (incl. Melious.ai and IONOS embedders), Qdrant-backed retrieval, context-window management
-- **MCP Client** — HTTP/SSE and stdio transports, hardened against DNS rebinding, SSRF, and subprocess env injection
+- **MCP Client** — Streamable HTTP, legacy HTTP/SSE and stdio transports, hardened against DNS rebinding, SSRF, and subprocess env injection; LAN mode for servers on the intranet
 - **CLI Tool** — provider testing, model discovery, programmatic JSON I/O chat
 - **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
@@ -102,7 +102,7 @@ For more — streaming, other providers, error handling — see [docs/providers.
 | CLI commands | [docs/cli.md](docs/cli.md#english) |
 | HTTP/SSE server mode | [docs/server-mode.md](docs/server-mode.md#english) |
 | Security (encryption, injection, files, rate limit) | [docs/security.md](docs/security.md#english) |
-| MCP client (HTTP/SSE + stdio) | [docs/mcp.md](docs/mcp.md#english) |
+| MCP client (Streamable HTTP + SSE + stdio) | [docs/mcp.md](docs/mcp.md#english) |
 | RAG pipeline (chunking, embedding, retrieval) | [docs/rag.md](docs/rag.md#english) |
 | Testing (markers, integration setup, cost-aware patterns) | [docs/testing.md](docs/testing.md) |
 
@@ -229,7 +229,7 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 - **Temperature-Sicherheit** — automatisches modellspezifisches Temperature-Clamping
 - **Sicherheit** — Fernet-Verschlüsselung, Prompt-Injection-Erkennung (direkte Nutzereingaben + indirekte Tool-/RAG-Inhalte), File-Upload-Validierung, Race-freies Token-Bucket-Rate-Limiting
 - **RAG-Pipeline** — Chunking, Embeddings (inkl. Melious.ai- und IONOS-Embedder), Qdrant-basiertes Retrieval, Context-Window-Management
-- **MCP-Client** — HTTP/SSE und stdio Transports, gehärtet gegen DNS-Rebinding, SSRF und Subprocess-Env-Injection
+- **MCP-Client** — Streamable HTTP, älteres HTTP/SSE und stdio als Transports, gehärtet gegen DNS-Rebinding, SSRF und Subprocess-Env-Injection; LAN-Modus für Server im Intranet
 - **CLI-Tool** — Provider-Tests, Modell-Discovery, programmatische JSON-I/O-Chat-Calls
 - **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
@@ -310,7 +310,7 @@ Für mehr — Streaming, andere Provider, Error-Handling — siehe [docs/provide
 | CLI-Befehle | [docs/cli.md](docs/cli.md#deutsch) |
 | HTTP/SSE-Server-Mode | [docs/server-mode.md](docs/server-mode.md#deutsch) |
 | Security (Verschlüsselung, Injection, Files, Rate-Limit) | [docs/security.md](docs/security.md#deutsch) |
-| MCP-Client (HTTP/SSE + stdio) | [docs/mcp.md](docs/mcp.md#deutsch) |
+| MCP-Client (Streamable HTTP + SSE + stdio) | [docs/mcp.md](docs/mcp.md#deutsch) |
 | RAG-Pipeline (Chunking, Embedding, Retrieval) | [docs/rag.md](docs/rag.md#deutsch) |
 | Testing (Marker, Integration-Setup, Cost-Aware-Patterns) | [docs/testing.md](docs/testing.md) |
 
