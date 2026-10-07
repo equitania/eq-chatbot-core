@@ -217,3 +217,67 @@ class WireServer:
     def stop(self) -> None:
         self._httpd.shutdown()
         self._httpd.server_close()
+
+
+def anthropic_message_body(
+    text: str = "ok", *, model: str = "test-model", input_tokens: int = 5, output_tokens: int = 2
+) -> dict[str, Any]:
+    """A Messages API response (POST /v1/messages)."""
+    return {
+        "id": "msg_test",
+        "type": "message",
+        "role": "assistant",
+        "model": model,
+        "content": [{"type": "text", "text": text}],
+        "stop_reason": "end_turn",
+        "stop_sequence": None,
+        "usage": {"input_tokens": input_tokens, "output_tokens": output_tokens},
+    }
+
+
+def anthropic_stream_events(
+    pieces: list[str], *, model: str = "test-model", input_tokens: int = 5, output_tokens: int = 2
+) -> list[str]:
+    """Messages API SSE frames (``event:`` + ``data:`` lines) for a text answer.
+
+    The server appends ``data: [DONE]``; the anthropic SDK ignores that unnamed event.
+    """
+
+    def frame(kind: str, data: dict[str, Any]) -> str:
+        return f"event: {kind}\ndata: {json.dumps({'type': kind, **data})}"
+
+    message = {
+        "id": "msg_test",
+        "type": "message",
+        "role": "assistant",
+        "model": model,
+        "content": [],
+        "stop_reason": None,
+        "stop_sequence": None,
+        "usage": {"input_tokens": input_tokens, "output_tokens": 0},
+    }
+    events = [
+        frame("message_start", {"message": message}),
+        frame("content_block_start", {"index": 0, "content_block": {"type": "text", "text": ""}}),
+    ]
+    events += [frame("content_block_delta", {"index": 0, "delta": {"type": "text_delta", "text": p}}) for p in pieces]
+    events += [
+        frame("content_block_stop", {"index": 0}),
+        frame(
+            "message_delta",
+            {"delta": {"stop_reason": "end_turn", "stop_sequence": None}, "usage": {"output_tokens": output_tokens}},
+        ),
+        frame("message_stop", {}),
+    ]
+    return events
+
+
+def anthropic_models_body(models: list[dict[str, Any]]) -> dict[str, Any]:
+    """A Models API page (GET /v1/models); each entry needs at least ``id``."""
+    data = [{"type": "model", "display_name": m["id"], "created_at": "2026-01-01T00:00:00Z", **m} for m in models]
+    return {
+        "data": data,
+        "has_more": False,
+        "first_id": data[0]["id"] if data else None,
+        "last_id": data[-1]["id"] if data else None,
+    }

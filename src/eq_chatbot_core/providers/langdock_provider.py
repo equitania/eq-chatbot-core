@@ -14,10 +14,12 @@ Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 import json
 import logging
 from collections.abc import Iterable, Iterator
+from contextlib import ExitStack
 from typing import Any
 
 import httpx2
 
+from eq_chatbot_core.providers.anthropic_shared import create_message, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -689,7 +691,9 @@ class LangDockProvider(BaseLLMProvider):
 
             params.update(kwargs)
 
-            response = self.anthropic_client.messages.create(**params)
+            response = create_message(
+                self.anthropic_client, params, base_url=self._get_backend_url(), provider="langdock", logger=_logger
+            )
 
             # Extract text content
             content = ""
@@ -1094,7 +1098,15 @@ class LangDockProvider(BaseLLMProvider):
             accumulated_tool_calls: dict[int, dict[str, Any]] = {}
             current_block_index = 0
 
-            with self.anthropic_client.messages.stream(**params) as stream:
+            with ExitStack() as stack:
+                stream = open_message_stream(
+                    stack,
+                    self.anthropic_client,
+                    params,
+                    base_url=self._get_backend_url(),
+                    provider="langdock",
+                    logger=_logger,
+                )
                 for event in stream:
                     # Capture input tokens from message_start event
                     if event.type == "message_start":

@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import re
 import threading
+from collections.abc import Callable
 from typing import Any
 
 LEARNABLE: tuple[str, ...] = ("temperature", "max_tokens", "reasoning_effort")
@@ -154,6 +155,34 @@ def learn_from_rejection(
         parameter,
     )
     return True
+
+
+def call_with_learning(
+    send: Callable[[], Any],
+    base_url: str,
+    params: dict[str, Any],
+    *,
+    provider: str,
+    logger: logging.Logger,
+    only: tuple[str, ...] = LEARNABLE,
+) -> Any:
+    """Apply what is learned to ``params``, then ``send()``; on a recognised rejection adjust and resend.
+
+    ``send`` must read ``params`` when it is called (it is the one retry-and-learn
+    loop, shared by every provider). Anything else, or a second rejection of the
+    same parameter, propagates.
+    """
+    model = params["model"]
+    apply(base_url, model, params, only=only)
+    adjusted: set[str] = set()
+    while True:
+        try:
+            return send()
+        except Exception as error:
+            if not learn_from_rejection(
+                error, base_url, model, params, adjusted, provider=provider, logger=logger, only=only
+            ):
+                raise
 
 
 def seed_temperature_support(base_url: str, model: str, supported: bool) -> None:

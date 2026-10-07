@@ -219,23 +219,13 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         streaming the rejection arrives before the first chunk, so no output is
         ever duplicated.
         """
-        model = params["model"]
-        param_learning.apply(self._effective_base_url, model, params)
-        adjusted: set[str] = set()
-        while True:
-            try:
-                return self.client.chat.completions.create(**params)
-            except Exception as error:
-                if not param_learning.learn_from_rejection(
-                    error,
-                    self._effective_base_url,
-                    model,
-                    params,
-                    adjusted,
-                    provider=self.provider_name,
-                    logger=_logger,
-                ):
-                    raise
+        return param_learning.call_with_learning(
+            lambda: self.client.chat.completions.create(**params),
+            self._effective_base_url,
+            params,
+            provider=self.provider_name,
+            logger=_logger,
+        )
 
     def chat_completion(
         self,

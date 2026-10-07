@@ -6,8 +6,10 @@ import json
 import logging
 import time
 from collections.abc import Iterator
+from contextlib import ExitStack
 from typing import Any
 
+from eq_chatbot_core.providers.anthropic_shared import create_message, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -83,6 +85,10 @@ class AnthropicProvider(BaseLLMProvider):
         # Add jitter (±25%)
         jitter: float = delay * 0.25 * (2 * random.random() - 1)
         return delay + jitter
+
+    def _endpoint(self) -> str:
+        """Endpoint key for parameter learning."""
+        return self.base_url or self.DEFAULT_BASE_URL
 
     @property
     def provider_name(self) -> str:
@@ -320,7 +326,9 @@ class AnthropicProvider(BaseLLMProvider):
 
         for attempt in range(self.OVERLOAD_MAX_RETRIES + 1):
             try:
-                response = self.client.messages.create(**params)
+                response = create_message(
+                    self.client, params, base_url=self._endpoint(), provider=self.provider_name, logger=logger
+                )
 
                 # Extract text content
                 content = ""
@@ -420,7 +428,15 @@ class AnthropicProvider(BaseLLMProvider):
                 accumulated_tool_calls: dict[int, dict[str, Any]] = {}
                 current_block_index = 0
 
-                with self.client.messages.stream(**params) as stream:
+                with ExitStack() as stack:
+                    stream = open_message_stream(
+                        stack,
+                        self.client,
+                        params,
+                        base_url=self._endpoint(),
+                        provider=self.provider_name,
+                        logger=logger,
+                    )
                     for event in stream:
                         # Capture input tokens from message_start event
                         if event.type == "message_start":
