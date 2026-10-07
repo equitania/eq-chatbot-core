@@ -46,7 +46,14 @@ ADDED_PATTERNS = (
     r"\bgpt-realtime",
     r"voxtral",
     r"codestral-\d",
-    r"\bllama\d",
+    r"\bllama[\s-]?\d",
+    # Names written without a dash or in prose (review of the guard, 07.10.2026).
+    r"\bgpt\s?\d",
+    r"\bclaude[\s-]?\d",
+    r"\b(opus|sonnet|haiku)[\s-]\d",
+    r"\bgemini[\s-]?\d",
+    r"\b(mixtral|pixtral|magistral|devstral|ministral|gemma)",
+    r"\bmistral[\s-](large|small|medium|nemo|\d)",
     r"\bmai-ds",
     r"\bcodex-mini",
     r"\baf_bella\b",
@@ -60,7 +67,10 @@ def _hits(root: Path) -> list[str]:
     for path in sorted(root.rglob("*")):
         if not path.is_file() or "__pycache__" in path.parts or path.suffix == ".pyc":
             continue
-        text = path.read_text(encoding="utf-8", errors="replace")
+        data = path.read_bytes()
+        if b"\x00" in data:  # binary file: nothing a person would read as a model id
+            continue
+        text = data.decode("utf-8", errors="replace")
         for number, line in enumerate(text.splitlines(), 1):
             match = MODEL_ID.search(line)
             if match:
@@ -116,6 +126,15 @@ def test_provider_and_backend_names_are_not_model_ids(text):
         "gpt-realtime",
         "codestral-2501",
         "llama3.2:latest",
+        "gpt5",
+        "GPT 5",
+        "Claude 4",
+        "claude3",
+        "sonnet-4",
+        "Gemini 2.5",
+        "Llama 3",
+        "mixtral-8x7b",
+        "Mistral Large",
         '"claude": {',
     ],
 )
@@ -129,3 +148,12 @@ def test_hits_are_reported_with_file_and_line(tmp_path):
     (package / "m.py").write_text('x = 1\nDEFAULT = "gpt-5.6-luna"\n', encoding="utf-8")
     # The report names the matched pattern text, not the whole id.
     assert _hits(package) == ["pkg/m.py:2: 'gpt-5' in DEFAULT = \"gpt-5.6-luna\""]
+
+
+def test_data_files_are_scanned_and_binaries_skipped(tmp_path):
+    """Packaged data (TOML, JSON) counts as source; a binary blob is skipped, not misread."""
+    package = tmp_path / "pkg"
+    package.mkdir()
+    (package / "config.toml.example").write_text('model = "claude-sonnet-5"\n', encoding="utf-8")
+    (package / "blob.bin").write_bytes(b"\x00\x01gpt-5\x00")
+    assert _hits(package) == ["pkg/config.toml.example:1: 'claude-' in model = \"claude-sonnet-5\""]
