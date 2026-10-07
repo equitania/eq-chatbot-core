@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Behaviour notes
 
-- Mammouth, OpenRouter and Local now use the OpenAI SDK: automatic retries on 429/5xx up to `max_retries`, and different error message wording.
+- Mammouth, OpenRouter and Local now use the OpenAI SDK, with different error message wording. For Mammouth and OpenRouter the SDK retries on 429/5xx and also on timeouts and connection errors, so a timed-out request is re-sent up to `max_retries` times. Local does not retry (as before): `max_retries` is kept as an attribute but a timed-out local generation is never re-sent.
+- Mammouth and OpenRouter now request `stream_options.include_usage`, so streamed responses report token counts.
+- `LocalLLMProvider` now clamps temperature via the shared constraints (previously sent unchecked).
+- Clients are closed on garbage collection again.
+- For LangDock the status-based error mapping applies to the `openai` backend only; the anthropic, google and agent backends keep their previous mapping.
 - `client` returns an `openai.OpenAI` for Mammouth, OpenRouter and Local.
 - `OpenAIProvider().base_url` is the effective URL instead of `None`.
 - Local's private `_handle_error` lost its `response=` parameter.

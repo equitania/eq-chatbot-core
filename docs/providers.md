@@ -253,7 +253,7 @@ Every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious,
 - Each parameter is retried at most once. The answer is remembered per endpoint and model for the rest of the process, so the cost is a single extra request the first time a model is used; later calls send the right parameters at once.
 - On OpenRouter, `list_models()` pre-seeds the memory: models whose metadata does not offer `temperature` are marked "temperature unsupported" up front. The model list only ever seeds "temperature unsupported"; it never marks a parameter as supported.
 
-Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError` (403 is new in this release), 503/529 `OverloadedError`, and 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`.
+Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError` (403 is new in this release), 503/529 `OverloadedError`, and 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`. For LangDock this mapping applies to the `openai` backend only; the anthropic, google and agent backends keep their previous mapping.
 
 ### Temperature clamping
 
@@ -549,7 +549,7 @@ Alle OpenAI-kompatiblen Provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Me
 - Jeder Parameter wird höchstens einmal wiederholt. Die Antwort wird je Endpunkt und Modell für den Rest des Prozesses gemerkt; die Kosten sind also eine zusätzliche Anfrage bei der ersten Nutzung eines Modells.
 - Bei OpenRouter füllt `list_models()` den Speicher vor: Modelle, deren Metadaten `temperature` nicht anbieten, gelten sofort als „temperature nicht unterstützt“. Die Modellliste setzt nur „temperature nicht unterstützt“ vor; sie markiert nie einen Parameter als unterstützt.
 
-Fehler werden nach HTTP-Status abgebildet: 429 `RateLimitError` (mit `retry_after`), 401/403 `AuthenticationError` (403 neu in diesem Release), 503/529 `OverloadedError`, 400 mit Code `context_length_exceeded` oder einer Kontextlängen-Formulierung `ContextLengthError`.
+Fehler werden nach HTTP-Status abgebildet: 429 `RateLimitError` (mit `retry_after`), 401/403 `AuthenticationError` (403 neu in diesem Release), 503/529 `OverloadedError`, 400 mit Code `context_length_exceeded` oder einer Kontextlängen-Formulierung `ContextLengthError`. Bei LangDock gilt diese Abbildung nur für das `openai`-Backend; die Backends anthropic, google und agent behalten ihre bisherige Abbildung.
 
 ### Temperature-Clamping
 
