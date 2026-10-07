@@ -236,3 +236,25 @@ def test_migrated_providers_map_errors_by_status(wire_server, index, status, exc
         provider.chat_completion(MSG, model="m")
     assert caught.value.status_code == status
     assert "sk-leakedsecret12345" not in str(caught.value)
+
+
+def _litellm(wire_server):
+    from eq_chatbot_core.providers.litellm_provider import LiteLLMProvider
+
+    return LiteLLMProvider(api_key="k", base_url=wire_server.base_url, max_retries=0)
+
+
+def test_litellm_tts_failure_is_scrubbed_provider_error(wire_server):
+    body = {"error": {"message": "bad key sk-proj-ABCDEFGHIJKLMNOPQRSTUVWX"}}
+    wire_server.expect("POST", "/v1/audio/speech", Reply(500, body))
+    with pytest.raises(ProviderError) as caught:
+        _litellm(wire_server).text_to_speech("Hallo")
+    assert caught.value.status_code == 500
+    assert "ABCDEFGHIJKLMNOPQRSTUVWX" not in str(caught.value)
+
+
+def test_litellm_transcribe_failure_is_provider_error(wire_server):
+    wire_server.expect("POST", "/v1/audio/transcriptions", Reply(500, {"error": {"message": "stt backend down"}}))
+    with pytest.raises(ProviderError) as caught:
+        _litellm(wire_server).transcribe(("a.wav", b"RIFF0000", "audio/wav"))
+    assert caught.value.status_code == 500

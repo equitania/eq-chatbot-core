@@ -123,10 +123,12 @@ class WireServer:
                 length = int(self.headers.get("Content-Length") or 0)
                 raw = self.rfile.read(length) if length else b""
                 path = self.path.split("?", 1)[0]
+                try:
+                    payload = json.loads(raw) if raw else None
+                except ValueError:  # e.g. multipart upload (audio transcription)
+                    payload = None
                 with server._lock:
-                    server.requests.append(
-                        Recorded(method, path, json.loads(raw) if raw else None, dict(self.headers.items()))
-                    )
+                    server.requests.append(Recorded(method, path, payload, dict(self.headers.items())))
                     queue = server._replies.get((method, path), [])
                     reply = queue.pop(0) if len(queue) > 1 else (queue[0] if queue else None)
                 if reply is None:
