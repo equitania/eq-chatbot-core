@@ -137,3 +137,29 @@ def test_listing_assets_missing_model_names_image_model(tmp_path, monkeypatch):
     result = CliRunner().invoke(main, ["listing-assets", "--recipe", str(recipe), "--api-key", "sk-test"])
     assert result.exit_code == 1
     assert "image_model" in result.output
+
+
+def test_listing_assets_recipe_model_beats_config_image_model(wire_server, tmp_path, monkeypatch):
+    import base64
+
+    _use_config(
+        tmp_path,
+        monkeypatch,
+        f'[providers.openai]\nimage_model = "cfg-image-model"\nbase_url = "{wire_server.base_url}"\n',
+    )
+    png = base64.b64encode(b"\x89PNG\r\n\x1a\n").decode()
+    wire_server.expect("POST", "/v1/images/generations", Reply(body={"created": 0, "data": [{"b64_json": png}]}))
+    recipe = tmp_path / "recipe.json"
+    recipe.write_text(
+        json.dumps(
+            {
+                "schema": "eq-listing-assets/1",
+                "defaults": {"provider": "openai", "model": "recipe-image-model"},
+                "assets": [{"id": "a", "out": "a.png", "prompt": "p"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(main, ["listing-assets", "--recipe", str(recipe), "--api-key", "sk-test"])
+    assert result.exit_code == 0, result.output
+    assert wire_server.requests[0].json["model"] == "recipe-image-model"

@@ -81,7 +81,13 @@ def rejected_parameter(error: BaseException) -> str | None:
     if not any(word in lowered for word in _REJECTION_WORDS):
         return None
     match = _QUOTED_PARAM.search(message)
-    return match.group(1) if match else None
+    if not match:
+        return None
+    # Same rule as the structured branch: one refused reasoning_effort *value* is not
+    # the parameter being unsupported.
+    if match.group(1) == "reasoning_effort" and "value" in lowered:
+        return None
+    return match.group(1)
 
 
 def adjust(params: dict[str, Any], parameter: str) -> bool:

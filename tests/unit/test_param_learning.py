@@ -221,3 +221,16 @@ def test_reasoning_effort_value_rejection_reaches_caller_and_is_not_remembered(w
     provider.chat_completion(msg, model="m", reasoning_effort="high")
     assert len(wire_server.requests) == 2  # no silent retry
     assert wire_server.requests[1].json["reasoning_effort"] == "high"
+
+
+def test_reasoning_effort_value_rejection_without_param_is_not_learned(wire_server):
+    """Gateways often send only a message; the value rule must hold there too."""
+    body = {"error": {"message": "Unsupported value: 'reasoning_effort' does not support 'none' with this model."}}
+    error = _error_for(wire_server, 400, body)
+    assert param_learning.rejected_parameter(error) is None
+
+
+def test_reasoning_effort_parameter_rejection_without_param_is_learned(wire_server):
+    body = {"error": {"message": "'reasoning_effort' is not supported with this model."}}
+    error = _error_for(wire_server, 400, body)
+    assert param_learning.rejected_parameter(error) == "reasoning_effort"
