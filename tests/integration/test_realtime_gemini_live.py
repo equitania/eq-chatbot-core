@@ -25,6 +25,9 @@ from eq_chatbot_core.realtime.providers.gemini_live import (  # noqa: E402
 
 pytestmark = pytest.mark.integration
 
+# Probe model: the library has no default realtime model any more.
+GEMINI_LIVE_TEST_MODEL = os.getenv("GEMINI_LIVE_TEST_MODEL", "gemini-3.1-flash-live-preview")
+
 
 @pytest.mark.skipif(
     not os.getenv("GEMINI_VERTEX_ACCESS_TOKEN") or not os.getenv("VERTEX_PROJECT_ID"),
@@ -46,6 +49,7 @@ async def test_gemini_live_vertex_eu_session_ready_and_pcm_chunk() -> None:
         6. Async context manager __aexit__ triggers clean close()
     """
     config = GeminiLiveConfig(
+        model=GEMINI_LIVE_TEST_MODEL,
         mode="vertex",
         access_token=os.environ["GEMINI_VERTEX_ACCESS_TOKEN"],
         project=os.environ["VERTEX_PROJECT_ID"],

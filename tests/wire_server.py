@@ -281,3 +281,13 @@ def anthropic_models_body(models: list[dict[str, Any]]) -> dict[str, Any]:
         "first_id": data[0]["id"] if data else None,
         "last_id": data[-1]["id"] if data else None,
     }
+
+
+def embeddings_body(vectors: list[list[float]], *, model: str = "test-model") -> dict[str, Any]:
+    """An embeddings response (POST /v1/embeddings) with float vectors."""
+    return {
+        "object": "list",
+        "model": model,
+        "data": [{"object": "embedding", "index": i, "embedding": v} for i, v in enumerate(vectors)],
+        "usage": {"prompt_tokens": 1, "total_tokens": 1},
+    }

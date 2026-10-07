@@ -62,6 +62,7 @@ class TestContextWindowManagerInit:
         assert mgr.history_ratio == 0.3
         assert mgr.rag_ratio == 0.4
 
+    @pytest.mark.xfail(reason="stage 2: no context-length table; pass context_length", strict=False)
     def test_known_model_uses_correct_limit(self):
         """Known model name resolves to its exact context limit."""
         mgr = ContextWindowManager(model="gpt-4")
@@ -133,12 +134,14 @@ class TestBudgetValidation:
 class TestGetModelLimit:
     """Test _get_model_limit exact match, prefix match, and fallback."""
 
+    @pytest.mark.xfail(reason="stage 2: no context-length table; pass context_length", strict=False)
     def test_exact_match(self):
         """Exact model name returns its documented limit."""
         mgr = ContextWindowManager(model="gpt-4o")
 
         assert mgr._get_model_limit("gpt-4o") == 128000
 
+    @pytest.mark.xfail(reason="stage 2: no context-length table; pass context_length", strict=False)
     def test_prefix_match(self):
         """Model with a matching prefix returns a known limit."""
         mgr = ContextWindowManager(model="gpt-4o")
@@ -147,12 +150,14 @@ class TestGetModelLimit:
 
         assert limit in ContextWindowManager.MODEL_LIMITS.values()
 
+    @pytest.mark.xfail(reason="stage 2: no context-length table; pass context_length", strict=False)
     def test_no_match_returns_default(self):
         """Completely unrecognised model returns 128000 default."""
         mgr = ContextWindowManager(model="gpt-4o")
 
         assert mgr._get_model_limit("llama-3-70b") == 128000
 
+    @pytest.mark.xfail(reason="stage 2: no context-length table; pass context_length", strict=False)
     def test_claude_exact_match(self):
         """Claude model exact match returns 200000."""
         mgr = ContextWindowManager(model="claude-3-5-sonnet-latest")

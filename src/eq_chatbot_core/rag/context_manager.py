@@ -2,8 +2,11 @@
 Context window management for LLM conversations.
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Any
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -38,15 +41,10 @@ class ContextWindowManager:
     Ensures conversations fit within model context limits.
     """
 
-    MODEL_LIMITS = {
-        "gpt-4-turbo": 128000,
-        "gpt-4o": 128000,
-        "gpt-4o-mini": 128000,
-        "gpt-4": 8192,
-        "claude-3-5-sonnet-latest": 200000,
-        "claude-3-5-haiku-latest": 200000,
-        "claude-3-opus-latest": 200000,
-    }
+    # Used when the caller does not pass the model's context window. The library
+    # keeps no per-model table; list_models() reports context_length where the
+    # provider does.
+    DEFAULT_CONTEXT_LENGTH = 128000
 
     def __init__(
         self,
@@ -54,15 +52,18 @@ class ContextWindowManager:
         max_response_tokens: int = 4096,
         history_ratio: float = 0.3,
         rag_ratio: float = 0.4,
+        context_length: int | None = None,
     ):
         """
         Initialize context manager.
 
         Args:
-            model: Model name for context limit lookup
+            model: Model name (stored for callers; no limit is looked up from it)
             max_response_tokens: Tokens reserved for response
             history_ratio: Ratio of available tokens for history
             rag_ratio: Ratio of available tokens for RAG context
+            context_length: The model's context window in tokens (e.g. from list_models());
+                defaults to DEFAULT_CONTEXT_LENGTH, with a WARNING
         """
         if history_ratio + rag_ratio > 1.0:
             raise ValueError(
@@ -72,25 +73,18 @@ class ContextWindowManager:
             raise ValueError("history_ratio and rag_ratio must be non-negative")
 
         self.model = model
-        self.max_tokens = self._get_model_limit(model)
+        if context_length is None:
+            _logger.warning(
+                "No context_length given for model %r; assuming %d tokens. "
+                "Pass context_length=... (e.g. from list_models()) to use the real window.",
+                model,
+                self.DEFAULT_CONTEXT_LENGTH,
+            )
+        self.max_tokens = context_length or self.DEFAULT_CONTEXT_LENGTH
         self.max_response = max_response_tokens
         self.history_ratio = history_ratio
         self.rag_ratio = rag_ratio
         self._encoder: Any = None
-
-    def _get_model_limit(self, model: str) -> int:
-        """Get context limit for model."""
-        # Try exact match
-        if model in self.MODEL_LIMITS:
-            return self.MODEL_LIMITS[model]
-
-        # Try prefix match
-        for key, limit in self.MODEL_LIMITS.items():
-            if model.startswith(key.split("-")[0]):
-                return limit
-
-        # Default fallback
-        return 128000
 
     @property
     def encoder(self) -> Any:

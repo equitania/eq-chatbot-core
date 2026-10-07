@@ -55,11 +55,9 @@ class OpenAIRealtimeConfig:
     """
 
     api_key: str
-    # gpt-realtime: floating alias, currently resolves to gpt-realtime-2025-08-28 (verified 2026-05-24).
-    # Consumers requiring byte-reproducible behavior should pin a dated snapshot explicitly.
-    # Valid dated snapshots: gpt-realtime-2025-08-28
-    # Reference: https://platform.openai.com/docs/models/gpt-realtime
-    model: str = "gpt-realtime"
+    # Realtime model id, chosen by the caller. No default: realtime model ids
+    # change like any other model id.
+    model: str = ""
     voice: str = "ash"
     instructions: str | None = None
     include_turn_detection: bool = True  # see PITFALL-28 comment in _build_session_update_event
@@ -96,7 +94,7 @@ class OpenAIRealtimeClient(BaseRealtimeWebsocketClient, RealtimeProvider):
             raise ValueError("OpenAIRealtimeConfig.api_key must be non-empty. Provide a valid OpenAI API key.")
         if not config.model.strip():
             raise ValueError(
-                "OpenAIRealtimeConfig.model must be non-empty. Valid models: gpt-realtime, gpt-realtime-2025-08-28"
+                "OpenAIRealtimeConfig.model must be non-empty. Pass the realtime model id; there is no default."
             )
 
         # Phase 1 base class takes url + headers (NOT trace_events — see RESEARCH.md Pitfall 1)

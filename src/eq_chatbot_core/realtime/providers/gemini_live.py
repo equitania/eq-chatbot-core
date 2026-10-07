@@ -60,10 +60,8 @@ class GeminiLiveConfig:
 
     # Shared fields
     mode: Literal["developer", "vertex"] = "developer"
-    # Verified live 2026-05-25 (D-05). See 03-01-SUMMARY.md.
-    # Dead aliases: gemini-2.0-flash (shutdown 2026-06-01),
-    # gemini-live-2.5-flash-preview-native-audio-09-2025 (removed 2026-03-19).
-    model: str = "gemini-3.1-flash-live-preview"
+    # Live API model id, chosen by the caller. No default: model ids change.
+    model: str = ""
     instructions: str = ""
     base_url: str | None = None  # override base URL (e.g. for tests)
     trace_events: bool = False
@@ -99,7 +97,7 @@ class GeminiLiveClient(BaseRealtimeWebsocketClient, RealtimeProvider):
         # D-06: fail fast with library-native exceptions before any network I/O
         if not config.model.strip():
             raise ValueError(
-                "GeminiLiveConfig.model must be non-empty. Valid floating alias: gemini-3.1-flash-live-preview"
+                "GeminiLiveConfig.model must be non-empty. Pass the Live API model id; there is no default."
             )
         if config.mode == "developer":
             if not config.api_key.strip():

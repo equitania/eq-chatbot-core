@@ -33,6 +33,7 @@ _FAKE_KEY = "test-key"
 def _make_client(include_turn_detection: bool = True) -> OpenAIRealtimeClient:
     """Construct a client with a fake API key (no real network I/O)."""
     config = OpenAIRealtimeConfig(
+        model="test-model",
         api_key=_FAKE_KEY,
         include_turn_detection=include_turn_detection,
     )
@@ -49,28 +50,29 @@ class TestOpenAIRealtimeConfig:
 
     def test_frozen(self) -> None:
         """Mutating a frozen dataclass must raise FrozenInstanceError (PROV-02)."""
-        config = OpenAIRealtimeConfig(api_key=_FAKE_KEY)
+        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
         with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
             config.api_key = "new-value"
 
+    @pytest.mark.xfail(reason="stage 2: no default realtime model", strict=False)
     def test_default_model_is_gpt_realtime(self) -> None:
         """Exact string 'gpt-realtime' — PROV-04 model default assertion."""
-        config = OpenAIRealtimeConfig(api_key=_FAKE_KEY)
+        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.model == "gpt-realtime"
 
     def test_default_voice_is_ash(self) -> None:
         """Default voice must be exact string 'ash'."""
-        config = OpenAIRealtimeConfig(api_key=_FAKE_KEY)
+        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.voice == "ash"
 
     def test_default_include_turn_detection_true(self) -> None:
         """include_turn_detection defaults to True (PITFALL-28 session-level opt-in)."""
-        config = OpenAIRealtimeConfig(api_key=_FAKE_KEY)
+        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.include_turn_detection is True
 
     def test_default_instructions_is_none(self) -> None:
         """instructions defaults to None."""
-        config = OpenAIRealtimeConfig(api_key=_FAKE_KEY)
+        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.instructions is None
 
     def test_custom_fields(self) -> None:
@@ -138,13 +140,13 @@ class TestConstructorValidation:
 
     def test_empty_api_key_raises_value_error(self) -> None:
         """Empty api_key must raise ValueError immediately (D-03)."""
-        config = OpenAIRealtimeConfig(api_key="")
+        config = OpenAIRealtimeConfig(model="test-model", api_key="")
         with pytest.raises(ValueError, match="api_key"):
             OpenAIRealtimeClient(config)
 
     def test_whitespace_api_key_raises_value_error(self) -> None:
         """Whitespace-only api_key must raise ValueError (D-03)."""
-        config = OpenAIRealtimeConfig(api_key="   ")
+        config = OpenAIRealtimeConfig(model="test-model", api_key="   ")
         with pytest.raises(ValueError, match="api_key"):
             OpenAIRealtimeClient(config)
 
@@ -230,7 +232,7 @@ class TestVADSessionPayload:
             voice=None,
             tools=None,
         )
-        assert event["session"]["model"] == "gpt-realtime"
+        assert event["session"]["model"] == "test-model"
 
 
 # ===========================================================================
@@ -243,7 +245,7 @@ class TestConnectionErrorEndpoint:
 
     def test_does_not_contain_api_key(self) -> None:
         """API key must NEVER appear in the error endpoint URL (PITFALL-04 / T-02T-01)."""
-        config = OpenAIRealtimeConfig(api_key="secret")
+        config = OpenAIRealtimeConfig(model="test-model", api_key="secret")
         client = OpenAIRealtimeClient(config)
         endpoint = client._connection_error_endpoint()
         assert "secret" not in endpoint, (
@@ -254,7 +256,7 @@ class TestConnectionErrorEndpoint:
         """Error endpoint must include the model name (for diagnostics)."""
         client = _make_client()
         endpoint = client._connection_error_endpoint()
-        assert "gpt-realtime" in endpoint
+        assert "test-model" in endpoint
 
     def test_is_wss_url(self) -> None:
         """Error endpoint must be a valid WSS URL."""

@@ -226,15 +226,16 @@ def enforce_rate_limit(
     return result
 
 
-def estimate_tokens(text: str, model: str = "gpt-4") -> int:
+def estimate_tokens(text: str, model: str | None = None) -> int:
     """
-    Estimate token count for text.
+    Estimate the token count of ``text`` with the ``cl100k_base`` encoding.
 
-    Uses tiktoken for accurate estimation.
+    The estimate is the same for every model; ``model`` is accepted for
+    backwards compatibility and ignored.
 
     Args:
         text: Text to estimate
-        model: Model name (for tokenizer selection)
+        model: Ignored
 
     Returns:
         Estimated token count
@@ -242,19 +243,7 @@ def estimate_tokens(text: str, model: str = "gpt-4") -> int:
     try:
         import tiktoken
 
-        # Map models to encodings
-        encoding_map = {
-            "gpt-4": "cl100k_base",
-            "gpt-4o": "cl100k_base",
-            "gpt-4-turbo": "cl100k_base",
-            "claude": "cl100k_base",  # Approximation
-        }
-
-        # Default to cl100k_base
-        encoding_name = encoding_map.get(model.split("-")[0], "cl100k_base")
-        encoding = tiktoken.get_encoding(encoding_name)
-
-        return len(encoding.encode(text))
+        return len(tiktoken.get_encoding("cl100k_base").encode(text))
 
     except ImportError:
         # Fallback: rough estimate (4 chars per token)

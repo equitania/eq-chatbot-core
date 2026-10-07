@@ -1,5 +1,9 @@
 """
 Embedding adapters for RAG pipeline.
+
+The embedding model is always the caller's choice — there is no default — and the
+vector size is either passed as ``dimensions`` or read from the first embedding
+response. Nothing is looked up from a model table.
 """
 
 from abc import ABC, abstractmethod
@@ -7,14 +11,16 @@ from typing import Any
 
 import numpy as np
 
+from eq_chatbot_core.providers.base import ModelNotSpecifiedError
+
 
 class BaseEmbedder(ABC):
     """Abstract base class for embedding models."""
 
     @property
     @abstractmethod
-    def dimensions(self) -> int:
-        """Return embedding vector dimensions."""
+    def dimensions(self) -> int | None:
+        """Embedding vector size; ``None`` until it is known."""
         ...
 
     @abstractmethod
@@ -32,38 +38,43 @@ class BaseEmbedder(ABC):
 
 
 class OpenAIEmbedder(BaseEmbedder):
-    """OpenAI text-embedding models."""
+    """Embeddings through the OpenAI API or any OpenAI-compatible ``/embeddings`` endpoint."""
 
+    PROVIDER_NAME = "openai"
     DEFAULT_BASE_URL = "https://api.openai.com/v1"
-
-    # Values are mixed int/float, so spell the type out rather than let the
-    # literal infer dict[str, float] and make `dimensions` a float.
-    MODELS: dict[str, dict[str, Any]] = {
-        "text-embedding-3-small": {"dimensions": 1536, "price_per_1m": 0.02},
-        "text-embedding-3-large": {"dimensions": 3072, "price_per_1m": 0.13},
-        "text-embedding-ada-002": {"dimensions": 1536, "price_per_1m": 0.10},
-    }
 
     def __init__(
         self,
         api_key: str,
-        model: str = "text-embedding-3-small",
+        model: str | None = None,
         base_url: str | None = None,
+        dimensions: int | None = None,
     ):
         """
-        Initialize OpenAI embedder.
+        Initialize the embedder.
 
         Args:
-            api_key: OpenAI API key
-            model: Embedding model name
-            base_url: Optional custom base URL (for LangDock)
+            api_key: API key
+            model: Embedding model id (required; there is no default)
+            base_url: Optional custom base URL
+            dimensions: Vector size the model produces. Pass it when a vector
+                collection must be created before the first ``embed()`` call;
+                otherwise it is read from the first response.
 
         Raises:
-            ValueError: If ``base_url`` fails URL validation, or ``model`` is unknown.
+            ModelNotSpecifiedError: If ``model`` is missing.
+            ValueError: If ``base_url`` fails URL validation.
         """
+        if not model:
+            raise ModelNotSpecifiedError(
+                self.PROVIDER_NAME,
+                what="embedding model",
+                hint=f'Pass model="..." to {type(self).__name__}(...).',
+            )
         self.api_key = api_key
         self.model = model
         self._client: Any = None
+        self._dimensions = dimensions
 
         # SSRF guard: only a caller-supplied base_url is validated — fixed public
         # defaults set by subclasses are trusted and need no DNS round-trip.
@@ -75,13 +86,9 @@ class OpenAIEmbedder(BaseEmbedder):
 
         self.base_url = base_url
 
-        if model not in self.MODELS:
-            raise ValueError(f"Unknown model: {model}. Available: {', '.join(self.MODELS.keys())}")
-
     @property
-    def dimensions(self) -> int:
-        dimensions: int = self.MODELS[self.model]["dimensions"]
-        return dimensions
+    def dimensions(self) -> int | None:
+        return self._dimensions
 
     @property
     def client(self) -> Any:
@@ -111,7 +118,7 @@ class OpenAIEmbedder(BaseEmbedder):
         return self._client
 
     def embed(self, texts: str | list[str]) -> np.ndarray:
-        """Generate embeddings using OpenAI API."""
+        """Generate embeddings; the first response fixes ``dimensions`` if it was not passed."""
         if isinstance(texts, str):
             texts = [texts]
 
@@ -120,12 +127,27 @@ class OpenAIEmbedder(BaseEmbedder):
             input=texts,
         )
 
-        return np.array([d.embedding for d in response.data])
+        vectors = np.array([d.embedding for d in response.data])
+        self._check_dimensions(vectors)
+        return vectors
+
+    def _check_dimensions(self, vectors: np.ndarray) -> None:
+        if vectors.ndim != 2 or vectors.shape[0] == 0:
+            return
+        size = int(vectors.shape[1])
+        if self._dimensions is None:
+            self._dimensions = size
+        elif size != self._dimensions:
+            raise ValueError(
+                f"Embedding model {self.model!r} returned {size}-dimensional vectors, "
+                f"but dimensions={self._dimensions} was configured."
+            )
 
 
 class LangDockEmbedder(OpenAIEmbedder):
     """LangDock embedding API (OpenAI-compatible)."""
 
+    PROVIDER_NAME = "langdock"
     BASE_URLS = {
         "eu": "https://api.langdock.com/openai/eu/v1",
         "us": "https://api.langdock.com/openai/us/v1",
@@ -134,21 +156,23 @@ class LangDockEmbedder(OpenAIEmbedder):
     def __init__(
         self,
         api_key: str,
-        model: str = "text-embedding-3-small",
+        model: str | None = None,
         region: str = "eu",
+        dimensions: int | None = None,
     ):
         """
         Initialize LangDock embedder.
 
         Args:
             api_key: LangDock API key
-            model: Embedding model name
+            model: Embedding model id (required; there is no default)
             region: API region ('eu' or 'us')
+            dimensions: Vector size the model produces (else read from the first response)
         """
         # The region endpoints are fixed, built-in public URLs — assign after the
         # super() call so the SSRF guard's DNS round-trip is not paid for a URL
         # the caller cannot influence.
-        super().__init__(api_key, model, None)
+        super().__init__(api_key, model, None, dimensions)
         self.base_url = self.BASE_URLS.get(region, self.BASE_URLS["eu"])
         self.region = region
 
@@ -156,58 +180,33 @@ class LangDockEmbedder(OpenAIEmbedder):
 class MeliousEmbedder(OpenAIEmbedder):
     """Melious.ai embedding API (OpenAI-compatible, sovereign EU-hosted).
 
-    Melious exposes embeddings through the same OpenAI-compatible gateway as its
-    chat API (GDPR-compliant, green hosting). Unlike OpenAI/LangDock, the live
-    embedding model ids and their vector dimensions are not a fixed catalog —
-    they are advertised dynamically via ``/v1/models``. Therefore this embedder
-    does NOT validate ``model`` against a static ``MODELS`` map, and the vector
-    ``dimensions`` are supplied explicitly (defaulting to 1536, the common
-    sentence-embedding size). Override ``dimensions`` to match the chosen model.
+    The embedding model ids are advertised by Melious ``/v1/models``; pass one as
+    ``model``. ``dimensions`` may be passed, else it is read from the first response.
     """
 
+    PROVIDER_NAME = "melious"
     DEFAULT_BASE_URL = "https://api.melious.ai/v1"
 
     def __init__(
         self,
         api_key: str,
-        model: str,
+        model: str | None = None,
         base_url: str | None = None,
-        dimensions: int = 1536,
+        dimensions: int | None = None,
     ):
         """
         Initialize the Melious embedder.
 
         Args:
             api_key: Melious API key (sent as a Bearer token).
-            model: Embedding model id as advertised by Melious ``/v1/models``.
+            model: Embedding model id as advertised by Melious ``/v1/models`` (required).
             base_url: OpenAI-compatible endpoint. Defaults to the official
                 Melious URL; override only to route through a proxy.
-            dimensions: Vector dimensions produced by the chosen model
-                (must match the Qdrant collection's vector size).
+            dimensions: Vector size the model produces (else read from the first response).
 
         Raises:
+            ModelNotSpecifiedError: If ``model`` is missing.
             ValueError: If ``base_url`` fails URL validation.
-
-        Note:
-            ``OpenAIEmbedder.__init__`` is intentionally bypassed because it
-            validates ``model`` against a static catalog that does not cover
-            Melious' dynamic model ids. The SSRF guard is therefore applied here.
         """
-        # Set attributes directly (skip the OpenAIEmbedder MODELS validation).
-        self.api_key = api_key
-        self.model = model
-        self._client: Any = None
-        self._dimensions = dimensions
-
-        # SSRF guard: only a caller-supplied base_url is validated — the fixed
-        # public default needs no DNS round-trip.
-        if base_url:
-            from eq_chatbot_core.utils.url_validation import validate_url
-
-            validate_url(base_url, allow_private_ranges=False)
-
+        super().__init__(api_key, model, base_url, dimensions)
         self.base_url = base_url or self.DEFAULT_BASE_URL
-
-    @property
-    def dimensions(self) -> int:
-        return self._dimensions

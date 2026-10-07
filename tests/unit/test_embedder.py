@@ -21,11 +21,13 @@ from eq_chatbot_core.rag.embedder import (
 class TestOpenAIEmbedder:
     """OpenAI embedder validates against its static catalog."""
 
+    @pytest.mark.xfail(reason="stage 2: no embedding model table", strict=False)
     def test_unknown_model_raises(self):
         """An unknown model id is rejected at construction time."""
         with pytest.raises(ValueError):
             OpenAIEmbedder(api_key="sk-test", model="not-a-real-model")
 
+    @pytest.mark.xfail(reason="stage 2: no embedding model table", strict=False)
     def test_dimensions_from_catalog(self):
         """Dimensions are read from the static MODELS map."""
         emb = OpenAIEmbedder(api_key="sk-test", model="text-embedding-3-large")
@@ -36,12 +38,12 @@ class TestLangDockEmbedder:
     """LangDock embedder maps the region to the correct base URL."""
 
     def test_region_sets_base_url(self):
-        emb = LangDockEmbedder(api_key="k", region="us")
+        emb = LangDockEmbedder(api_key="k", model="test-model", region="us")
         assert emb.base_url == LangDockEmbedder.BASE_URLS["us"]
         assert emb.region == "us"
 
     def test_default_region_is_eu(self):
-        emb = LangDockEmbedder(api_key="k")
+        emb = LangDockEmbedder(api_key="k", model="test-model")
         assert emb.base_url == LangDockEmbedder.BASE_URLS["eu"]
 
 
@@ -69,6 +71,7 @@ class TestMeliousEmbedder:
         with pytest.raises(ValueError):
             MeliousEmbedder(api_key="k", model="m", base_url="file:///etc/passwd")
 
+    @pytest.mark.xfail(reason="stage 2: no embedding model table", strict=False)
     def test_default_dimensions(self):
         emb = MeliousEmbedder(api_key="k", model="m")
         assert emb.dimensions == 1536
@@ -128,8 +131,8 @@ class TestEmbedderTransport:
     @pytest.mark.parametrize(
         ("factory", "expected_url"),
         [
-            (lambda: OpenAIEmbedder(api_key="k"), "https://api.openai.com/v1"),
-            (lambda: LangDockEmbedder(api_key="k"), "https://api.langdock.com/openai/eu/v1"),
+            (lambda: OpenAIEmbedder(api_key="k", model="test-model"), "https://api.openai.com/v1"),
+            (lambda: LangDockEmbedder(api_key="k", model="test-model"), "https://api.langdock.com/openai/eu/v1"),
             (lambda: MeliousEmbedder(api_key="k", model="m"), "https://api.melious.ai/v1"),
         ],
     )
