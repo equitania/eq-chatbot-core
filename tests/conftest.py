@@ -1666,3 +1666,13 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_sep("=", "Markdown Test Report")
     terminalreporter.write_line(f"Report: {report_path}")
     terminalreporter.write_line(f"Latest: {latest_path}")
+
+
+@pytest.fixture
+def wire_server():
+    """A local OpenAI-wire HTTP server; see tests/wire_server.py."""
+    from tests.wire_server import WireServer
+
+    server = WireServer().start()
+    yield server
+    server.stop()
