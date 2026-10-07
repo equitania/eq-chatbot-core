@@ -10,6 +10,7 @@ OpenAICompatibleProvider; only the model listing is Mammouth-specific.
 import logging
 from typing import Any
 
+from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature as _shared_clamp_temperature,
@@ -90,7 +91,6 @@ class MammouthProvider(OpenAICompatibleProvider):
             model_id = model_data.get("id", model_data.get("model", ""))
             if not model_id:
                 continue
-            temp_constraints = self._get_temperature_constraints(model_id)
             models.append(
                 {
                     "id": model_id,
@@ -98,10 +98,11 @@ class MammouthProvider(OpenAICompatibleProvider):
                     "provider": self.provider_name,
                     "context_length": model_data.get("max_input_tokens"),
                     "max_output_tokens": model_data.get("max_output_tokens"),
-                    "supports_temperature": temp_constraints["supports_temperature"],
-                    "min_temperature": temp_constraints["min"],
-                    "max_temperature": temp_constraints["max"],
-                    "supports_reasoning": self._is_reasoning_model(model_id),
+                    # Mammouth's list says nothing about temperature or reasoning.
+                    "supports_temperature": param_learning.temperature_support(self._effective_base_url, model_id),
+                    "min_temperature": None,
+                    "max_temperature": None,
+                    "supports_reasoning": None,
                     "supports_streaming": True,
                 }
             )

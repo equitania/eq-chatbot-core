@@ -92,10 +92,12 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
     def list_models(self) -> list[dict[str, Any]]:
-        """List models; seeds parameter learning from `supported_parameters`.
+        """List models with the metadata OpenRouter reports; seeds parameter learning.
 
-        Only "temperature is not supported" is seeded. A model list that claims
-        support never overrides what a rejected request taught us at runtime.
+        A model whose ``supported_parameters`` omit ``temperature`` is seeded as
+        "temperature unsupported". A learned rejection always wins over the list:
+        ``supports_temperature`` is then ``False`` whatever the list claims.
+        Values OpenRouter does not report are ``None``.
         """
         try:
             data = self.client.get("/models", cast_to=object)
@@ -106,8 +108,10 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         for model_data in data.get("data", []) if isinstance(data, dict) else []:
             model_id = model_data.get("id", "")
             constraints = self._get_model_constraints(model_data)
-            if model_data.get("supported_parameters") and not constraints["supports_temperature"]:
+            if constraints["supports_temperature"] is False:
                 param_learning.seed_temperature_support(self._effective_base_url, model_id, False)
+            if param_learning.temperature_support(self._effective_base_url, model_id) is False:
+                constraints["supports_temperature"] = False
             models.append(
                 {
                     "id": model_id,
@@ -202,63 +206,27 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             raise self._handle_error(e) from e
 
     def _get_model_constraints(self, model_data: dict[str, Any]) -> dict[str, Any]:
+        """Metadata from OpenRouter's model entry; ``None`` where it says nothing.
+
+        OpenRouter may send these fields as JSON null rather than omitting them,
+        so ``or`` treats null and absent alike.
         """
-        Extract temperature, token, and capability constraints from model data.
-
-        OpenRouter provides:
-        - supported_parameters: list of parameters the model accepts
-        - default_parameters: dict of default values
-        - input_modalities: list like ["text", "image"]
-        - output_modalities: list like ["text"]
-        """
-        model_id = model_data.get("id", "").lower()
-        # OpenRouter may return these fields explicitly as JSON null (not absent),
-        # so a dict.get(key, default) fallback does NOT apply — coerce with `or`.
-        supported_params = model_data.get("supported_parameters") or []
-        default_params = model_data.get("default_parameters") or {}
-        input_modalities = model_data.get("input_modalities") or ["text"]
-        output_modalities = model_data.get("output_modalities") or ["text"]
-
-        # Check if it's a reasoning model
-        is_reasoning = any(model_id.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
-
-        # Determine temperature support
-        # Either from supported_parameters or by checking if not a reasoning model
-        supports_temperature = "temperature" in supported_params if supported_params else not is_reasoning
-
-        # Get temperature bounds from default_parameters or use defaults
-        if is_reasoning:
-            min_temp = 1.0
-            max_temp = 1.0
-            default_temp = 1.0
-        else:
-            # Try to extract from model data, fallback to standard bounds
-            min_temp = default_params.get("min_temperature", 0.0)
-            max_temp = default_params.get("max_temperature", 2.0)
-            default_temp = default_params.get("temperature", 1.0)
-
-        # Vision support from input modalities
-        supports_vision = "image" in input_modalities
-
-        # Tool/function calling support
-        supports_tools = "tools" in supported_params or "tool_choice" in supported_params
-
-        # Max output tokens
-        max_output = (model_data.get("top_provider") or {}).get("max_completion_tokens")
-        if not max_output:
-            max_output = model_data.get("max_tokens", 4096)
-
+        supported = model_data.get("supported_parameters") or None
+        defaults = model_data.get("default_parameters") or {}
+        input_modalities = model_data.get("input_modalities") or None
+        output_modalities = model_data.get("output_modalities") or None
+        max_output = (model_data.get("top_provider") or {}).get("max_completion_tokens") or model_data.get("max_tokens")
         return {
-            "supports_temperature": supports_temperature,
-            "default_temperature": default_temp,
-            "min_temperature": min_temp,
-            "max_temperature": max_temp,
-            "supports_reasoning": is_reasoning,
-            "supports_vision": supports_vision,
-            "supports_tools": supports_tools,
-            "supports_streaming": True,  # OpenRouter supports streaming for all models
-            "max_output_tokens": max_output,
-            "default_max_tokens": min(max_output, 4096) if max_output else 4096,
+            "supports_temperature": ("temperature" in supported) if supported else None,
+            "default_temperature": defaults.get("temperature"),
+            "min_temperature": defaults.get("min_temperature"),
+            "max_temperature": defaults.get("max_temperature"),
+            "supports_reasoning": ("reasoning" in supported) if supported else None,
+            "supports_vision": ("image" in input_modalities) if input_modalities else None,
+            "supports_tools": ("tools" in supported or "tool_choice" in supported) if supported else None,
+            "supports_streaming": True,  # OpenRouter streams every model (provider-level)
+            "max_output_tokens": max_output or None,
+            "default_max_tokens": None,
             "input_modalities": input_modalities,
             "output_modalities": output_modalities,
         }

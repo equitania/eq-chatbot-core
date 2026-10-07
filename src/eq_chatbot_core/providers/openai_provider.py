@@ -4,9 +4,9 @@ OpenAI provider implementation.
 
 from typing import Any
 
+from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
-from eq_chatbot_core.providers.temperature_constraints import get_temperature_constraints
 
 
 class OpenAIProvider(OpenAICompatibleProvider):
@@ -70,109 +70,29 @@ class OpenAIProvider(OpenAICompatibleProvider):
         model_lower = model.lower()
         return any(model_lower.startswith(prefix) for prefix in self.NEW_API_MODELS)
 
-    # Chat model prefixes to filter from models list
-    CHAT_MODEL_PREFIXES = (
-        "gpt-3.5",
-        "gpt-4",
-        "gpt-5",
-        "o1",
-        "o3",
-        "o4",
-        "chatgpt",
-    )
-
-    # Model context lengths (approximate, for common models)
-    MODEL_CONTEXT_LENGTHS = {
-        "gpt-4-turbo": 128000,
-        "gpt-4o": 128000,
-        "gpt-4o-mini": 128000,
-        "gpt-4": 8192,
-        "gpt-3.5-turbo": 16385,
-        "o1": 200000,
-        "o1-mini": 128000,
-        "o1-preview": 128000,
-        "o3": 200000,
-        "o3-mini": 200000,
-        "o4-mini": 200000,
-        "gpt-5": 200000,
-    }
-
-    def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
-        """Get temperature, token, and capability constraints for a model."""
-        model_lower = model_id.lower()
-
-        # Use shared temperature constraints for accurate min/max
-        temp_constraints = get_temperature_constraints(model_id)
-        is_reasoning = not temp_constraints["supports_temperature"]
-
-        # Check if model supports vision (GPT-4o, GPT-4-turbo, GPT-5, O1, O3, O4)
-        vision_prefixes = ("gpt-4o", "gpt-4-turbo", "gpt-5", "o1", "o3", "o4")
-        supports_vision = any(model_lower.startswith(prefix) for prefix in vision_prefixes)
-
-        # Get context length
-        context_length = None
-        for prefix, length in self.MODEL_CONTEXT_LENGTHS.items():
-            if model_lower.startswith(prefix):
-                context_length = length
-                break
-
-        if is_reasoning:
-            return {
-                "supports_temperature": False,
-                "default_temperature": 1.0,
-                "min_temperature": 1.0,
-                "max_temperature": 1.0,
-                "supports_reasoning": True,
-                "supports_vision": supports_vision,
-                "max_output_tokens": 100000 if "o1" in model_lower else 65536,
-                "default_max_tokens": 16384,
-                "context_length": context_length or 200000,
-            }
-        else:
-            return {
-                "supports_temperature": True,
-                "default_temperature": 1.0,
-                "min_temperature": temp_constraints["min"],
-                "max_temperature": temp_constraints["max"],
-                "supports_reasoning": False,
-                "supports_vision": supports_vision,
-                "max_output_tokens": 16384 if "gpt-4o" in model_lower else 4096,
-                "default_max_tokens": 4096,
-                "context_length": context_length or 128000,
-            }
-
     def list_models(self) -> list[dict[str, Any]]:
         """
-        List available chat models from OpenAI.
+        List every model the OpenAI API reports.
 
-        Returns:
-            List of model dicts with 'id', 'name', constraints, and metadata.
-            Only returns models suitable for chat completion.
+        Nothing is filtered by name, so embedding, audio and image models appear
+        too. Metadata the API does not report is ``None`` (unknown);
+        ``supports_temperature`` is ``False`` once a rejection was learned.
         """
         try:
             models = self.client.models.list()
-
-            chat_models = []
-            for model in models.data:
-                model_id = model.id.lower()
-
-                # Filter for chat-capable models
-                if any(model_id.startswith(prefix) for prefix in self.CHAT_MODEL_PREFIXES):
-                    constraints = self._get_model_constraints(model.id)
-                    chat_models.append(
-                        {
-                            "id": model.id,
-                            "name": model.id,  # OpenAI uses ID as name
-                            "created": model.created,
-                            "owned_by": model.owned_by,
-                            "provider": self.provider_name,
-                            **constraints,
-                        }
-                    )
-
-            # Sort by model ID for consistent ordering
-            chat_models.sort(key=lambda m: m["id"])
-            return chat_models
+            result = [
+                {
+                    "id": model.id,
+                    "name": model.id,
+                    "created": getattr(model, "created", None),
+                    "owned_by": getattr(model, "owned_by", None),
+                    "provider": self.provider_name,
+                    **param_learning.model_metadata(self._effective_base_url, model.id),
+                }
+                for model in models.data
+            ]
+            result.sort(key=lambda m: m["id"])
+            return result
 
         except Exception as e:
             raise self._handle_error(e) from e

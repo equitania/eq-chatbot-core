@@ -28,6 +28,10 @@ def test_organization_header(wire_server):
     assert headers.get("openai-organization") == "org-test"
 
 
+@pytest.mark.xfail(
+    reason="stage 2: list_models() no longer filters by model name; ported to test_list_models_wire.py::test_openai_lists_everything_unfiltered_with_unknown_metadata",
+    strict=False,
+)
 def test_list_models_filters_and_annotates(wire_server):
     wire_server.expect("GET", "/v1/models", Reply(body=models_body(["gpt-4.1", "whisper-1", "o3"])))
     ids = [m["id"] for m in _provider(wire_server).list_models()]

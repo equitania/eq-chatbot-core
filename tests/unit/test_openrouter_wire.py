@@ -62,6 +62,10 @@ def test_generate_image_without_image_raises(wire_server):
         _provider(wire_server).generate_image("a cat", model="img-model")
 
 
+@pytest.mark.xfail(
+    reason="stage 2: a learned rejection now shows as supports_temperature=False; ported to test_list_models_wire.py::test_openrouter_learned_rejection_beats_the_list",
+    strict=False,
+)
 def test_runtime_rejection_survives_optimistic_model_list(wire_server):
     wire_server.expect(
         "POST", "/v1/chat/completions", Reply(400, OPENAI_TEMPERATURE_REJECTION), Reply(body=chat_body())
@@ -160,6 +164,10 @@ def test_stream_accumulates_tool_calls(wire_server):
     assert final.tool_calls[0]["function"]["arguments"] == '{"a": 1}'
 
 
+@pytest.mark.xfail(
+    reason="stage 2: no name-based reasoning detection or default temperature range; ported to test_list_models_wire.py::test_openrouter_metadata_from_the_api",
+    strict=False,
+)
 def test_list_models_metadata_and_constraints(wire_server):
     wire_server.expect(
         "GET",
@@ -323,6 +331,10 @@ def test_generate_image_jpeg_data_url(wire_server):
     assert result.mime == "image/jpeg" and result.data == jpeg
 
 
+@pytest.mark.xfail(
+    reason="stage 2: no name-based reasoning detection or default temperature range; ported to test_list_models_wire.py::test_openrouter_metadata_from_the_api",
+    strict=False,
+)
 def test_model_constraints_regular_reasoning_and_null_parameters(wire_server):
     wire_server.expect(
         "GET",

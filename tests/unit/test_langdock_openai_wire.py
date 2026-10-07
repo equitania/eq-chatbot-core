@@ -52,6 +52,10 @@ def test_openai_client_property_still_exists(wire_server):
     assert isinstance(_provider(wire_server).openai_client, OpenAI)
 
 
+@pytest.mark.xfail(
+    reason="stage 2: no prefix filter; ported to test_list_models_wire.py::test_langdock_openai_lists_everything",
+    strict=False,
+)
 def test_list_models_filters_to_supported_prefixes(wire_server):
     """Embeddings and other non-chat models must not appear (ported from the mocked listing test)."""
     body = models_body(["gpt-4o", "o3-mini", "text-embedding-ada-002"])

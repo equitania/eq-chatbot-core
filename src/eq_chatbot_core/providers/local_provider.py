@@ -153,8 +153,8 @@ class LocalLLMProvider(OpenAICompatibleProvider):
                     "provider": self.provider_name,
                     "context_length": model_data.get("context_length"),
                     "supports_streaming": True,
-                    "supports_tools": False,  # Most local models don't support tools
-                    "supports_vision": False,  # Most local models don't support vision
+                    "supports_tools": None,
+                    "supports_vision": None,
                     "owned_by": model_data.get("owned_by", "local"),
                     "created": model_data.get("created"),
                 }

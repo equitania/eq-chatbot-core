@@ -19,7 +19,8 @@ from typing import Any
 
 import httpx2
 
-from eq_chatbot_core.providers.anthropic_shared import create_message, open_message_stream
+from eq_chatbot_core.providers import param_learning
+from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -35,7 +36,6 @@ from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     apply_anthropic_temperature,
     clamp_temperature,
-    get_temperature_constraints,
 )
 
 _logger = logging.getLogger(__name__)
@@ -203,33 +203,6 @@ class LangDockProvider(BaseLLMProvider):
 
     # Models that don't support temperature (reasoning models)
     REASONING_MODELS = ("o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o4", "o4-mini")
-
-    # Model context lengths
-    MODEL_CONTEXT_LENGTHS = {
-        # OpenAI models
-        "gpt-4-turbo": 128000,
-        "gpt-4o": 128000,
-        "gpt-4o-mini": 128000,
-        "gpt-5": 200000,
-        "o1": 200000,
-        "o1-mini": 128000,
-        "o1-preview": 128000,
-        "o3": 200000,
-        "o3-mini": 200000,
-        "o4-mini": 200000,
-        # Anthropic models
-        "claude-3-5-sonnet": 200000,
-        "claude-3-5-haiku": 200000,
-        "claude-sonnet-4": 200000,
-        "claude-opus-4": 200000,
-        # Google models — ids come from the live endpoint, these are only the
-        # context hints. Unknown ids fall back to the generic default.
-        "gemini-3.7-flash": 1000000,
-        "gemini-3.5-flash": 1000000,
-        "gemini-2.5-pro": 1000000,
-        # Codestral
-        "codestral": 32000,
-    }
 
     def __init__(
         self,
@@ -1372,74 +1345,6 @@ class LangDockProvider(BaseLLMProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
-        """Get temperature, token, and capability constraints for a model."""
-        model_lower = model_id.lower()
-
-        # Use shared temperature constraints for accurate min/max
-        temp_constraints = get_temperature_constraints(model_id)
-        is_reasoning = not temp_constraints["supports_temperature"]
-
-        # Check if model supports vision
-        # GPT-4o/4-turbo/5, Claude 3+, Gemini, O1/O3/O4 support vision
-        supports_vision = False
-
-        # GPT vision models
-        if any(model_lower.startswith(p) for p in ("gpt-4o", "gpt-4-turbo", "gpt-5")):
-            supports_vision = True
-        # O-series reasoning models with vision
-        elif any(model_lower.startswith(p) for p in ("o1", "o3", "o4")):
-            supports_vision = True
-        # Gemini models
-        elif model_lower.startswith("gemini"):
-            supports_vision = True
-        # Claude 3+ models (various naming patterns)
-        elif "claude" in model_lower:
-            if any(v in model_lower for v in ("-3-", "-3.", "-4-", "-4.", "haiku", "sonnet", "opus")):
-                supports_vision = True
-
-        # Get context length
-        context_length = None
-        for prefix, length in self.MODEL_CONTEXT_LENGTHS.items():
-            if model_lower.startswith(prefix):
-                context_length = length
-                break
-
-        if is_reasoning:
-            return {
-                "supports_temperature": False,
-                "default_temperature": 1.0,
-                "min_temperature": 1.0,
-                "max_temperature": 1.0,
-                "supports_reasoning": True,
-                "supports_vision": supports_vision,
-                "max_output_tokens": 100000 if "o1" in model_lower else 65536,
-                "default_max_tokens": 16384,
-                "context_length": context_length or 200000,
-            }
-        else:
-            # Determine max_output based on model family
-            if "claude" in model_lower:
-                max_output = 8192
-            elif "gemini" in model_lower:
-                max_output = 8192
-            elif "codestral" in model_lower:
-                max_output = 16384
-            else:
-                max_output = 16384
-
-            return {
-                "supports_temperature": True,
-                "default_temperature": 1.0,
-                "min_temperature": temp_constraints["min"],
-                "max_temperature": temp_constraints["max"],
-                "supports_reasoning": False,
-                "supports_vision": supports_vision,
-                "max_output_tokens": max_output,
-                "default_max_tokens": 4096,
-                "context_length": context_length or 128000,
-            }
-
     def list_models(self) -> list[dict[str, Any]]:
         """
         List available models from LangDock.
@@ -1473,91 +1378,39 @@ class LangDockProvider(BaseLLMProvider):
             raise self._handle_error(e) from e
 
     def _list_openai_models(self) -> list[dict[str, Any]]:
-        """List OpenAI models available via LangDock."""
+        """Every model LangDock's OpenAI endpoint lists for this workspace."""
         models = self.openai_client.models.list()
-
-        # LangDock-supported OpenAI models
-        supported_prefixes = (
-            "gpt-4-turbo",
-            "gpt-4o",
-            "gpt-5",
-            "o1",
-            "o3",
-            "o4",
-        )
-
-        result = []
-        for model in models.data:
-            model_id = model.id.lower()
-            if any(model_id.startswith(prefix) for prefix in supported_prefixes):
-                constraints = self._get_model_constraints(model.id)
-                result.append(
-                    {
-                        "id": model.id,
-                        "name": model.id,
-                        "created": getattr(model, "created", None),
-                        "owned_by": getattr(model, "owned_by", "langdock"),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        "region": self.region,
-                        **constraints,
-                    }
-                )
-
+        base = self._get_backend_url()
+        result = [
+            {
+                "id": model.id,
+                "name": model.id,
+                "created": getattr(model, "created", None),
+                "owned_by": getattr(model, "owned_by", "langdock"),
+                "provider": self.provider_name,
+                "backend": self.backend,
+                "region": self.region,
+                **param_learning.model_metadata(base, model.id),
+            }
+            for model in models.data
+        ]
         result.sort(key=lambda m: m["id"])
         return result
 
     def _list_anthropic_models(self) -> list[dict[str, Any]]:
-        """List Anthropic models available via LangDock."""
+        """Anthropic models LangDock lists, with what the Models API reports."""
         try:
-            models_response = self.anthropic_client.models.list(limit=100)
-
-            result = []
-            for model in models_response.data:
-                constraints = self._get_model_constraints(model.id)
-                # Use 'or' to handle None values (getattr returns None if attr is None)
-                model_name = getattr(model, "display_name", None) or model.id
-                result.append(
-                    {
-                        "id": model.id,
-                        "name": model_name,
-                        "created": getattr(model, "created_at", None),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        "region": self.region,
-                        **constraints,
-                    }
-                )
-
-            result.sort(key=lambda m: m.get("created") or "", reverse=True)
-            return result
-        except (AttributeError, KeyError, TypeError) as e:
-            # Fallback to known models if API doesn't support listing
-            _logger.warning("Anthropic model listing not supported, using known models: %s", e)
-            return self._get_known_anthropic_models()
-
-    def _get_known_anthropic_models(self) -> list[dict[str, Any]]:
-        """Return known Anthropic models as fallback."""
-        known_models = [
-            "claude-opus-4-5-20251101",
-            "claude-sonnet-4-20250514",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-        ]
-        result = []
-        for model_id in known_models:
-            constraints = self._get_model_constraints(model_id)
-            result.append(
-                {
-                    "id": model_id,
-                    "name": model_id,
-                    "provider": self.provider_name,
-                    "backend": self.backend,
-                    "region": self.region,
-                    **constraints,
-                }
+            return list_anthropic_models(
+                self.anthropic_client,
+                self._get_backend_url(),
+                self.provider_name,
+                backend=self.backend,
+                region=self.region,
             )
-        return result
+        except (AttributeError, KeyError, TypeError) as e:
+            # No static fallback list: an unknown model list is an empty one.
+            _logger.warning("Anthropic model listing not supported by this endpoint: %s", e)
+            return []
 
     def _list_google_models(self) -> list[dict[str, Any]]:
         """List Google Gemini models by asking LangDock, not from a hardcoded list.
@@ -1581,7 +1434,7 @@ class LangDockProvider(BaseLLMProvider):
             model_id = str(model.get("name", "")).removeprefix("models/")
             if not model_id:
                 continue
-            constraints = self._get_model_constraints(model_id)
+            thinking = model.get("thinking")
             result.append(
                 {
                     "id": model_id,
@@ -1589,7 +1442,15 @@ class LangDockProvider(BaseLLMProvider):
                     "provider": self.provider_name,
                     "backend": self.backend,
                     "region": self.region,
-                    **constraints,
+                    **param_learning.model_metadata(
+                        self._get_backend_url(),
+                        model_id,
+                        context_length=model.get("inputTokenLimit"),
+                        max_output_tokens=model.get("outputTokenLimit"),
+                        default_temperature=model.get("temperature"),
+                        max_temperature=model.get("maxTemperature"),
+                        supports_reasoning=thinking if isinstance(thinking, bool) else None,
+                    ),
                 }
             )
         return result
@@ -1613,14 +1474,13 @@ class LangDockProvider(BaseLLMProvider):
             result = []
             for model in data.get("data", []):
                 model_id = model.get("id", "")
-                constraints = self._get_model_constraints(model_id)
                 result.append(
                     {
                         "id": model_id,
                         "name": model.get("name", model_id),
                         "provider": self.provider_name,
                         "backend": self.backend,
-                        **constraints,
+                        **param_learning.model_metadata(self._get_backend_url(), model_id),
                     }
                 )
             return result

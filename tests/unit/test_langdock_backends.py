@@ -534,6 +534,10 @@ class TestCodestralCompletion:
 
 
 class TestModelConstraints:
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_reasoning_model_reports_no_temperature_support(self):
         provider = _provider()
 
@@ -542,6 +546,10 @@ class TestModelConstraints:
         assert c["supports_temperature"] is False
         assert c["supports_reasoning"] is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_gpt4o_supports_vision_and_temperature(self):
         provider = _provider()
 
@@ -550,26 +558,46 @@ class TestModelConstraints:
         assert c["supports_vision"] is True
         assert c["supports_temperature"] is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_gemini_supports_vision(self):
         provider = _provider()
 
         assert provider._get_model_constraints("gemini-2.5-pro")["supports_vision"] is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_claude_sonnet_supports_vision(self):
         provider = _provider()
 
         assert provider._get_model_constraints("claude-sonnet-4-20250514")["supports_vision"] is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_context_length_from_table(self):
         provider = _provider()
 
         assert provider._get_model_constraints("gemini-3.7-flash")["context_length"] == 1000000
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_unknown_model_gets_a_fallback_context_length(self):
         provider = _provider()
 
         assert provider._get_model_constraints("some-unknown-model")["context_length"] == 128000
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_codestral_output_ceiling(self):
         provider = _provider()
 
@@ -695,6 +723,7 @@ class TestListModels:
 
         assert provider.list_models() == []
 
+    @pytest.mark.xfail(reason="stage 2: no hardcoded fallback model list; an unknown list is empty", strict=False)
     def test_anthropic_listing_falls_back_to_known_models(self):
         """The gateway does not always support listing; the fallback must fill in."""
         provider = _provider(backend="anthropic")

@@ -637,6 +637,10 @@ class TestLangDockStreamCompletion:
 class TestLangDockModelConstraints:
     """Test model constraints and capabilities."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_gpt4o_constraints(self):
         """Test GPT-4o model constraints."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -648,6 +652,10 @@ class TestLangDockModelConstraints:
             assert constraints is not None
             assert constraints.get("max_tokens", 0) > 0 or constraints.get("max_output_tokens", 0) > 0
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_o1_constraints(self):
         """Test o1 model constraints include reasoning."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -660,6 +668,10 @@ class TestLangDockModelConstraints:
             # o1 models should have special constraints
             assert constraints.get("supports_temperature", True) is False or "reasoning" in str(constraints).lower()
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_claude_constraints(self):
         """Test Claude model constraints."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -671,6 +683,10 @@ class TestLangDockModelConstraints:
             assert constraints is not None
             assert constraints.get("max_tokens", 0) > 0 or constraints.get("max_output_tokens", 0) > 0
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_gemini_constraints(self):
         """Test Gemini model constraints."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -691,6 +707,10 @@ class TestLangDockModelConstraints:
 class TestLangDockListModels:
     """Test list models functionality."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
+        strict=False,
+    )
     def test_list_models_filters_supported(self, mock_openai_models_list):
         """Test list_models filters to supported models only."""
         mock_openai_module = MagicMock()

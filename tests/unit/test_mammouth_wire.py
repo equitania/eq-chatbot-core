@@ -37,6 +37,10 @@ def test_temperature_learning(wire_server):
     assert "temperature" not in wire_server.requests[1].json
 
 
+@pytest.mark.xfail(
+    reason="stage 2: temperature range and reasoning are no longer derived from the model name; ported to test_list_models_wire.py::test_mammouth_reports_its_limits_and_nothing_else",
+    strict=False,
+)
 def test_list_models_from_public_endpoint(wire_server):
     wire_server.expect(
         "GET",
@@ -76,6 +80,10 @@ def _models_payload():
     ]
 
 
+@pytest.mark.xfail(
+    reason="stage 2: temperature range and reasoning are no longer derived from the model name; ported to test_list_models_wire.py::test_mammouth_reports_its_limits_and_nothing_else",
+    strict=False,
+)
 def test_list_models_constraints_and_sorting(wire_server):
     wire_server.expect("GET", "/public/models", Reply(body={"data": _models_payload()}))
     models = _provider(wire_server).list_models()

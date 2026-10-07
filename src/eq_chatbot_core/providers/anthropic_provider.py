@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack
 from typing import Any
 
-from eq_chatbot_core.providers.anthropic_shared import create_message, open_message_stream
+from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -22,10 +22,7 @@ from eq_chatbot_core.providers.base import (
     ToolDefinition,
     normalize_tools,
 )
-from eq_chatbot_core.providers.temperature_constraints import (
-    apply_anthropic_temperature,
-    get_temperature_constraints,
-)
+from eq_chatbot_core.providers.temperature_constraints import apply_anthropic_temperature
 
 logger = logging.getLogger(__name__)
 
@@ -541,74 +538,15 @@ class AnthropicProvider(BaseLLMProvider):
         if last_error:
             raise self._handle_error(last_error) from last_error
 
-    def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
-        """Get temperature, token, and capability constraints for a model."""
-        model_lower = model_id.lower()
-
-        # Use shared temperature constraints
-        temp_constraints = get_temperature_constraints(model_id)
-        supports_temp = temp_constraints["supports_temperature"]
-
-        # All Claude 3.x and 4.x models support vision
-        # Check for various naming patterns: claude-3-*, claude-4-*, claude-haiku-*, etc.
-        supports_vision = (
-            "claude-3" in model_lower
-            or "claude-4" in model_lower
-            or any(v in model_lower for v in ("haiku", "sonnet", "opus"))
-        )
-
-        # Determine max output tokens based on model family
-        if "opus-4" in model_lower or "sonnet-4" in model_lower:
-            max_output = 16384
-        elif "3-5" in model_lower or "3.5" in model_lower:
-            max_output = 8192
-        else:
-            max_output = 4096
-
-        return {
-            "supports_temperature": supports_temp,
-            "default_temperature": 1.0,
-            "min_temperature": temp_constraints["min"],
-            "max_temperature": temp_constraints["max"],
-            "supports_reasoning": False,
-            "supports_vision": supports_vision,
-            "max_output_tokens": max_output,
-            "default_max_tokens": 4096,
-            "context_length": 200000,  # All Claude models support 200k context
-        }
-
     def list_models(self) -> list[dict[str, Any]]:
         """
-        List available Claude models from the Anthropic API.
+        List the models the Anthropic Models API reports, with the limits and
+        capabilities it reports; everything else is ``None`` (unknown).
 
-        Uses the Models API endpoint to fetch available models dynamically.
-
-        Returns:
-            List of model dicts with 'id', 'name', constraints, and metadata.
+        ``supports_temperature`` is ``False`` once a rejection was learned.
         """
         try:
-            # Fetch models from API
-            models_response = self.client.models.list(limit=100)
-
-            chat_models = []
-            for model in models_response.data:
-                constraints = self._get_model_constraints(model.id)
-                chat_models.append(
-                    {
-                        "id": model.id,
-                        "name": getattr(model, "display_name", model.id),
-                        "created": getattr(model, "created_at", None),
-                        "provider": self.provider_name,
-                        **constraints,
-                    }
-                )
-
-            # Sort by creation date (newest first) or by ID
-            chat_models.sort(
-                key=lambda m: m.get("created") or "",
-                reverse=True,
-            )
-            return chat_models
+            return list_anthropic_models(self.client, self._endpoint(), self.provider_name)
 
         except Exception as e:
             raise self._handle_error(e) from e
