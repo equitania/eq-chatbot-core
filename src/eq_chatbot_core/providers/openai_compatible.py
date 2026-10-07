@@ -18,14 +18,17 @@ Example:
         DEFAULT_MODEL = "some-model"
 """
 
+import logging
 from collections.abc import Iterator
 from typing import Any, ClassVar, TypeVar
 
+from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
     ContextLengthError,
     LLMResponse,
+    OverloadedError,
     ProviderError,
     RateLimitError,
     StreamChunk,
@@ -35,6 +38,8 @@ from eq_chatbot_core.providers.base import (
 from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
 from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+
+_logger = logging.getLogger(__name__)
 
 _Self = TypeVar("_Self", bound="OpenAICompatibleProvider")
 
@@ -55,6 +60,13 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             LAN. Cloud-metadata and link-local targets stay blocked either way.
         MISSING_BASE_URL_MESSAGE: Error text raised when ``DEFAULT_BASE_URL`` is
             ``None`` and the caller supplied no ``base_url``.
+        _validate_default_url: Validate ``DEFAULT_BASE_URL`` at construction too.
+            ``False`` for providers that never did a DNS lookup for their
+            built-in default; the pinned transport validates it on first use.
+
+    Extension hooks (override only where the gateway genuinely differs):
+        ``_token_param``, ``_default_headers``, ``_client_kwargs``,
+        ``_error_from_message``.
     """
 
     PROVIDER_NAME: ClassVar[str] = ""
@@ -64,6 +76,10 @@ class OpenAICompatibleProvider(BaseLLMProvider):
     MISSING_BASE_URL_MESSAGE: ClassVar[str] = (
         "This provider requires an explicit base_url; there is no default endpoint."
     )
+    # Validate DEFAULT_BASE_URL at construction too. True keeps the behaviour of
+    # the providers that already inherit this class; providers that never did a
+    # DNS lookup for their built-in default set it False.
+    _validate_default_url: ClassVar[bool] = True
 
     def __init__(
         self,
@@ -97,12 +113,13 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         if not effective_base_url or not effective_base_url.strip():
             raise ValueError(self.MISSING_BASE_URL_MESSAGE)
 
-        # SSRF guard: reject non-HTTP schemes and cloud-metadata / link-local
-        # targets; private ranges are rejected unless the gateway is explicitly
-        # LAN-capable. Imported lazily to avoid an import cycle.
-        from eq_chatbot_core.utils.url_validation import validate_url
+        # SSRF guard: a caller-supplied base_url is validated now. A built-in
+        # default costs no DNS round-trip until the client is created — the
+        # pinned transport validates it then. Imported lazily (import cycle).
+        if base_url or self._validate_default_url:
+            from eq_chatbot_core.utils.url_validation import validate_url
 
-        validate_url(effective_base_url, allow_private_ranges=self.ALLOW_PRIVATE_RANGES)
+            validate_url(effective_base_url, allow_private_ranges=self.ALLOW_PRIVATE_RANGES)
 
         super().__init__(api_key, effective_base_url, timeout, max_retries)
         # Keep the validated URL under a non-optional type: the base attribute
@@ -140,6 +157,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 base_url=self.base_url,
                 timeout=self.timeout,
                 max_retries=self.max_retries,
+                default_headers=self._default_headers() or None,
                 http_client=httpx2.Client(
                     transport=build_pinned_transport_for_url(
                         self._effective_base_url,
@@ -147,8 +165,25 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                     ),
                     timeout=self.timeout,
                 ),
+                **self._client_kwargs(),
             )
         return self._client
+
+    def _default_headers(self) -> dict[str, str]:
+        """Extra HTTP headers for every request (e.g. OpenRouter attribution)."""
+        return {}
+
+    def _client_kwargs(self) -> dict[str, Any]:
+        """Extra keyword arguments for the ``openai.OpenAI`` constructor."""
+        return {}
+
+    def _token_param(self, model: str) -> str:
+        """Initial guess for the output-limit parameter name.
+
+        Runtime learning (``param_learning``) corrects a wrong guess; this only
+        saves the first failed request where a provider already knows better.
+        """
+        return "max_tokens"
 
     def _build_params(
         self,
@@ -171,13 +206,41 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             params["temperature"] = clamped
 
         if max_tokens:
-            params["max_tokens"] = max_tokens
+            params[self._token_param(model)] = max_tokens
 
         if tools:
             params["tools"] = tools
 
         params.update(kwargs)
         return params
+
+    def _create(self, params: dict[str, Any]) -> Any:
+        """``chat.completions.create`` that learns unsupported parameters.
+
+        A 400 naming ``temperature`` or ``max_tokens`` as unsupported is retried
+        with that parameter adjusted — at most once per parameter — and the fact
+        is remembered for this endpoint and model (see ``param_learning``). For
+        streaming the rejection arrives before the first chunk, so no output is
+        ever duplicated.
+        """
+        model = params["model"]
+        param_learning.apply(self._effective_base_url, model, params)
+        adjusted: set[str] = set()
+        while True:
+            try:
+                return self.client.chat.completions.create(**params)
+            except Exception as error:
+                parameter = param_learning.rejected_parameter(error)
+                if parameter is None or parameter in adjusted or not param_learning.adjust(params, parameter):
+                    raise
+                adjusted.add(parameter)
+                param_learning.mark_unsupported(self._effective_base_url, model, parameter)
+                _logger.info(
+                    "%s: model %s rejected '%s'; retrying adjusted and remembering it for this endpoint",
+                    self.provider_name,
+                    model,
+                    parameter,
+                )
 
     def chat_completion(
         self,
@@ -197,7 +260,18 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         try:
             params = self._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
 
-            response = self.client.chat.completions.create(**params)
+            response = self._create(params)
+
+            # getattr: the SDK builds response models without validation, so a body
+            # lacking `choices` yields an object without that attribute at all.
+            if not getattr(response, "choices", None):
+                # Local servers (LM Studio, Ollama) answer 200 with an `error`
+                # body instead of choices, e.g. on context overflow.
+                error = (getattr(response, "model_extra", None) or {}).get("error")
+                if error:
+                    message = error.get("message") if isinstance(error, dict) else str(error)
+                    raise self._error_from_message(scrub_secrets(str(message)))
+                raise ProviderError(message="Response contained no choices", provider=self.provider_name)
 
             choice = response.choices[0]
             tool_calls = []
@@ -228,6 +302,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
             )
 
+        except ProviderError:
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -251,7 +327,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             params["stream"] = True
             params["stream_options"] = {"include_usage": True}
 
-            stream = self.client.chat.completions.create(**params)
+            stream = self._create(params)
 
             final_input_tokens = 0
             final_output_tokens = 0
@@ -313,6 +389,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 output_tokens=final_output_tokens,
             )
 
+        except ProviderError:
+            raise
         except Exception as e:
             raise self._handle_error(e) from e
 
@@ -344,21 +422,49 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert SDK exceptions to ProviderError types (secrets scrubbed)."""
-        message = scrub_secrets(str(error))
-        error_str = message.lower()
-
-        if "rate limit" in error_str or "429" in error_str:
-            return RateLimitError(message=message, provider=self.provider_name, status_code=429)
-
-        if "authentication" in error_str or "401" in error_str:
-            return AuthenticationError(message=message, provider=self.provider_name, status_code=401)
-
-        if "context length" in error_str or "token" in error_str:
-            return ContextLengthError(message=message, provider=self.provider_name)
-
+    def _error_from_message(self, message: str) -> ProviderError:
+        """Typed error for a provider message that carries no HTTP status."""
         return ProviderError(message=message, provider=self.provider_name)
+
+    def _handle_error(self, error: Exception) -> ProviderError:
+        """Map an SDK exception to the ProviderError hierarchy by HTTP status.
+
+        Substring matching is a fallback for errors without a status only; the
+        bare word "token" is deliberately not a criterion ("max_tokens is not
+        supported" is not a context-length problem).
+        """
+        if isinstance(error, ProviderError):
+            return error
+        import openai
+
+        message = scrub_secrets(str(error))
+        provider = self.provider_name
+        raw_body = getattr(error, "body", None)
+        body: dict[str, Any] = raw_body if isinstance(raw_body, dict) else {}
+
+        if isinstance(error, openai.APIStatusError):
+            status = error.status_code
+            if status == 429:
+                return RateLimitError(message, provider, status_code=429, retry_after=_retry_after(error.response))
+            if status in (401, 403):
+                return AuthenticationError(message, provider, status_code=status)
+            if status in (503, 529):
+                return OverloadedError(message, provider, status_code=status)
+            if status == 400 and _is_context_overflow(body, message):
+                return ContextLengthError(message, provider, status_code=400)
+            return ProviderError(message, provider, status_code=status)
+
+        if isinstance(error, openai.APIError):  # error event inside a stream: no status
+            if _is_context_overflow(body, message):
+                return ContextLengthError(message, provider)
+            return self._error_from_message(message)
+
+        lowered = message.lower()
+        if "rate limit" in lowered:
+            return RateLimitError(message, provider)
+        if "context length" in lowered:
+            return ContextLengthError(message, provider)
+        return ProviderError(message, provider)
 
     def close(self) -> None:
         """Close the underlying HTTP client, if initialized."""
@@ -371,3 +477,19 @@ class OpenAICompatibleProvider(BaseLLMProvider):
 
     def __exit__(self, *exc: object) -> None:
         self.close()
+
+
+def _retry_after(response: Any) -> int | None:
+    value = response.headers.get("retry-after") if response is not None else None
+    try:
+        return int(value) if value is not None else None
+    except ValueError:
+        return None
+
+
+def _is_context_overflow(body: dict[str, Any], message: str) -> bool:
+    """OpenAI's code, or the phrasing gateways use when they relay without a code."""
+    if body.get("code") == "context_length_exceeded":
+        return True
+    lowered = message.lower()
+    return "context length" in lowered or "context_length" in lowered or "maximum context" in lowered
