@@ -146,7 +146,7 @@ MODELS: dict[str, ModelChain] = {
         fallbacks=(),
         cost_hint="gateway (deployment-dependent)",
         notes="OpenAI-compatible gateway with no fixed endpoint. Primary matches "
-        "the CCSolutions.io LiteLLM proxy chat model; override per deployment via "
+        "the chat model of the LiteLLM proxy it was set up against; override per deployment via "
         "LITELLM_TEST_MODEL. The resolver validates against the gateway's "
         "list_models(), so set this to a model your endpoint actually serves.",
     ),
