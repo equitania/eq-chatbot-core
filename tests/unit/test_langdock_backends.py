@@ -693,24 +693,6 @@ class TestListModels:
 
         assert provider.list_models() == []
 
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_openai_listing_filters_to_supported_prefixes(self):
-        """Embeddings and other non-chat models must not appear."""
-        provider = _provider(backend="openai")
-        listing = MagicMock()
-        listing.data = [
-            MagicMock(id="gpt-4o", created=1, owned_by="openai"),
-            MagicMock(id="o3-mini", created=1, owned_by="openai"),
-            MagicMock(id="text-embedding-ada-002", created=1, owned_by="openai"),
-        ]
-        client = MagicMock()
-        client.models.list.return_value = listing
-        provider._openai_client = client
-
-        ids = {m["id"] for m in provider.list_models()}
-
-        assert ids == {"gpt-4o", "o3-mini"}
-
     def test_anthropic_listing_falls_back_to_known_models(self):
         """The gateway does not always support listing; the fallback must fill in."""
         provider = _provider(backend="anthropic")

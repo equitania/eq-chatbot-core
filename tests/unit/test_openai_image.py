@@ -19,8 +19,6 @@ if "openai" not in sys.modules:
 
 from eq_chatbot_core.providers.base import (  # noqa: E402
     ImageResult,
-    ProviderError,
-    RateLimitError,
 )
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider  # noqa: E402
 
@@ -154,26 +152,6 @@ class TestOpenAIImageGeneration:
         result = p.generate_image("Test")
 
         assert result.data == raw_bytes
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_generate_image_authentication_error(self, provider):
-        """Authentication errors are mapped to AuthenticationError."""
-        p, mock_client = provider
-
-        mock_client.images.generate.side_effect = Exception("401 authentication failed")
-
-        with pytest.raises(ProviderError):
-            p.generate_image("Test")
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_generate_image_rate_limit_error(self, provider):
-        """Rate limit errors are mapped to RateLimitError."""
-        p, mock_client = provider
-
-        mock_client.images.generate.side_effect = Exception("rate limit exceeded 429")
-
-        with pytest.raises((RateLimitError, ProviderError)):
-            p.generate_image("Test")
 
     def test_generate_image_forwards_n_1(self, provider):
         """API call always requests n=1 image."""

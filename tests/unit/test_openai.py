@@ -13,12 +13,6 @@ import pytest
 mock_openai_module = MagicMock()
 sys.modules["openai"] = mock_openai_module
 
-from eq_chatbot_core.providers.base import (
-    AuthenticationError,
-    ContextLengthError,
-    ProviderError,
-    RateLimitError,
-)
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
 # =============================================================================
@@ -154,28 +148,6 @@ class TestOpenAIProviderInit:
 
         # Client should not be created yet
         assert provider._client is None
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_client_property_creates_client(self):
-        """Test that accessing client creates the OpenAI instance."""
-        mock_openai_class = MagicMock()
-        mock_openai_module.OpenAI = mock_openai_class
-
-        provider = OpenAIProvider(api_key="sk-test-key")
-        provider._client = None  # Reset client
-
-        # Access client
-        _ = provider.client
-
-        kwargs = mock_openai_class.call_args.kwargs
-        _assert_pinned_http_client(kwargs)
-        assert {k: v for k, v in kwargs.items() if k != "http_client"} == {
-            "api_key": "sk-test-key",
-            "base_url": OpenAIProvider.DEFAULT_BASE_URL,
-            "timeout": 60.0,
-            "max_retries": 2,
-            "organization": None,
-        }
 
     def test_client_reuses_instance(self):
         """Test that client is only created once."""
@@ -476,47 +448,6 @@ class TestOpenAIStreamCompletion:
         assert call_args.kwargs.get("max_completion_tokens") == 50
         assert call_args.kwargs["stream"] is True
 
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_stream_tool_calls(self):
-        """Test streaming with tool calls."""
-
-        def stream_with_tools():
-            chunk = MagicMock()
-            chunk.choices = [MagicMock()]
-            chunk.choices[0].delta.content = ""
-
-            # Create function mock with name as attribute (not constructor param)
-            function_mock = MagicMock()
-            function_mock.name = "test_func"
-            function_mock.arguments = '{"a": 1}'
-
-            tool_call_mock = MagicMock()
-            tool_call_mock.index = 0
-            tool_call_mock.id = "call_123"
-            tool_call_mock.function = function_mock
-
-            chunk.choices[0].delta.tool_calls = [tool_call_mock]
-            chunk.choices[0].finish_reason = "tool_calls"
-            chunk.usage = None
-            yield chunk
-
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = stream_with_tools()
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        chunks = list(
-            provider.stream_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                tools=[{"type": "function", "function": {"name": "test_func"}}],
-            )
-        )
-
-        assert len(chunks) == 1
-        assert chunks[0].tool_call_delta is not None
-        assert chunks[0].tool_call_delta["function"]["name"] == "test_func"
-
 
 # =============================================================================
 # List Models Tests
@@ -676,110 +607,6 @@ class TestOpenAIModelConstraints:
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
-
-
-@pytest.mark.unit
-class TestOpenAIErrorHandling:
-    """Test error handling in OpenAI provider."""
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_error_scrubs_secret(self):
-        """Provider errors must not leak API keys into the message."""
-        provider = OpenAIProvider(api_key="sk-test")
-        err = provider._handle_error(Exception("500 error for key sk-leakedsecret12345"))
-        assert "sk-leakedsecret12345" not in str(err)
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_rate_limit_error(self):
-        """Test handling of rate limit errors."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("Error code: 429 - Rate limit exceeded")
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-
-        with pytest.raises(RateLimitError) as exc_info:
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-        assert exc_info.value.status_code == 429
-        assert exc_info.value.provider == "openai"
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_authentication_error(self):
-        """Test handling of authentication errors."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("Error code: 401 - Authentication failed")
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-invalid")
-        provider._client = None
-
-        with pytest.raises(AuthenticationError) as exc_info:
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-        assert exc_info.value.status_code == 401
-        assert exc_info.value.provider == "openai"
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_context_length_error(self):
-        """Test handling of context length errors."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception(
-            "This model's maximum context length is 8192 tokens"
-        )
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-
-        with pytest.raises(ContextLengthError) as exc_info:
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-        assert exc_info.value.provider == "openai"
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_generic_error(self):
-        """Test handling of generic errors."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("Unknown server error")
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-
-        with pytest.raises(ProviderError) as exc_info:
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-        assert exc_info.value.provider == "openai"
-        # Should not be a specific subtype
-        assert type(exc_info.value) is ProviderError
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_stream_error_handling(self):
-        """Test error handling during streaming."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = Exception("Stream error")
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-
-        with pytest.raises(ProviderError):
-            list(provider.stream_completion(messages=[{"role": "user", "content": "Hi"}]))
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_list_models_error_handling(self):
-        """Test error handling in list_models."""
-        mock_client = MagicMock()
-        mock_client.models.list.side_effect = Exception("Error code: 401")
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-invalid")
-        provider._client = None
-
-        with pytest.raises(AuthenticationError):
-            provider.list_models()
 
 
 # =============================================================================

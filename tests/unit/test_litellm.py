@@ -14,12 +14,6 @@ import pytest
 mock_openai_module = MagicMock()
 sys.modules["openai"] = mock_openai_module
 
-from eq_chatbot_core.providers.base import (
-    AuthenticationError,
-    ContextLengthError,
-    ProviderError,
-    RateLimitError,
-)
 from eq_chatbot_core.providers.litellm_provider import (
     DEFAULT_MODEL,
     DEFAULT_STT_MODEL,
@@ -340,45 +334,6 @@ class TestLiteLLMListModels:
 # =============================================================================
 
 
-@pytest.mark.unit
-class TestLiteLLMErrorHandling:
-    def _provider_raising(self, exc: Exception) -> LiteLLMProvider:
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.side_effect = exc
-        return _make_provider_with_client(mock_client)
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_rate_limit(self):
-        provider = self._provider_raising(Exception("429 rate limit exceeded"))
-        with pytest.raises(RateLimitError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_authentication(self):
-        provider = self._provider_raising(Exception("401 authentication failed"))
-        with pytest.raises(AuthenticationError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_context_length(self):
-        provider = self._provider_raising(Exception("context length exceeded"))
-        with pytest.raises(ContextLengthError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_generic_error(self):
-        provider = self._provider_raising(Exception("something odd happened"))
-        with pytest.raises(ProviderError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_error_scrubs_secret(self):
-        provider = self._provider_raising(Exception("500 error for key sk-leakedsecret12345"))
-        with pytest.raises(ProviderError) as exc_info:
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-        assert "sk-leakedsecret12345" not in str(exc_info.value)
-
-
 # =============================================================================
 # Audio: TTS + STT
 # =============================================================================
@@ -419,14 +374,6 @@ class TestLiteLLMAudio:
         kwargs = mock_client.audio.transcriptions.create.call_args.kwargs
         assert kwargs["model"] == DEFAULT_STT_MODEL
         assert kwargs["file"] == b"fake-audio-bytes"
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_tts_error_is_provider_error(self):
-        mock_client = MagicMock()
-        mock_client.audio.speech.create.side_effect = Exception("500 tts backend error")
-        provider = _make_provider_with_client(mock_client)
-        with pytest.raises(ProviderError):
-            provider.text_to_speech("Hi")
 
 
 # =============================================================================

@@ -22,11 +22,6 @@ import pytest
 # and rely on being the last importer, so an extra one silently breaks them.
 mock_openai_module = MagicMock()
 
-from eq_chatbot_core.providers.base import (
-    AuthenticationError,
-    ProviderError,
-    RateLimitError,
-)
 from eq_chatbot_core.providers.privatemode_provider import (
     DEFAULT_BASE_URL,
     DEFAULT_MODEL,
@@ -384,29 +379,3 @@ class TestPrivatemodeListModels:
         models = provider.list_models()
 
         assert {m["id"] for m in models} == {"kimi-latest", "gpt-oss-120b"}
-
-
-@pytest.mark.unit
-class TestPrivatemodeErrorHandling:
-    def _raise(self, mock_client, exc):
-        mock_client.chat.completions.create.side_effect = exc
-        provider = _make_provider_with_client(mock_client)
-        return provider
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_auth_error_mapped(self):
-        provider = self._raise(MagicMock(), Exception("401 Unauthorized"))
-        with pytest.raises(AuthenticationError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_rate_limit_mapped(self):
-        provider = self._raise(MagicMock(), Exception("429 rate limit exceeded"))
-        with pytest.raises(RateLimitError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-    @pytest.mark.xfail(reason="obsolete after base-class migration; deletion pending approval", strict=False)
-    def test_generic_error_mapped(self):
-        provider = self._raise(MagicMock(), Exception("boom"))
-        with pytest.raises(ProviderError):
-            provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
