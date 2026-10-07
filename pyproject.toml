@@ -221,6 +221,10 @@ source = ["src/eq_chatbot_core"]
 branch = true
 
 [tool.coverage.report]
+# Ratchet: the CI extras set (.github/workflows/ci.yml) measured 83.15 % on
+# 3.12 and 3.13 on 07.10.2026. Raise it when coverage rises; never lower it to
+# make a change pass. pytest-cov applies it to every run with --cov.
+fail_under = 83
 exclude_lines = [
     "pragma: no cover",
     "def __repr__",

@@ -101,7 +101,8 @@ jobs:
       - name: Install package and dev extras
         run: uv pip install -e ".[dev,security,pdf,image,rag,server]"
 
-      - name: Run unit tests with coverage
+      # Fails below [tool.coverage.report] fail_under in pyproject.toml.
+      - name: Run unit tests with coverage gate
         env:
           SKIP_LIVE_TESTS: "true"
           SKIP_LOCAL_TESTS: "true"

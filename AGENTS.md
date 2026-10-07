@@ -23,6 +23,8 @@ pytest tests/unit/ -v
 
 # Run all tests with coverage
 pytest tests/ -v --cov=eq_chatbot_core --cov-report=html
+# Coverage gate: any --cov run fails below fail_under in [tool.coverage.report] (pyproject.toml).
+# The baseline is measured with the CI extras set; raise it when coverage rises, never lower it.
 
 # Run single test file
 pytest tests/unit/test_openai.py -v
