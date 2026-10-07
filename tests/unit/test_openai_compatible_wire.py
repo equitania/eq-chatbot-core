@@ -255,7 +255,7 @@ def test_litellm_tts_failure_is_scrubbed_provider_error(wire_server):
     body = {"error": {"message": "bad key sk-proj-ABCDEFGHIJKLMNOPQRSTUVWX"}}
     wire_server.expect("POST", "/v1/audio/speech", Reply(500, body))
     with pytest.raises(ProviderError) as caught:
-        _litellm(wire_server).text_to_speech("Hallo")
+        _litellm(wire_server).text_to_speech("Hallo", model="tts-model", voice="voice-1")
     assert caught.value.status_code == 500
     assert "ABCDEFGHIJKLMNOPQRSTUVWX" not in str(caught.value)
 
@@ -263,5 +263,5 @@ def test_litellm_tts_failure_is_scrubbed_provider_error(wire_server):
 def test_litellm_transcribe_failure_is_provider_error(wire_server):
     wire_server.expect("POST", "/v1/audio/transcriptions", Reply(500, {"error": {"message": "stt backend down"}}))
     with pytest.raises(ProviderError) as caught:
-        _litellm(wire_server).transcribe(("a.wav", b"RIFF0000", "audio/wav"))
+        _litellm(wire_server).transcribe(("a.wav", b"RIFF0000", "audio/wav"), model="stt-model")
     assert caught.value.status_code == 500

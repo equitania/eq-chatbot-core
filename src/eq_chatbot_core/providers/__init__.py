@@ -28,7 +28,7 @@ Usage:
     response = provider.chat_completion(messages=[...])
 
     # LiteLLM / any OpenAI-compatible gateway (base_url is REQUIRED, no default)
-    provider = get_provider("litellm", api_key="...", base_url="https://api.ccsio.ai/v1")
+    provider = get_provider("litellm", api_key="...", base_url="https://litellm.example.com/v1")
     response = provider.chat_completion(messages=[...], model="qwen3.6-35b-a3b")
 
     # IONOS AI Model Hub (EU-hosted, OpenAI-compatible; base_url has a default)
@@ -187,6 +187,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     ImageResult,
     LLMResponse,
     ModelInfo,
+    ModelNotSpecifiedError,
     OverloadedError,
     ProviderError,
     RateLimitError,
@@ -209,6 +210,7 @@ __all__ = [
     "StreamChunk",
     "ModelInfo",
     "ProviderError",
+    "ModelNotSpecifiedError",
     "RateLimitError",
     "AuthenticationError",
     "ContextLengthError",

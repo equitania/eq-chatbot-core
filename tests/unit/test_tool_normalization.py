@@ -95,7 +95,7 @@ class TestProvidersAcceptToolDefinition:
         with patch.dict("sys.modules", {"openai": mock_openai}):
             from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 
-            provider = OpenAIProvider(api_key="sk-test")
+            provider = OpenAIProvider(api_key="sk-test", model="test-model")
             provider._client = mock_client
             provider.chat_completion([{"role": "user", "content": "hi"}], tools=[_tool()])
 

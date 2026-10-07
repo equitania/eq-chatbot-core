@@ -71,6 +71,7 @@ def mock_models_response():
 class TestLocalLLMProviderInit:
     """Test LocalLLMProvider initialization."""
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
     def test_default_initialization(self):
         """Test provider initializes with default values."""
         provider = LocalLLMProvider()

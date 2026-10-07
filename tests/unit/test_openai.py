@@ -97,6 +97,7 @@ def mock_models_list():
 class TestOpenAIProviderInit:
     """Test OpenAI provider initialization."""
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
     def test_basic_init(self):
         """Test basic provider initialization."""
         provider = OpenAIProvider(api_key="sk-test-key")
@@ -189,7 +190,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         response = provider.chat_completion(messages=[{"role": "user", "content": "Hello"}])
 
@@ -205,7 +206,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -227,7 +228,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -238,13 +239,16 @@ class TestOpenAIChatCompletion:
         call_args = mock_client.chat.completions.create.call_args
         assert call_args.kwargs["temperature"] == 0.5
 
+    @pytest.mark.xfail(
+        reason="stage 2: asserted the removed default model (temperature omission is name-derived)", strict=False
+    )
     def test_temperature_is_omitted_for_the_default_model(self, mock_openai_response):
         """gpt-5.6 answers 400 when temperature is sent, so it must not be."""
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -259,7 +263,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -277,7 +281,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -317,7 +321,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         tools = [{"type": "function", "function": {"name": "get_weather"}}]
 
@@ -336,7 +340,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -354,7 +358,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -371,7 +375,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -398,7 +402,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
@@ -420,7 +424,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
@@ -434,7 +438,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         list(
             provider.stream_completion(
@@ -464,7 +468,7 @@ class TestOpenAIListModels:
         mock_client.models.list.return_value = mock_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         models = provider.list_models()
 
@@ -484,7 +488,7 @@ class TestOpenAIListModels:
         mock_client.models.list.return_value = mock_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         models = provider.list_models()
 
@@ -505,7 +509,7 @@ class TestOpenAIListModels:
         mock_client.models.list.return_value = mock_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         models = provider.list_models()
 
@@ -524,7 +528,7 @@ class TestOpenAIModelAPIDetection:
 
     def test_new_api_models_detected(self):
         """Test that new API models are correctly detected."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         assert provider._uses_new_token_api("gpt-4o") is True
         assert provider._uses_new_token_api("gpt-4o-mini") is True
@@ -536,7 +540,7 @@ class TestOpenAIModelAPIDetection:
 
     def test_legacy_api_models_detected(self):
         """Test that legacy API models are correctly detected."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         assert provider._uses_new_token_api("gpt-4-turbo") is False
         assert provider._uses_new_token_api("gpt-4") is False
@@ -544,7 +548,7 @@ class TestOpenAIModelAPIDetection:
 
     def test_case_insensitive_detection(self):
         """Test case insensitivity in model detection."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         assert provider._uses_new_token_api("GPT-4O") is True
         assert provider._uses_new_token_api("GPT-4O-MINI") is True
@@ -562,7 +566,7 @@ class TestOpenAIModelConstraints:
 
     def test_reasoning_model_constraints(self):
         """Test constraints for reasoning models (O1, O3, O4)."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         for model in ["o1", "o1-mini", "o3", "o3-mini", "o4-mini"]:
             constraints = provider._get_model_constraints(model)
@@ -573,7 +577,7 @@ class TestOpenAIModelConstraints:
 
     def test_gpt_model_constraints(self):
         """Test constraints for standard GPT models."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         for model in ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"]:
             constraints = provider._get_model_constraints(model)
@@ -584,7 +588,7 @@ class TestOpenAIModelConstraints:
 
     def test_vision_support_detection(self):
         """Test vision capability detection."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         # Models with vision
         assert provider._get_model_constraints("gpt-4o")["supports_vision"] is True
@@ -596,7 +600,7 @@ class TestOpenAIModelConstraints:
 
     def test_context_length_detection(self):
         """Test context length detection for models."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
 
         assert provider._get_model_constraints("gpt-4o")["context_length"] == 128000
         assert provider._get_model_constraints("gpt-4")["context_length"] == 8192
@@ -620,12 +624,13 @@ class TestOpenAIProviderProperties:
 
     def test_provider_name(self):
         """Test provider_name property."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         assert provider.provider_name == "openai"
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
     def test_default_model(self):
         """Test default_model property."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         assert provider.default_model == "gpt-5.6-luna"
 
     def test_default_base_url(self):
@@ -634,7 +639,7 @@ class TestOpenAIProviderProperties:
 
     def test_repr(self):
         """Test string representation."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         repr_str = repr(provider)
         assert "OpenAIProvider" in repr_str
         assert "openai" in repr_str

@@ -15,7 +15,6 @@ Example:
     class MyGatewayProvider(OpenAICompatibleProvider):
         PROVIDER_NAME = "mygateway"
         DEFAULT_BASE_URL = "https://api.example.com/v1"
-        DEFAULT_MODEL = "some-model"
 """
 
 import logging
@@ -53,8 +52,6 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         DEFAULT_BASE_URL: Endpoint used when the caller passes no ``base_url``.
             Set to ``None`` for gateways that have no meaningful default and must
             receive an explicit endpoint (e.g. a self-hosted LiteLLM proxy).
-        DEFAULT_MODEL: Soft default model id, overridable per call or via the
-            ``model`` constructor argument.
         ALLOW_PRIVATE_RANGES: Passed to the SSRF guard. ``False`` for fixed public
             cloud endpoints; ``True`` for gateways that may legitimately live on a
             LAN. Cloud-metadata and link-local targets stay blocked either way.
@@ -71,7 +68,6 @@ class OpenAICompatibleProvider(BaseLLMProvider):
 
     PROVIDER_NAME: ClassVar[str] = ""
     DEFAULT_BASE_URL: ClassVar[str | None] = None
-    DEFAULT_MODEL: ClassVar[str] = ""
     ALLOW_PRIVATE_RANGES: ClassVar[bool] = False
     # Ask for token usage in streams. Off for servers that reject the option.
     STREAM_INCLUDE_USAGE: ClassVar[bool] = True
@@ -100,8 +96,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 ``DEFAULT_BASE_URL``; required when that is ``None``.
             timeout: Request timeout in seconds.
             max_retries: Number of retries on transient failures.
-            model: Default model id for this instance (overridable per call).
-                Falls back to ``DEFAULT_MODEL`` when not given.
+            model: Model used when a call passes none (there is no built-in default).
 
         Raises:
             ValueError: If ``base_url`` is missing/empty with no default
@@ -123,19 +118,14 @@ class OpenAICompatibleProvider(BaseLLMProvider):
 
             validate_url(effective_base_url, allow_private_ranges=self.ALLOW_PRIVATE_RANGES)
 
-        super().__init__(api_key, effective_base_url, timeout, max_retries)
+        super().__init__(api_key, effective_base_url, timeout, max_retries, model)
         # Keep the validated URL under a non-optional type: the base attribute
         # is `str | None`, but construction fails above when it would be empty.
         self._effective_base_url: str = effective_base_url
-        self._model = model
 
     @property
     def provider_name(self) -> str:
         return self.PROVIDER_NAME
-
-    @property
-    def default_model(self) -> str:
-        return self._model or self.DEFAULT_MODEL
 
     @property
     def client(self) -> Any:
@@ -258,7 +248,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to the gateway."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)
@@ -329,7 +319,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from the gateway."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)

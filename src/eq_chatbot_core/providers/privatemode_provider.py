@@ -85,9 +85,6 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
     # The proxy runs on the caller's own machine by default and terminates the
     # confidential channel; this is a local address by design, not a fallback.
     DEFAULT_BASE_URL = "http://localhost:8080/v1"
-    # Soft default — `-latest` tracks the current Kimi release, which the vendor
-    # recommends because concrete model ids are retired over time.
-    DEFAULT_MODEL = "kimi-latest"
     # The endpoint is loopback (or cluster-internal) by design.
     ALLOW_PRIVATE_RANGES = True
 
@@ -116,7 +113,7 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
                 ``http://localhost:8080/v1``.
             timeout: Request timeout in seconds.
             max_retries: Number of retries on transient failures.
-            model: Default model id for this instance (overridable per call).
+            model: Model used when a call passes none (there is no built-in default).
             allow_insecure_transport: Escape hatch that permits plain HTTP to a
                 *public* address. Off by default because it silently voids the
                 end-to-end encryption guarantee; set it only when an external
@@ -256,4 +253,3 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
 
 # Module-level aliases kept for consistency with the other provider modules.
 DEFAULT_BASE_URL = PrivatemodeProvider.DEFAULT_BASE_URL
-DEFAULT_MODEL = PrivatemodeProvider.DEFAULT_MODEL

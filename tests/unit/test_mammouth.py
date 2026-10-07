@@ -129,6 +129,7 @@ class TestMammouthProviderProperties:
             provider = MammouthProvider(api_key="mm-test-key")
             assert provider.provider_name == "mammouth"
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
     def test_default_model(self):
         """Test default model is GPT-4o."""
         with nullcontext():

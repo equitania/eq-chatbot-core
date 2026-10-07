@@ -29,6 +29,7 @@ def _provider(**kwargs):
     with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
         from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
+        kwargs.setdefault("model", "test-model")
         return LangDockProvider(api_key="test-key", **kwargs)
 
 
@@ -120,6 +121,7 @@ class TestBackendDispatch:
         with pytest.raises(ValueError, match="agent_id is required"):
             _provider(backend="agent")
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default model per backend", strict=False)
     def test_default_model_per_backend(self):
         """These are perishable fallbacks tied to the workspace's enabled models.
 

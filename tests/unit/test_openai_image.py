@@ -30,7 +30,7 @@ _FAKE_PNG_B64 = base64.b64encode(_FAKE_PNG_BYTES).decode()
 @pytest.fixture
 def provider():
     """OpenAI provider with injected mock client."""
-    p = OpenAIProvider(api_key="sk-test")
+    p = OpenAIProvider(api_key="sk-test", image_model="img-model")
     mock_client = MagicMock()
     p._client = mock_client
     return p, mock_client
@@ -44,6 +44,7 @@ class TestOpenAIImageGeneration:
         """supports_image_generation must be True for OpenAI."""
         assert OpenAIProvider.supports_image_generation is True
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default image model", strict=False)
     def test_default_image_model(self):
         """Default image model should be gpt-image-1."""
         assert OpenAIProvider.DEFAULT_IMAGE_MODEL == "gpt-image-1"
@@ -62,11 +63,12 @@ class TestOpenAIImageGeneration:
 
         assert isinstance(result, ImageResult)
         assert result.data == _FAKE_PNG_BYTES
-        assert result.model == "gpt-image-1"
+        assert result.model == "img-model"
         assert result.provider == "openai"
         assert result.size == "1024x1024"
         assert result.mime == "image/png"
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default image model", strict=False)
     def test_generate_image_uses_default_model(self, provider):
         """generate_image uses gpt-image-1 when model is None."""
         p, mock_client = provider

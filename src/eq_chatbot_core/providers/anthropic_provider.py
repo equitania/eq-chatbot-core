@@ -53,6 +53,7 @@ class AnthropicProvider(BaseLLMProvider):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        model: str | None = None,
     ):
         # Initialize the client attribute BEFORE validation so close()/__del__
         # stay safe if the SSRF guard below raises.
@@ -67,7 +68,7 @@ class AnthropicProvider(BaseLLMProvider):
 
             validate_url(base_url, allow_private_ranges=False)
 
-        super().__init__(api_key, base_url, timeout, max_retries)
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _should_retry_error(self, error: Exception) -> bool:
         """Check if an error is retryable (overloaded, temporary failures)."""
@@ -86,14 +87,6 @@ class AnthropicProvider(BaseLLMProvider):
     @property
     def provider_name(self) -> str:
         return "anthropic"
-
-    @property
-    def default_model(self) -> str:
-        # Verified live on 23.08.2026: the previous default had either been
-        # retired or belonged to a generation we no longer run. Policy is to
-        # default to the current one — see the live test that fails when this
-        # id stops being served.
-        return "claude-sonnet-5"
 
     @property
     def client(self) -> Any:
@@ -296,7 +289,7 @@ class AnthropicProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to Anthropic with retry on overload."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)
@@ -387,7 +380,7 @@ class AnthropicProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from Anthropic with retry on overload."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)

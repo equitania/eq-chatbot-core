@@ -597,7 +597,7 @@ class LiteLLMProvider(OpenAICompatibleProvider):
     # allowed here; cloud-metadata and link-local targets stay blocked.
     ALLOW_PRIVATE_RANGES = True
     MISSING_BASE_URL_MESSAGE = (
-        "LiteLLMProvider requires an explicit base_url (e.g. 'https://api.ccsio.ai/v1'). There is no default endpoint."
+        "LiteLLMProvider requires an explicit base_url (e.g. 'https://litellm.example.com/v1'). There is no default endpoint."
     )
 
     def __init__(

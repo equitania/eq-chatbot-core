@@ -51,7 +51,7 @@ def test_generate_image(wire_server):
     body = chat_body("")
     body["choices"][0]["message"]["images"] = [{"type": "image_url", "image_url": {"url": url}}]
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=body))
-    result = _provider(wire_server).generate_image("a cat")
+    result = _provider(wire_server).generate_image("a cat", model="img-model")
     assert result.data == png and result.mime == "image/png"
     assert wire_server.requests[0].json["modalities"] == ["image", "text"]
 
@@ -59,7 +59,7 @@ def test_generate_image(wire_server):
 def test_generate_image_without_image_raises(wire_server):
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body("sorry")))
     with pytest.raises(ProviderError, match="No image returned"):
-        _provider(wire_server).generate_image("a cat")
+        _provider(wire_server).generate_image("a cat", model="img-model")
 
 
 def test_runtime_rejection_survives_optimistic_model_list(wire_server):
@@ -86,6 +86,18 @@ def test_runtime_rejection_survives_optimistic_model_list(wire_server):
 # --- Ported from the mocked unit files (behaviour that still exists) ---------
 
 
+def test_base_url_and_site_info():
+    provider = OpenRouterProvider(api_key="sk-or-test", site_url="https://e.example", site_name="n")
+    assert provider.provider_name == "openrouter"
+    assert provider.default_model is None
+    assert provider.base_url == OpenRouterProvider.DEFAULT_BASE_URL
+    assert (provider.site_url, provider.site_name) == ("https://e.example", "n")
+    assert provider.supports_image_generation is True
+
+
+@pytest.mark.xfail(
+    reason="stage 2: no default model; ported to test_openrouter_wire.py::test_base_url_and_site_info", strict=False
+)
 def test_defaults_and_site_info():
     provider = OpenRouterProvider(api_key="sk-or-test", site_url="https://e.example", site_name="n")
     assert provider.provider_name == "openrouter"
@@ -202,10 +214,15 @@ def test_error_mapping_keeps_message_and_status(wire_server, status, body, error
 def test_generate_image_http_errors(wire_server, status, error):
     wire_server.expect("POST", "/v1/chat/completions", Reply(status, {"error": {"message": "nope"}}))
     with pytest.raises(ProviderError) as excinfo:
-        _provider(wire_server).generate_image("a cat")
+        _provider(wire_server).generate_image("a cat", model="img-model")
     assert type(excinfo.value).__name__ == error
 
 
+@pytest.mark.xfail(
+    reason="stage 2: OpenRouter has no default image model; "
+    "ported to test_model_required_wire.py::test_openrouter_image_model_from_constructor",
+    strict=False,
+)
 def test_generate_image_defaults_and_custom_model(wire_server):
     url = "data:image/png;base64," + base64.b64encode(b"x").decode()
     body = chat_body("")
@@ -224,7 +241,7 @@ def test_generate_image_invalid_url_raises(wire_server):
     body["choices"][0]["message"]["images"] = [{"type": "image_url", "image_url": {"url": "https://example.com/i.png"}}]
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=body))
     with pytest.raises(ProviderError, match="Unexpected image URL"):
-        _provider(wire_server).generate_image("a cat")
+        _provider(wire_server).generate_image("a cat", model="img-model")
 
 
 def test_close_and_context_manager(wire_server):
@@ -302,7 +319,7 @@ def test_generate_image_jpeg_data_url(wire_server):
     body = chat_body("")
     body["choices"][0]["message"]["images"] = [{"type": "image_url", "image_url": {"url": url}}]
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=body))
-    result = _provider(wire_server).generate_image("a cat")
+    result = _provider(wire_server).generate_image("a cat", model="img-model")
     assert result.mime == "image/jpeg" and result.data == jpeg
 
 

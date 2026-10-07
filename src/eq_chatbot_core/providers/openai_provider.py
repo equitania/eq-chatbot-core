@@ -4,7 +4,7 @@ OpenAI provider implementation.
 
 from typing import Any
 
-from eq_chatbot_core.providers.base import ImageResult
+from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import get_temperature_constraints
 
@@ -23,15 +23,10 @@ class OpenAIProvider(OpenAICompatibleProvider):
 
     DEFAULT_BASE_URL = "https://api.openai.com/v1"
     PROVIDER_NAME = "openai"
-    # Verified live on 23.08.2026; model IDs leave the source in stage 2.
-    DEFAULT_MODEL = "gpt-5.6-luna"
     _validate_default_url = False
 
     # Image generation is supported via the /images/generations endpoint.
     supports_image_generation: bool = True
-
-    # Default model for image generation.
-    DEFAULT_IMAGE_MODEL = "gpt-image-1"
 
     # Models that require max_completion_tokens instead of max_tokens
     # All GPT-4o, GPT-5.x, O1, and O3 models use the new API
@@ -57,9 +52,12 @@ class OpenAIProvider(OpenAICompatibleProvider):
         timeout: float = 60.0,
         max_retries: int = 2,
         organization: str | None = None,
+        model: str | None = None,
+        image_model: str | None = None,
     ):
         self.organization = organization
-        super().__init__(api_key, base_url, timeout, max_retries)
+        self.image_model = image_model or None
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _client_kwargs(self) -> dict[str, Any]:
         return {"organization": self.organization} if self.organization else {}
@@ -192,7 +190,7 @@ class OpenAIProvider(OpenAICompatibleProvider):
 
         Args:
             prompt: Text description of the image to generate
-            model: Model to use (defaults to 'gpt-image-1')
+            model: Image model; falls back to the constructor's ``image_model``.
             size: Image dimensions. Valid for gpt-image-1: 1024x1024, 1024x1536,
                   1536x1024, auto. DALL-E 3: 1024x1024, 1792x1024, 1024x1792.
                   Unknown sizes are passed through to the API.
@@ -206,7 +204,9 @@ class OpenAIProvider(OpenAICompatibleProvider):
         """
         import base64
 
-        model = model or self.DEFAULT_IMAGE_MODEL
+        model = model or self.image_model
+        if not model:
+            raise ModelNotSpecifiedError(self.provider_name, what="image model", constructor_argument="image_model")
 
         try:
             params: dict[str, Any] = {

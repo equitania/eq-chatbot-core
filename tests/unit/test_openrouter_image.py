@@ -44,7 +44,7 @@ def _make_image_response(model: str = "google/gemini-2.5-flash-image", data_url:
 @pytest.fixture
 def provider():
     """OpenRouter provider with injected mock httpx client."""
-    p = OpenRouterProvider(api_key="sk-or-test")
+    p = OpenRouterProvider(api_key="sk-or-test", image_model="img-model")
     mock_client = MagicMock()
     p._client = mock_client
     return p, mock_client
@@ -58,6 +58,7 @@ class TestOpenRouterImageGeneration:
         """supports_image_generation must be True for OpenRouter."""
         assert OpenRouterProvider.supports_image_generation is True
 
+    @pytest.mark.xfail(reason="stage 2: no built-in default image model", strict=False)
     def test_default_image_model(self):
         """Default image model should be google/gemini-2.5-flash-image."""
         assert OpenRouterProvider.DEFAULT_IMAGE_MODEL == "google/gemini-2.5-flash-image"

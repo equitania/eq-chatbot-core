@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from eq_chatbot_core.providers import param_learning
-from eq_chatbot_core.providers.base import ImageResult, ProviderError
+from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError, ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 _logger = logging.getLogger(__name__)
@@ -37,15 +37,10 @@ class OpenRouterProvider(OpenAICompatibleProvider):
 
     DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
     PROVIDER_NAME = "openrouter"
-    # Model IDs leave the source in stage 2.
-    DEFAULT_MODEL = "openai/gpt-5.6-luna"
     _validate_default_url = False
 
     # Image generation is supported via chat/completions with image modality.
     supports_image_generation: bool = True
-
-    # Default model for image generation via OpenRouter.
-    DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
 
     # Reasoning models that don't support temperature
     REASONING_MODEL_PREFIXES = (
@@ -62,6 +57,8 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         max_retries: int = 2,
         site_url: str | None = None,
         site_name: str | None = None,
+        model: str | None = None,
+        image_model: str | None = None,
     ):
         """
         Initialize the OpenRouter provider.
@@ -73,10 +70,13 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             max_retries: Number of retries on transient failures
             site_url: Optional site URL for HTTP-Referer header (for rankings)
             site_name: Optional site name for X-Title header (for display)
+            model: Chat model used when a call passes none
+            image_model: Image model used when ``generate_image`` gets none
         """
         self.site_url = site_url
         self.site_name = site_name
-        super().__init__(api_key, base_url, timeout, max_retries)
+        self.image_model = image_model or None
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {}
@@ -139,7 +139,7 @@ class OpenRouterProvider(OpenAICompatibleProvider):
 
         Args:
             prompt: Text description of the image to generate
-            model: Model to use (defaults to 'google/gemini-2.5-flash-image')
+            model: Image model; falls back to the constructor's ``image_model``.
             size: Not controllable via OpenRouter; stored in ImageResult.size as-is.
             **kwargs: Additional provider-specific parameters
 
@@ -151,7 +151,9 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         """
         import base64
 
-        model = model or self.DEFAULT_IMAGE_MODEL
+        model = model or self.image_model
+        if not model:
+            raise ModelNotSpecifiedError(self.provider_name, what="image model", constructor_argument="image_model")
 
         try:
             payload: dict[str, Any] = {

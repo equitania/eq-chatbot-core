@@ -41,9 +41,9 @@ def test_generate_image(wire_server):
         "/v1/images/generations",
         Reply(body={"created": 0, "data": [{"b64_json": base64.b64encode(png).decode()}]}),
     )
-    result = _provider(wire_server).generate_image("a cat")
+    result = _provider(wire_server).generate_image("a cat", model="img-model")
     assert result.data == png and result.provider == "openai"
-    assert wire_server.requests[0].json["model"] == "gpt-image-1"
+    assert wire_server.requests[0].json["model"] == "img-model"
 
 
 def test_default_base_url_and_offline_construction():
@@ -114,7 +114,7 @@ def test_generate_image_errors_by_status(wire_server, status, exc_name):
 
     wire_server.expect("POST", "/v1/images/generations", Reply(status, {"error": {"message": "nope"}}))
     with pytest.raises(base.ProviderError) as info:
-        _provider(wire_server).generate_image("a cat")
+        _provider(wire_server).generate_image("a cat", model="img-model")
     assert type(info.value) is getattr(base, exc_name)
 
 

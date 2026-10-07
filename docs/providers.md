@@ -117,7 +117,7 @@ explicitly. The API key is sent as `Authorization: Bearer <api_key>`.
 provider = get_provider(
     "litellm",
     api_key="YOUR_KEY",
-    base_url="https://api.ccsio.ai/v1",   # required — no default
+    base_url="https://litellm.example.com/v1",   # required — no default
     model="qwen3.6-35b-a3b",              # optional default model (overridable per call)
 )
 
@@ -411,7 +411,7 @@ gesendet.
 provider = get_provider(
     "litellm",
     api_key="DEIN_KEY",
-    base_url="https://api.ccsio.ai/v1",   # Pflicht — kein Default
+    base_url="https://litellm.example.com/v1",   # Pflicht — kein Default
     model="qwen3.6-35b-a3b",              # optionales Default-Modell (pro Call überschreibbar)
 )
 

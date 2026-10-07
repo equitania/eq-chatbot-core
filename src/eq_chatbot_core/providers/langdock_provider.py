@@ -239,6 +239,7 @@ class LangDockProvider(BaseLLMProvider):
         backend: str = "openai",
         reasoning_effort: str | None = None,
         agent_id: str | None = None,
+        model: str | None = None,
     ):
         """
         Initialize LangDock provider.
@@ -252,6 +253,8 @@ class LangDockProvider(BaseLLMProvider):
             backend: LangDock backend - 'openai', 'anthropic', 'google', 'codestral', 'agent'
             reasoning_effort: For O1/O3/O4 models - 'low', 'medium', 'high'
             agent_id: LangDock Agent ID (required for backend='agent')
+            model: Model used when a call passes none (not used by the agent
+                backend, whose model is configured in LangDock)
         """
         # Initialize clients BEFORE validation to ensure __del__ works even when
         # the SSRF guard below rejects the URL.
@@ -267,7 +270,7 @@ class LangDockProvider(BaseLLMProvider):
 
             validate_url(base_url, allow_private_ranges=False)
 
-        super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries)
+        super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries, model)
 
         self.region = region.lower()
         self.backend = backend.lower()
@@ -286,33 +289,11 @@ class LangDockProvider(BaseLLMProvider):
     def provider_name(self) -> str:
         return "langdock"
 
-    @property
-    def default_model(self) -> str:
-        """Return default model based on backend."""
-        defaults = {
-            "openai": "gpt-5.6-luna",
-            "anthropic": "claude-sonnet-5-default",
-            # These are FALLBACKS, not a catalogue. Model discovery is live
-            # everywhere — list_models() asks LangDock and gets back exactly the
-            # models the workspace enabled — but `model or self.default_model`
-            # needs something when a caller passes nothing, so one id per backend
-            # has to be written down.
-            #
-            # Treat them as perishable: which models a LangDock workspace enables
-            # is a per-customer setting, so no constant here can be right for
-            # everyone. On 23.08.2026 three of the four were dead at once (gpt-4o,
-            # claude-sonnet-4-20250514, gemini-2.5-flash) and every default-model
-            # call answered 400. The live test
-            # test_backend_defaults_are_actually_available turns that into a red
-            # run; callers who need certainty should take list_models()[0].
-            "google": "gemini-3.7-flash",
-            "codestral": "codestral-2501",
-            "agent": None,  # Agent uses its configured model
-        }
-        # The "agent" backend maps to None on purpose: its model is configured
-        # in LangDock, not chosen per request. The base class declares `str`,
-        # and callers use this only as `model or self.default_model`.
-        return defaults.get(self.backend, "gpt-4o")  # type: ignore[return-value]
+    def resolve_model(self, model: str | None = None) -> str:
+        """Model for one call; the agent backend needs none (its model lives in LangDock)."""
+        if self.backend == "agent":
+            return model or ""
+        return super().resolve_model(model)
 
     def _get_backend_url(self) -> str:
         """Get the full base URL for the current backend."""
@@ -423,7 +404,7 @@ class LangDockProvider(BaseLLMProvider):
 
         Routes to the appropriate backend based on configuration.
         """
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # backends below build request payloads from plain dicts.
         tools = normalize_tools(tools)
@@ -929,7 +910,7 @@ class LangDockProvider(BaseLLMProvider):
 
         Routes to the appropriate backend based on configuration.
         """
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # backends below build request payloads from plain dicts.
         tools = normalize_tools(tools)
@@ -1604,12 +1585,9 @@ class LangDockProvider(BaseLLMProvider):
     def _list_codestral_models(self) -> list[dict[str, Any]]:
         """Deliberately empty: Codestral is FIM-only, not a chat model.
 
-        LangDock does serve ``GET /mistral/eu/v1/models`` (it returns
-        ``codestral-2501``), but surfacing that here would put a
-        fill-in-the-middle model into a chat model picker, where it cannot
-        answer. Callers who want it address it explicitly via the backend
-        default. The default id is checked by a unit test against what the
-        endpoint actually serves.
+        LangDock does serve ``GET /mistral/eu/v1/models``, but surfacing that
+        here would put a fill-in-the-middle model into a chat model picker, where
+        it cannot answer. Callers address it explicitly with ``model=``.
         """
         return []
 
@@ -1857,7 +1835,7 @@ class LangDockAgentManager:
         self,
         name: str,
         instruction: str,
-        model: str = "gpt-4o",
+        model: str,
         knowledge_folder_ids: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -1867,7 +1845,7 @@ class LangDockAgentManager:
         Args:
             name: Agent name
             instruction: System instruction for the agent
-            model: LLM model to use
+            model: Model the agent runs (required; there is no default)
             knowledge_folder_ids: List of knowledge folder IDs to attach
             **kwargs: Additional agent configuration (e.g. creativity, webSearch)
 

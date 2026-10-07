@@ -44,7 +44,6 @@ class LocalLLMProvider(OpenAICompatibleProvider):
     """
 
     PROVIDER_NAME = "local"
-    DEFAULT_MODEL = "local-model"
     ALLOW_PRIVATE_RANGES = True
     STREAM_INCLUDE_USAGE = False
 
@@ -62,6 +61,7 @@ class LocalLLMProvider(OpenAICompatibleProvider):
         base_url: str | None = None,
         timeout: float | None = None,
         max_retries: int = 2,
+        model: str | None = None,
     ):
         """
         Initialize the local LLM provider.
@@ -71,6 +71,7 @@ class LocalLLMProvider(OpenAICompatibleProvider):
             base_url: Server URL (defaults to LM Studio URL)
             timeout: Request timeout in seconds (defaults to 120s for model loading)
             max_retries: Number of retries on transient failures
+            model: Model used when a call passes none (the id the server lists)
         """
         # Always validated (LAN mode): local servers are reachable without DNS
         # surprises, and the old provider validated the default too.
@@ -79,6 +80,7 @@ class LocalLLMProvider(OpenAICompatibleProvider):
             base_url=base_url or self.LM_STUDIO_URL,
             timeout=timeout or self.DEFAULT_TIMEOUT,
             max_retries=max_retries,
+            model=model,
         )
 
     def _get_server_type(self) -> str:

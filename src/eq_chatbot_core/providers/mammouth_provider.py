@@ -31,8 +31,6 @@ class MammouthProvider(OpenAICompatibleProvider):
 
     PROVIDER_NAME = "mammouth"
     DEFAULT_BASE_URL = "https://api.mammouth.ai/v1"
-    # Verified live on 23.08.2026; model IDs leave the source in stage 2.
-    DEFAULT_MODEL = "gpt-5.6-luna"
     MODELS_URL = "https://api.mammouth.ai/public/models"
     _validate_default_url = False
 
@@ -45,6 +43,7 @@ class MammouthProvider(OpenAICompatibleProvider):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        model: str | None = None,
     ):
         """
         Initialize the Mammouth AI provider.
@@ -54,8 +53,9 @@ class MammouthProvider(OpenAICompatibleProvider):
             base_url: Optional custom base URL (defaults to Mammouth API)
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
+            model: Model used when a call passes none
         """
-        super().__init__(api_key, base_url, timeout, max_retries)
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _is_reasoning_model(self, model: str) -> bool:
         """Check if model is a reasoning model (O1, O3, O4)."""
