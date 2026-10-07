@@ -20,6 +20,19 @@ _pymupdf_available: bool | None = None
 MAX_PDF_BYTES = 50 * 1024 * 1024  # 50 MB raw input
 MAX_PAGES_HARD = 50  # never render more pages than this, regardless of max_pages
 MAX_DPI = 600  # cap render resolution
+# A page's MediaBox may be up to 14400 pt square, so DPI alone does not bound the
+# pixmap: one such page at 150 DPI is ~900 MP (~2.7 GB RGB). Pages above this
+# budget (~120 MB RGB) are rendered at a lower zoom instead. A4 at MAX_DPI is
+# ~35 MP and renders unchanged.
+MAX_PIXELS_PER_PAGE = 40_000_000
+
+
+def _zoom_for_page(width_pt: float, height_pt: float, zoom: float) -> float:
+    """Return ``zoom``, reduced so the rendered page stays within MAX_PIXELS_PER_PAGE."""
+    pixels = width_pt * height_pt * zoom * zoom
+    if pixels <= MAX_PIXELS_PER_PAGE:
+        return zoom
+    return float(zoom * (MAX_PIXELS_PER_PAGE / pixels) ** 0.5)
 
 
 def is_pdf_conversion_available() -> bool:
@@ -96,13 +109,19 @@ def pdf_to_images(
 
         # Calculate zoom factor from DPI (72 is the base PDF resolution)
         zoom = dpi / 72.0
-        matrix = fitz.Matrix(zoom, zoom)
 
         for page_num in range(page_count):
             try:
                 page = doc[page_num]
+                page_zoom = _zoom_for_page(page.rect.width, page.rect.height, zoom)
+                if page_zoom < zoom:
+                    _logger.warning(
+                        f"Page {page_num + 1} is {page.rect.width:.0f}x{page.rect.height:.0f} pt; "
+                        f"rendering at {page_zoom * 72:.0f} DPI instead of {dpi} to stay within "
+                        f"{MAX_PIXELS_PER_PAGE:,} pixels"
+                    )
                 # Render page to pixmap (image)
-                pix = page.get_pixmap(matrix=matrix, alpha=False)
+                pix = page.get_pixmap(matrix=fitz.Matrix(page_zoom, page_zoom), alpha=False)
 
                 # Convert to bytes
                 if image_format == "png":

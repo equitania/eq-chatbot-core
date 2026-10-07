@@ -6,6 +6,7 @@ verify neither.
 """
 
 import base64
+import math
 
 import pytest
 
@@ -13,6 +14,7 @@ from eq_chatbot_core.utils.pdf import (
     MAX_DPI,
     MAX_PAGES_HARD,
     MAX_PDF_BYTES,
+    MAX_PIXELS_PER_PAGE,
     is_pdf_conversion_available,
     pdf_to_base64_images,
     pdf_to_images,
@@ -112,6 +114,43 @@ class TestResourceClamping:
 
     def test_zero_dpi_clamped_to_minimum(self):
         assert len(pdf_to_images(_make_pdf(1), dpi=0)) == 1
+
+
+class TestPixelBudget:
+    """DPI alone does not bound memory: the page size comes from the PDF itself.
+
+    A PDF of a few hundred bytes can declare a 14400 x 14400 pt page, which at
+    150 DPI renders to 30000 x 30000 px (~2.7 GB RGB).
+    """
+
+    @staticmethod
+    def _pdf_with_page(width: float, height: float) -> bytes:
+        doc = fitz.open()
+        doc.new_page(width=width, height=height)
+        data: bytes = doc.tobytes()
+        doc.close()
+        return data
+
+    @staticmethod
+    def _pixels(png: bytes) -> int:
+        pix = fitz.Pixmap(png)
+        return int(pix.width * pix.height)
+
+    def test_huge_page_rendered_within_budget(self):
+        pdf = self._pdf_with_page(14400, 14400)
+        assert len(pdf) < 2000  # the attack costs nothing to send
+
+        images = pdf_to_images(pdf, dpi=150)
+
+        assert len(images) == 1
+        assert self._pixels(images[0][0]) <= MAX_PIXELS_PER_PAGE * 1.001  # pixel rounding
+
+    def test_a4_at_max_dpi_unchanged(self):
+        """The budget must not degrade ordinary documents at the highest allowed DPI."""
+        png = pdf_to_images(self._pdf_with_page(595, 842), dpi=MAX_DPI)[0][0]
+
+        pix = fitz.Pixmap(png)
+        assert (pix.width, pix.height) == (math.ceil(595 * MAX_DPI / 72), math.ceil(842 * MAX_DPI / 72))
 
 
 class TestBase64Wrapper:

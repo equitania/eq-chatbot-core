@@ -71,10 +71,15 @@ _DANGEROUS_ENV_KEYS = frozenset(
         "DYLD_FORCE_FLAT_NAMESPACE",
         "PYTHONSTARTUP",
         "PYTHONINSPECT",
+        "PYTHONHOME",  # swaps the whole stdlib, not just the search path
         "BASH_ENV",
         "ENV",
     }
 )
+
+# NODE_OPTIONS has legitimate uses (--max-old-space-size), so only the flags
+# that load code before the entry point are refused.
+_NODE_PRELOAD_FLAGS = ("-r", "--require", "--import", "--loader", "--experimental-loader")
 
 _DEFAULT_PORTS = {"http": 80, "https": 443}
 
@@ -105,13 +110,20 @@ def _validate_stdio_env(env: dict[str, str] | None) -> None:
     """
     if not env:
         return
-    for key in env:
+    for key, value in env.items():
         if key.upper() in _DANGEROUS_ENV_KEYS:
             raise ValueError(
                 f"Environment variable '{key}' is not allowed for MCP subprocess "
                 "execution: it permits code injection independent of the command "
                 f"allowlist. Disallowed keys: {sorted(_DANGEROUS_ENV_KEYS)}."
             )
+        if key.upper() == "NODE_OPTIONS":
+            for token in value.split():
+                if token.split("=", 1)[0] in _NODE_PRELOAD_FLAGS:
+                    raise ValueError(
+                        f"NODE_OPTIONS flag '{token}' is not allowed for MCP subprocess "
+                        f"execution: it loads code before the entry point. Disallowed: {list(_NODE_PRELOAD_FLAGS)}."
+                    )
 
 
 def _validate_stdio_command(command: str, args: list[str] | None = None) -> None:
@@ -126,7 +138,13 @@ def _validate_stdio_command(command: str, args: list[str] | None = None) -> None
     binary named e.g. ``python3`` earlier in ``$PATH``, ``create_subprocess_exec``
     will still resolve to it. Callers running untrusted MCP configs must therefore
     control ``$PATH`` (and the contents of its directories) — this is a runtime
-    allowlist, not a sandbox.
+    allowlist, not a sandbox. A ``PATH`` passed in the client's ``env`` does not
+    choose the binary: :class:`StdioMCPClient` launches the one resolved against
+    this process's ``PATH``.
+
+    Allowed runtimes still run arbitrary code by design (``npx <pkg>``,
+    ``python -m <module>``). Stdio MCP configurations must therefore come from an
+    administrator, never from an end user or tenant.
 
     Args:
         command: Command binary name or path
@@ -676,6 +694,18 @@ class StdioMCPClient:
         """
         _validate_stdio_command(command, args)
         _validate_stdio_env(env)
+        # The command was checked against this process's PATH. A caller-supplied
+        # PATH would otherwise decide which binary actually runs, so launch the
+        # binary resolved here; the child still sees the caller's PATH.
+        self._executable = command
+        if env and any(key.upper() == "PATH" for key in env):
+            resolved = shutil.which(command)
+            if resolved is None:
+                raise ValueError(
+                    f"Command '{command}' is not on this process's PATH. With a custom PATH in env, "
+                    "the command must resolve here first, or be passed as an absolute path."
+                )
+            self._executable = resolved
         self.command = command
         self.args = args or []
         self.env = env or {}
@@ -715,7 +745,7 @@ class StdioMCPClient:
         logger.info(f"Starting MCP subprocess: {self.command} {' '.join(self.args)}")
 
         self._process = await asyncio.create_subprocess_exec(
-            self.command,
+            self._executable,
             *self.args,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,

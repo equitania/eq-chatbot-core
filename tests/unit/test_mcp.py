@@ -1346,6 +1346,93 @@ class TestStdioEnvWhitelistHardening:
             _, kwargs = mock_exec.call_args
             assert kwargs["env"]["PYTHONPATH"] == "/opt/mcp-deps"
 
+    def test_pythonhome_rejected(self):
+        """PYTHONHOME replaces the whole stdlib, so any import runs foreign code."""
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        with pytest.raises(ValueError, match="PYTHONHOME"):
+            StdioMCPClient(command="python", env={"PYTHONHOME": "/tmp/fake-stdlib"})
+
+    @pytest.mark.parametrize(
+        "node_options",
+        [
+            "--require /tmp/x.js",
+            "-r /tmp/x.js",
+            "--require=/tmp/x.js",
+            "--max-old-space-size=4096 --import=/tmp/x.mjs",
+            "--experimental-loader /tmp/loader.mjs",
+        ],
+    )
+    def test_node_options_preload_rejected(self, node_options):
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        with pytest.raises(ValueError, match="NODE_OPTIONS"):
+            StdioMCPClient(command="npx", args=["-y", "some-mcp"], env={"NODE_OPTIONS": node_options})
+
+    def test_node_options_memory_flag_allowed(self):
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        client = StdioMCPClient(command="npx", env={"NODE_OPTIONS": "--max-old-space-size=4096"})
+        assert client.env["NODE_OPTIONS"] == "--max-old-space-size=4096"
+
+    @pytest.mark.asyncio
+    async def test_custom_path_does_not_choose_the_binary(self, tmp_path):
+        """A python3 planted in a caller-supplied PATH must not be the one launched.
+
+        The allowlist only checks names, so before this the binary that ran was
+        whatever the caller's PATH put first — validated against one PATH,
+        executed against another.
+        """
+        import shutil
+
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        expected = shutil.which("python3")
+        if expected is None:
+            pytest.skip("python3 not on PATH")
+        planted = tmp_path / "python3"
+        planted.write_text("#!/bin/sh\nexit 0\n")
+        planted.chmod(0o755)
+
+        client = StdioMCPClient(command="python3", env={"PATH": str(tmp_path)}, timeout=1.0)
+
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+            mock_exec.return_value = mock_process
+            await client.start()
+
+        args, kwargs = mock_exec.call_args
+        assert args[0] == expected
+        assert kwargs["env"]["PATH"] == str(tmp_path)  # the child still sees the caller's PATH
+
+    def test_custom_path_with_unresolvable_command_rejected(self):
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        with patch("eq_chatbot_core.mcp.client.shutil.which", return_value=None):
+            with pytest.raises(ValueError, match="not on this process's PATH"):
+                StdioMCPClient(command="python3.13", env={"PATH": "/opt/elsewhere"})
+
+    @pytest.mark.asyncio
+    async def test_without_custom_path_command_passed_unchanged(self):
+        """No caller PATH: behaviour as before, the bare command goes to exec."""
+        from eq_chatbot_core.mcp.client import StdioMCPClient
+
+        client = StdioMCPClient(command="python", timeout=1.0)
+        mock_process = MagicMock()
+        mock_process.stdin = MagicMock()
+        mock_process.stdin.drain = AsyncMock()
+        mock_process.stdout = MagicMock()
+        mock_process.stdout.readline = AsyncMock(return_value=b'{"jsonrpc": "2.0", "id": 1, "result": {}}\n')
+        with patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec:
+            mock_exec.return_value = mock_process
+            await client.start()
+
+        assert mock_exec.call_args[0][0] == "python"
+
 
 @pytest.mark.unit
 class TestDNSRebindingProtection:
