@@ -22,12 +22,12 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 
 - **Multi-Provider Support** — OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Privatemode.ai (end-to-end encrypted, EU), Local (LM Studio/Ollama)
 - **Unified API** — same interface regardless of provider
-- **Temperature Safety** — automatic model-specific temperature clamping
+- **No built-in model IDs** (v4.0.0) — the model is always the caller's; whether a model accepts `temperature`, `max_completion_tokens` or `reasoning_effort` is learned from the provider at runtime
 - **Security** — Fernet encryption, prompt-injection detection (direct user input + indirect tool/RAG content), file-upload validation, race-free token-bucket rate limiting
 - **RAG Pipeline** — chunking, embeddings (incl. Melious.ai and IONOS embedders), Qdrant-backed retrieval, context-window management
 - **MCP Client** — Streamable HTTP, legacy HTTP/SSE and stdio transports, hardened against DNS rebinding, SSRF, and subprocess env injection; LAN mode for servers on the intranet
 - **CLI Tool** — provider testing, model discovery, programmatic JSON I/O chat
-- **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI `gpt-image-1` and OpenRouter image models
+- **Text-to-Image Generation** (v1.14.0) — `eq-chatbot image` (single PNG) and `eq-chatbot listing-assets` (batch from a recipe); OpenAI and OpenRouter image models (`image_model` in the config file)
 - **HTTP/SSE Server Mode** (v1.7.0) — run as a local sidecar (`eq-chatbot serve`) for cross-language integrations (Avalonia/.NET, Electron, native mobile)
 
 > **Breaking in v3.0.0 — Azure and Vertex AI providers removed:** `get_provider("azure")` and
@@ -226,12 +226,12 @@ Ursprünglich aus einer Odoo-18-Chatbot-Integration extrahiert; funktioniert sta
 
 - **Multi-Provider-Unterstützung** — OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, LiteLLM-Gateway, IONOS AI Model Hub (EU-gehostet), Melious.ai (souverän EU), Privatemode.ai (Ende-zu-Ende-verschlüsselt, EU), Local (LM Studio/Ollama)
 - **Einheitliche API** — gleiche Schnittstelle unabhängig vom Provider
-- **Temperature-Sicherheit** — automatisches modellspezifisches Temperature-Clamping
+- **Keine eingebauten Modell-IDs** (v4.0.0) — das Modell kommt immer vom Aufrufer; ob ein Modell `temperature`, `max_completion_tokens` oder `reasoning_effort` annimmt, lernt die Bibliothek zur Laufzeit vom Anbieter
 - **Sicherheit** — Fernet-Verschlüsselung, Prompt-Injection-Erkennung (direkte Nutzereingaben + indirekte Tool-/RAG-Inhalte), File-Upload-Validierung, Race-freies Token-Bucket-Rate-Limiting
 - **RAG-Pipeline** — Chunking, Embeddings (inkl. Melious.ai- und IONOS-Embedder), Qdrant-basiertes Retrieval, Context-Window-Management
 - **MCP-Client** — Streamable HTTP, älteres HTTP/SSE und stdio als Transports, gehärtet gegen DNS-Rebinding, SSRF und Subprocess-Env-Injection; LAN-Modus für Server im Intranet
 - **CLI-Tool** — Provider-Tests, Modell-Discovery, programmatische JSON-I/O-Chat-Calls
-- **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI `gpt-image-1` und OpenRouter-Bildmodelle
+- **Text-zu-Bild-Generierung** (v1.14.0) — `eq-chatbot image` (einzelnes PNG) und `eq-chatbot listing-assets` (Batch aus einer Recipe); OpenAI- und OpenRouter-Bildmodelle (`image_model` in der Konfigurationsdatei)
 - **HTTP/SSE-Server-Mode** (v1.7.0) — lokaler Sidecar (`eq-chatbot serve`) für Cross-Language-Integrationen (Avalonia/.NET, Electron, native Mobile)
 
 > **Breaking in v3.0.0 — die Provider Azure und Vertex AI entfallen:** `get_provider("azure")`

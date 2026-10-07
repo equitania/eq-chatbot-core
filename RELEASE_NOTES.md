@@ -1,5 +1,50 @@
 # Release Notes
 
+## Version 4.0.0 (07.10.2026)
+
+Inkompatibles Release: Die Bibliothek enthält keine Modell-IDs mehr. Modelle wechseln alle
+paar Wochen; jede Liste in der Bibliothek war dauerhaft veraltet und brach echte Anfragen.
+Vollständige Liste der entfernten Namen und der Umstieg von 3.x: `CHANGELOG.md`.
+
+### [CHG]
+
+- **Kein Standardmodell mehr.** Das Modell kommt pro Aufruf (`model=`) oder einmal über den
+  Konstruktor bzw. `get_provider(..., model=...)`; Bilder über `image_model=`, LiteLLM-Audio über
+  `tts_model=`, `tts_voice=`, `stt_model=`. Fehlt es, wirft der Aufruf `ModelNotSpecifiedError`
+  (ein `ProviderError`), bevor etwas gesendet wird. Das `agent`-Backend von LangDock braucht kein
+  Modell. Gilt auch für Embedder und die Realtime-Konfigurationen.
+- **Parameter werden gelernt statt nachgeschlagen.** Ob ein Modell `temperature` annimmt,
+  `max_completion_tokens` statt `max_tokens` will oder `reasoning_effort` versteht, lernt die
+  Bibliothek aus der Ablehnung des Anbieters: einmal wiederholen, je Endpunkt und Modell merken.
+  Neu für `reasoning_effort` sowie für `temperature` bei Anthropic und LangDocks
+  `anthropic`-Backend. Eine abgelehnte *Wertangabe* von `reasoning_effort` wird nicht gelernt.
+- **Nur noch Bereiche je Anbieter:** `temperature` 0–2 im OpenAI-Protokoll, 0–1 bei Anthropic.
+  `clamp_temperature()` und `apply_anthropic_temperature()` haben kein Modellargument mehr.
+- **`list_models()` filtert nicht mehr nach Namen;** was der Anbieter nicht meldet, ist `None`.
+  Fehler beim Abruf werfen `ProviderError` statt eine leere Liste zu liefern.
+- **Kein mitgelieferter Fähigkeitskatalog mehr.** `CapabilityCatalog.from_remote()` lädt die
+  gehostete Datei; scheitert das, ist der Katalog leer und eine WARNING wird geloggt.
+- **Embedder:** `dimensions` wird übergeben oder aus der ersten Antwort gelesen.
+  **`ContextWindowManager`:** neues `context_length=`, sonst 128000 mit WARNING.
+- **CLI:** Modell aus `--model` oder der Konfigurationsdatei, sonst Meldung und Exit-Code 1.
+  `image` und `listing-assets` lesen den neuen Schlüssel `image_model`. **Server-Modus:** fehlendes
+  Modell → HTTP 400, bei Streams vor Beginn des Streams.
+- **Gemeinsame Basisklasse** `OpenAICompatibleProvider` für alle Anbieter mit OpenAI-Protokoll
+  (Mammouth, Local, OpenAI, OpenRouter, LangDocks `openai`-Backend); Fehler werden einheitlich nach
+  HTTP-Status abgebildet.
+
+### [ADD]
+
+- Wächtertest `tests/unit/test_no_model_ids_in_source.py`: schlägt bei jeder Modell-ID unter
+  `src/` fehl.
+- Tests gegen einen echten lokalen HTTP-Server (`tests/wire_server.py`) statt gemockter SDKs für
+  das neue Verhalten; rund 200 überholte Mock-Tests entfernt.
+
+### Hinweis zum Umstieg
+
+Jeder Aufruf ohne Modell bricht ab 4.0.0 mit `ModelNotSpecifiedError` ab. Konsumenten (z. B. das
+Odoo-Chatbot-Modul) müssen das Modell explizit übergeben.
+
 ## Version 3.3.1 (07.10.2026)
 
 ### [FIX]
