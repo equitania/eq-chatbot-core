@@ -32,12 +32,14 @@ def check_stream(provider: Any, model: str) -> None:
     assert chunks[-1].is_final
 
 
-def check_tool_call(provider: Any, model: str) -> None:
+def check_tool_call(provider: Any, model: str, **extra: Any) -> None:
+    """``extra`` goes to the request unchanged (e.g. a model-specific effort setting)."""
     r = provider.chat_completion(
         [{"role": "user", "content": "What is the weather in Berlin? Use the tool."}],
         model=model,
         tools=[WEATHER_TOOL],
         max_tokens=_BUDGET,
+        **extra,
     )
     assert r.tool_calls, f"no tool call; content={r.content!r}"
     assert r.tool_calls[0]["function"]["name"] == "get_weather"

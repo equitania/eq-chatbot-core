@@ -570,3 +570,67 @@ class TestProviderDefaultsAreLive:
         )
 
         assert response.content.strip()
+
+
+# =============================================================================
+# OpenAI on OpenAICompatibleProvider
+# =============================================================================
+
+# Probed 07.10.2026: rejects temperature (unsupported_value) and max_tokens
+# (unsupported_parameter). Test data, not library configuration.
+PARAMETER_REJECTING_MODEL = "gpt-5.6-luna"
+
+
+@pytest.mark.integration
+class TestOpenAIOnBaseClass:
+    @pytest.fixture
+    def provider(self, openai_api_key):
+        if not openai_api_key:
+            pytest.skip("OPENAI_API_KEY not set")
+        return get_provider("openai", api_key=openai_api_key)
+
+    def test_chat(self, provider, openai_resolved_model):
+        from tests.integration.live_checks import check_chat
+
+        check_chat(provider, openai_resolved_model)
+
+    def test_stream(self, provider, openai_resolved_model):
+        from tests.integration.live_checks import check_stream
+
+        check_stream(provider, openai_resolved_model)
+
+    def test_tool_call(self, provider, openai_resolved_model):
+        from tests.integration.live_checks import check_tool_call
+
+        # Probed 07.10.2026 with the plain SDK: the gpt-5.6 models answer 400 to
+        # function tools on /v1/chat/completions unless reasoning_effort is "none".
+        # An API restriction, independent of this library.
+        check_tool_call(provider, openai_resolved_model, reasoning_effort="none")
+
+    def test_learning_without_name_lists(self, openai_api_key, clean_param_memory, caplog):
+        """The stage-2 situation: no name-based first guess. Must still work, and learn once."""
+        if not openai_api_key:
+            pytest.skip("OPENAI_API_KEY not set")
+        from eq_chatbot_core.providers.openai_provider import OpenAIProvider
+
+        class _NoGuesses(OpenAIProvider):
+            def _token_param(self, model):
+                return "max_tokens"
+
+            def _build_params(self, messages, model, temperature, max_tokens, tools, **kwargs):
+                params = super()._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
+                params["temperature"] = temperature
+                return params
+
+        provider = _NoGuesses(api_key=openai_api_key)
+        msg = [{"role": "user", "content": "Say 'test' only."}]
+        with caplog.at_level("INFO", logger="eq_chatbot_core.providers.openai_compatible"):
+            first = provider.chat_completion(msg, model=PARAMETER_REJECTING_MODEL, temperature=0.7, max_tokens=512)
+        assert "test" in first.content.lower()
+        retried = {p for p in ("temperature", "max_tokens") if f"'{p}'" in caplog.text}
+        assert retried == {"temperature", "max_tokens"}
+
+        caplog.clear()
+        with caplog.at_level("INFO", logger="eq_chatbot_core.providers.openai_compatible"):
+            provider.chat_completion(msg, model=PARAMETER_REJECTING_MODEL, temperature=0.7, max_tokens=512)
+        assert "rejected" not in caplog.text
