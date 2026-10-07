@@ -153,6 +153,7 @@ class BaseLLMProvider(ABC):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        model: str | None = None,
     ):
         """
         Initialize the provider.
@@ -162,11 +163,14 @@ class BaseLLMProvider(ABC):
             base_url: Optional custom base URL
             timeout: Request timeout in seconds
             max_retries: Number of retries on transient failures
+            model: Model used when a call passes none. There is no built-in
+                default: without it, every call must pass ``model=``.
         """
         self._api_key = api_key
         self.base_url = base_url
         self.timeout = timeout
         self.max_retries = max_retries
+        self._model = model or None
 
     @property
     def api_key(self) -> str:
@@ -184,10 +188,20 @@ class BaseLLMProvider(ABC):
         ...
 
     @property
-    @abstractmethod
-    def default_model(self) -> str:
-        """Return the default model for this provider."""
-        ...
+    def default_model(self) -> str | None:
+        """The model set on this instance (constructor ``model=``), or ``None``."""
+        return getattr(self, "_model", None)
+
+    def resolve_model(self, model: str | None = None) -> str:
+        """Return the model for one call: ``model`` if given, else the instance's.
+
+        Raises:
+            ModelNotSpecifiedError: If neither names a model.
+        """
+        resolved = model or self.default_model
+        if not resolved:
+            raise ModelNotSpecifiedError(self.provider_name)
+        return resolved
 
     @abstractmethod
     def chat_completion(
@@ -204,7 +218,7 @@ class BaseLLMProvider(ABC):
 
         Args:
             messages: List of message dicts with 'role' and 'content'
-            model: Model to use (defaults to provider's default)
+            model: Model to use; falls back to the constructor's ``model``.
             temperature: Sampling temperature (0.0 - 2.0)
             max_tokens: Maximum tokens to generate
             tools: Optional tool definitions for function calling
@@ -234,7 +248,7 @@ class BaseLLMProvider(ABC):
 
         Args:
             messages: List of message dicts with 'role' and 'content'
-            model: Model to use (defaults to provider's default)
+            model: Model to use; falls back to the constructor's ``model``.
             temperature: Sampling temperature (0.0 - 2.0)
             max_tokens: Maximum tokens to generate
             tools: Optional tool definitions for function calling
@@ -280,7 +294,7 @@ class BaseLLMProvider(ABC):
 
         Args:
             prompt: Text description of the image to generate
-            model: Model to use (defaults to provider's image default)
+            model: Image model to use; falls back to the constructor's ``image_model``.
             size: Image dimensions (e.g. '1024x1024')
             **kwargs: Additional provider-specific parameters
 
@@ -341,6 +355,29 @@ class ProviderError(Exception):
         self.retry_after = retry_after
 
 
+class ModelNotSpecifiedError(ProviderError):
+    """Raised when a call needs a model and neither the call nor the provider names one.
+
+    The library ships no default model: model IDs change faster than releases.
+    """
+
+    def __init__(
+        self,
+        provider: str,
+        *,
+        what: str = "model",
+        argument: str = "model",
+        constructor_argument: str = "model",
+        hint: str | None = None,
+    ):
+        instruction = hint or (
+            f'Pass {argument}="..." to this call, or {constructor_argument}="..." when creating the provider: '
+            f'get_provider("{provider}", ..., {constructor_argument}="...").'
+        )
+        super().__init__(f'No {what} specified for provider "{provider}". {instruction}', provider)
+        self.what = what
+
+
 class RateLimitError(ProviderError):
     """Raised when the provider's rate limit is exceeded."""
 
@@ -373,6 +410,7 @@ __all__ = [
     "ModelInfo",
     "BaseLLMProvider",
     "ProviderError",
+    "ModelNotSpecifiedError",
     "RateLimitError",
     "AuthenticationError",
     "ContextLengthError",

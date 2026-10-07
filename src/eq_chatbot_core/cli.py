@@ -20,6 +20,7 @@ from eq_chatbot_core.utils.config import (
     config_api_key,
     config_base_url,
     config_default_provider,
+    config_image_model,
     config_max_tokens,
     config_model,
     config_temperature,
@@ -73,10 +74,20 @@ def resolve_base_url(provider: str | None, explicit_url: str | None) -> str | No
 
 
 def resolve_model(provider: str | None, explicit_model: str | None) -> str | None:
-    """Resolve the model: --model flag > config file > None (provider default)."""
+    """Resolve the model: --model flag > config file > None (the command then stops with model_required_message())."""
     if explicit_model:
         return explicit_model
     return config_model(provider)
+
+
+def model_required_message(provider: str, *, key: str = "model", what: str = "model") -> str:
+    """Explain where a model comes from; there is no built-in default."""
+    from eq_chatbot_core.utils.config import config_path
+
+    return (
+        f"No {what} given for provider '{provider}'. Pass --model/-m, or set "
+        f'{key} = "..." under [providers.{provider}] in {config_path()}.'
+    )
 
 
 def resolve_provider(explicit_provider: str | None) -> str | None:
@@ -132,7 +143,7 @@ def main() -> None:
     "--model",
     "-m",
     default=None,
-    help="Model to use (uses provider default if not specified)",
+    help="Model to use (falls back to the config file; required)",
 )
 @click.option(
     "--message",
@@ -156,18 +167,18 @@ def test_provider(
     Examples:
 
         # Cloud providers
-        eq-chatbot test-provider -p openai -k sk-...
+        eq-chatbot test-provider -p openai -k sk-... -m your-model-id
 
-        eq-chatbot test-provider -p anthropic -k sk-ant-... -m claude-3-5-sonnet-20241022
+        eq-chatbot test-provider -p anthropic -k sk-ant-... -m your-model-id
 
-        LLM_API_KEY=sk-... eq-chatbot test-provider -p openai
+        LLM_API_KEY=sk-... eq-chatbot test-provider -p openai -m your-model-id
 
         # Local providers (no API key needed)
-        eq-chatbot test-provider -p lm_studio
+        eq-chatbot test-provider -p lm_studio -m your-local-model
 
-        eq-chatbot test-provider -p ollama -m llama3.2:latest
+        eq-chatbot test-provider -p ollama -m your-local-model
 
-        eq-chatbot test-provider -p local -u http://localhost:1234/v1
+        eq-chatbot test-provider -p local -u http://localhost:1234/v1 -m your-local-model
     """
     provider, perr = resolve_cli_provider(provider, ALL_PROVIDERS)
     if perr:
@@ -188,6 +199,10 @@ def test_provider(
         )
         sys.exit(1)
 
+    if not model:
+        click.echo(click.style("Error: ", fg="red") + model_required_message(provider), err=True)
+        sys.exit(1)
+
     from eq_chatbot_core.providers import ProviderError, get_provider
 
     try:
@@ -195,15 +210,10 @@ def test_provider(
 
         provider_instance = get_provider(provider, api_key=api_key, base_url=base_url)
 
-        if model:
-            response = provider_instance.chat_completion(
-                messages=[{"role": "user", "content": message}],
-                model=model,
-            )
-        else:
-            response = provider_instance.chat_completion(
-                messages=[{"role": "user", "content": message}],
-            )
+        response = provider_instance.chat_completion(
+            messages=[{"role": "user", "content": message}],
+            model=model,
+        )
 
         click.echo(click.style("✓ Success!", fg="green", bold=True))
         click.echo()
@@ -395,7 +405,7 @@ def _validate_messages(messages: list[Any]) -> list[dict[str, Any]]:
     "--model",
     "-m",
     default=None,
-    help="Model to use (config file or provider default if not specified)",
+    help="Model to use (falls back to the config file; required)",
 )
 @click.option(
     "--temperature",
@@ -439,11 +449,11 @@ def chat(
 
     Examples:
 
-        echo '{"messages":[{"role":"user","content":"Hello"}]}' | eq-chatbot chat -p openai -k sk-...
+        echo '{"messages":[{"role":"user","content":"Hello"}]}' | eq-chatbot chat -p openai -k sk-... -m your-model-id
 
-        cat request.json | eq-chatbot chat -p anthropic -m claude-3-5-sonnet-20241022
+        cat request.json | eq-chatbot chat -p anthropic -m your-model-id
 
-        LLM_API_KEY=sk-... eq-chatbot chat -p openai -m gpt-4o-mini
+        LLM_API_KEY=sk-... eq-chatbot chat -p openai -m your-model-id
     """
     provider, perr = resolve_cli_provider(provider, ALL_PROVIDERS)
     if perr:
@@ -469,6 +479,9 @@ def chat(
             "error": "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         }
         click.echo(json.dumps(error_response), err=True)
+        sys.exit(1)
+    if not model:
+        click.echo(json.dumps({"error": model_required_message(provider)}), err=True)
         sys.exit(1)
 
     from eq_chatbot_core.providers import ProviderError, get_provider
@@ -501,11 +514,10 @@ def chat(
 
         kwargs: dict[str, Any] = {
             "messages": messages,
+            "model": model,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-        if model:
-            kwargs["model"] = model
 
         response = provider_instance.chat_completion(**kwargs)
 
@@ -697,7 +709,7 @@ IMAGE_PROVIDERS = ["openai", "openrouter"]
     "--model",
     "-m",
     default=None,
-    help="Model to use (uses provider default if not specified)",
+    help="Model to use (falls back to the config file; required)",
 )
 @click.option(
     "--prompt",
@@ -748,15 +760,16 @@ def image(
     """Generate an image from a text prompt.
 
     Saves the generated image to a file (PNG by default).
-    Supported providers: openai (gpt-image-1), openrouter (gemini-2.5-flash-image).
+    Supported providers: openai, openrouter. The image model comes from --model or image_model
+    in the config file (never from the chat model).
 
     Examples:
 
-        eq-chatbot image -p openai -k sk-... --prompt "A sunset over the ocean"
+        eq-chatbot image -p openai -k sk-... -m your-image-model --prompt "A sunset over the ocean"
 
-        eq-chatbot image -p openrouter -k sk-or-... --prompt "A cat in space" -o cat.png
+        eq-chatbot image -p openrouter -k sk-or-... -m your-image-model --prompt "A cat in space" -o cat.png
 
-        eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cover
+        eq-chatbot image -p openai -k sk-... -m your-image-model --prompt-file prompt.txt --fit 512x512:cover
     """
     if not prompt and not prompt_file:
         click.echo(click.style("Error: ", fg="red") + "Provide --prompt or --prompt-file.", err=True)
@@ -773,11 +786,17 @@ def image(
 
     api_key = resolve_api_key(provider, api_key)
     base_url = resolve_base_url(provider, base_url)
-    model = resolve_model(provider, model)
+    model = model or config_image_model(provider)
     if not api_key:
         click.echo(
             click.style("Error: ", fg="red")
             + "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file.",
+            err=True,
+        )
+        sys.exit(1)
+    if not model:
+        click.echo(
+            click.style("Error: ", fg="red") + model_required_message(provider, key="image_model", what="image model"),
             err=True,
         )
         sys.exit(1)
@@ -963,7 +982,7 @@ def listing_assets(
     {
       "schema": "eq-listing-assets/v1",
       "module": "eq_chatbot",
-      "defaults": {"provider": "openai", "model": "gpt-image-1"},
+      "defaults": {"provider": "openai", "model": "your-image-model"},
       "assets": [
         {"id": "banner", "out": "banner.png", "size": "1536x1024",
          "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot
@@ -994,9 +1013,10 @@ def listing_assets(
     recipe = _load_recipe(recipe_file)
     defaults = recipe.get("defaults", {})
 
-    # Resolve provider and model: CLI > recipe defaults > config file > hard default
+    # Resolve provider and model: CLI > recipe defaults > config file (image_model). The provider
+    # falls back to openai; the model has no default.
     resolved_provider = provider or defaults.get("provider") or config_default_provider() or "openai"
-    resolved_model = model or defaults.get("model") or config_model(resolved_provider) or None
+    resolved_model = model or defaults.get("model") or config_image_model(resolved_provider) or None
 
     # Resolve destination directory
     recipe_dir = pathlib.Path(recipe_file).parent
@@ -1030,6 +1050,8 @@ def listing_assets(
         raise click.ClickException(
             "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         )
+    if not resolved_model:
+        raise click.ClickException(model_required_message(resolved_provider, key="image_model", what="image model"))
 
     from eq_chatbot_core.providers import get_provider
     from eq_chatbot_core.utils.image import fit_to, parse_size, save_png
@@ -1107,8 +1129,8 @@ def info() -> None:
 
     click.echo(click.style("Supported Providers:", fg="blue"))
     click.echo("  Cloud:")
-    click.echo("    • openai     - GPT-4, GPT-4o, GPT-4.1, o1, o3, o4 series")
-    click.echo("    • anthropic  - Claude 3, Claude 3.5, Claude 4")
+    click.echo("    • openai     - OpenAI API (chat, images)")
+    click.echo("    • anthropic  - Anthropic Messages API")
     click.echo("    • langdock   - Multi-provider gateway (EU/US regions)")
     click.echo("    • openrouter - 400+ models via unified gateway")
     click.echo("    • mammouth   - 30+ AI models via unified API")

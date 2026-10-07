@@ -24,7 +24,6 @@ mock_openai_module = MagicMock()
 
 from eq_chatbot_core.providers.privatemode_provider import (
     DEFAULT_BASE_URL,
-    DEFAULT_MODEL,
     PrivatemodeProvider,
 )
 
@@ -120,7 +119,7 @@ def _use_privatemode_openai_mock():
 def _make_provider_with_client(mock_client) -> PrivatemodeProvider:
     """Build a provider whose openai client is the given mock."""
     mock_openai_module.OpenAI = MagicMock(return_value=mock_client)
-    provider = PrivatemodeProvider()
+    provider = PrivatemodeProvider(model="test-model")
     provider._client = None  # force lazy re-creation through the mocked OpenAI()
     return provider
 
@@ -188,9 +187,6 @@ class TestPrivatemodeProviderInit:
 class TestPrivatemodeProviderProperties:
     def test_provider_name(self):
         assert PrivatemodeProvider().provider_name == "privatemode"
-
-    def test_default_model_fallback(self):
-        assert PrivatemodeProvider().default_model == DEFAULT_MODEL
 
     def test_default_model_override(self):
         assert PrivatemodeProvider(model="gpt-oss-120b").default_model == "gpt-oss-120b"
@@ -345,15 +341,6 @@ class TestPrivatemodeChatCompletion:
         assert response.input_tokens == 9
         assert response.output_tokens == 4
         assert response.finish_reason == "stop"
-
-    def test_default_model_is_used(self, mock_chat_response):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_chat_response
-        provider = _make_provider_with_client(mock_client)
-
-        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-
-        assert mock_client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_MODEL
 
 
 @pytest.mark.unit

@@ -44,16 +44,13 @@ caller's ``Authorization`` header instead; pass the real key in that case.
 Models (see https://docs.privatemode.ai/models/overview/)
 ---------------------------------------------------------
 Model ids change over time and are discovered live via ``GET /v1/models``; no
-static catalog is bundled on purpose. At the time of writing the chat models are
-``kimi-latest`` / ``kimi-k2.6`` (256k context, vision) and ``gpt-oss-120b``
-(128k, text only); all chat models support streaming, tool calling and
-structured outputs.
+static catalog is bundled on purpose, and there is no default model.
 
 Reference endpoints (OpenAI-compatible, served by the proxy):
 - POST /v1/chat/completions   (chat + streaming)
 - GET  /v1/models
-- POST /v1/embeddings         (``qwen3-embedding-4b``)
-- POST /v1/audio/transcriptions (``whisper-large-v3``, ``voxtral-mini-3b``)
+- POST /v1/embeddings
+- POST /v1/audio/transcriptions
 """
 
 import ipaddress
@@ -85,9 +82,6 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
     # The proxy runs on the caller's own machine by default and terminates the
     # confidential channel; this is a local address by design, not a fallback.
     DEFAULT_BASE_URL = "http://localhost:8080/v1"
-    # Soft default — `-latest` tracks the current Kimi release, which the vendor
-    # recommends because concrete model ids are retired over time.
-    DEFAULT_MODEL = "kimi-latest"
     # The endpoint is loopback (or cluster-internal) by design.
     ALLOW_PRIVATE_RANGES = True
 
@@ -116,7 +110,7 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
                 ``http://localhost:8080/v1``.
             timeout: Request timeout in seconds.
             max_retries: Number of retries on transient failures.
-            model: Default model id for this instance (overridable per call).
+            model: Model used when a call passes none (there is no built-in default).
             allow_insecure_transport: Escape hatch that permits plain HTTP to a
                 *public* address. Off by default because it silently voids the
                 end-to-end encryption guarantee; set it only when an external
@@ -240,7 +234,7 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
         """Assemble the request payload, routing vendor extras into ``extra_body``.
 
         ``cache_salt`` (prompt-cache isolation) and ``chat_template_kwargs`` (e.g.
-        ``{"thinking": false}`` to skip Kimi's reasoning pass) are documented as
+        ``{"thinking": false}`` to skip a model's reasoning pass) are documented as
         body fields, not SDK parameters. Accepting them as plain keyword
         arguments keeps call sites free of ``extra_body`` plumbing.
         """
@@ -256,4 +250,3 @@ class PrivatemodeProvider(OpenAICompatibleProvider):
 
 # Module-level aliases kept for consistency with the other provider modules.
 DEFAULT_BASE_URL = PrivatemodeProvider.DEFAULT_BASE_URL
-DEFAULT_MODEL = PrivatemodeProvider.DEFAULT_MODEL

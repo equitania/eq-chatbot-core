@@ -20,15 +20,6 @@ from eq_chatbot_core.providers.openai_provider import OpenAIProvider
 # =============================================================================
 
 
-def _assert_pinned_http_client(call_kwargs):
-    """The SDK client must be routed through the DNS-rebinding-aware transport."""
-    http_client = call_kwargs["http_client"]
-    transport = http_client._transport
-    assert type(transport).__name__ == "_RevalidatingHostTransport", (
-        f"expected pinned transport, got {type(transport).__name__}"
-    )
-
-
 @pytest.fixture
 def mock_openai_response():
     """Create a mock OpenAI chat completion response."""
@@ -97,17 +88,6 @@ def mock_models_list():
 class TestOpenAIProviderInit:
     """Test OpenAI provider initialization."""
 
-    def test_basic_init(self):
-        """Test basic provider initialization."""
-        provider = OpenAIProvider(api_key="sk-test-key")
-
-        assert provider.api_key == "sk-test-key"
-        assert provider.provider_name == "openai"
-        assert provider.default_model == "gpt-5.6-luna"
-        assert provider.timeout == 60.0
-        assert provider.max_retries == 2
-        assert provider.organization is None
-
     def test_init_with_custom_params(self):
         """Test initialization with custom parameters."""
         # Loopback URL keeps the SSRF guard's validate_url hermetic (no DNS).
@@ -171,14 +151,6 @@ class TestOpenAIProviderInit:
 # =============================================================================
 
 
-@pytest.fixture
-def setup_openai_mock():
-    """Setup mock client for tests."""
-    mock_client = MagicMock()
-    mock_openai_module.OpenAI.return_value = mock_client
-    return mock_client
-
-
 @pytest.mark.unit
 class TestOpenAIChatCompletion:
     """Test chat completion functionality."""
@@ -189,7 +161,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         response = provider.chat_completion(messages=[{"role": "user", "content": "Hello"}])
 
@@ -205,7 +177,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -227,7 +199,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -238,46 +210,13 @@ class TestOpenAIChatCompletion:
         call_args = mock_client.chat.completions.create.call_args
         assert call_args.kwargs["temperature"] == 0.5
 
-    def test_temperature_is_omitted_for_the_default_model(self, mock_openai_response):
-        """gpt-5.6 answers 400 when temperature is sent, so it must not be."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_openai_response
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            temperature=0.5,
-        )
-
-        assert "temperature" not in mock_client.chat.completions.create.call_args.kwargs
-
-    def test_completion_with_max_tokens_legacy(self, mock_openai_response):
-        """Test completion with max_tokens for legacy models."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_openai_response
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="gpt-4-turbo",  # Legacy model
-            max_tokens=100,
-        )
-
-        call_args = mock_client.chat.completions.create.call_args
-        assert call_args.kwargs.get("max_tokens") == 100
-        assert "max_completion_tokens" not in call_args.kwargs
-
     def test_completion_with_max_tokens_new_api(self, mock_openai_response):
         """Test completion with max_completion_tokens for new API models."""
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -317,7 +256,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         tools = [{"type": "function", "function": {"name": "get_weather"}}]
 
@@ -336,7 +275,7 @@ class TestOpenAIChatCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -348,30 +287,13 @@ class TestOpenAIChatCompletion:
         assert call_args.kwargs.get("top_p") == 0.9
         assert call_args.kwargs.get("presence_penalty") == 0.1
 
-    def test_completion_reasoning_model_no_temperature(self, mock_openai_response):
-        """Test reasoning models (o1/o3/o4) don't receive temperature in API call."""
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_openai_response
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        provider.chat_completion(
-            messages=[{"role": "user", "content": "Hello"}],
-            model="o3",
-            temperature=0.7,
-        )
-
-        call_args = mock_client.chat.completions.create.call_args
-        assert "temperature" not in call_args.kwargs
-
     def test_completion_gpt41_temperature_clamped(self, mock_openai_response):
         """Test GPT-4.1 clamps temperature to min 1.0 in API call."""
         mock_client = MagicMock()
         mock_client.chat.completions.create.return_value = mock_openai_response
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         provider.chat_completion(
             messages=[{"role": "user", "content": "Hello"}],
@@ -398,7 +320,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
@@ -420,7 +342,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         chunks = list(provider.stream_completion(messages=[{"role": "user", "content": "Hello"}]))
 
@@ -434,7 +356,7 @@ class TestOpenAIStreamCompletion:
         mock_client.chat.completions.create.return_value = mock_openai_stream()
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         list(
             provider.stream_completion(
@@ -458,155 +380,18 @@ class TestOpenAIStreamCompletion:
 class TestOpenAIListModels:
     """Test list_models functionality."""
 
-    def test_list_models_filters_chat_models(self, mock_models_list):
-        """Test that list_models filters for chat-capable models only."""
-        mock_client = MagicMock()
-        mock_client.models.list.return_value = mock_models_list
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        models = provider.list_models()
-
-        # Should not include embedding model
-        model_ids = [m["id"] for m in models]
-        assert "text-embedding-ada-002" not in model_ids
-
-        # Should include chat models
-        assert "gpt-4o" in model_ids
-        assert "gpt-4o-mini" in model_ids
-        assert "gpt-3.5-turbo" in model_ids
-        assert "o1" in model_ids
-
-    def test_list_models_includes_constraints(self, mock_models_list):
-        """Test that models include constraint information."""
-        mock_client = MagicMock()
-        mock_client.models.list.return_value = mock_models_list
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        provider = OpenAIProvider(api_key="sk-test")
-        provider._client = None
-        models = provider.list_models()
-
-        # Find gpt-4o model
-        gpt4o = next(m for m in models if m["id"] == "gpt-4o")
-        assert gpt4o["supports_temperature"] is True
-        assert gpt4o["supports_vision"] is True
-        assert gpt4o["provider"] == "openai"
-
-        # Find o1 model - reasoning model
-        o1 = next(m for m in models if m["id"] == "o1")
-        assert o1["supports_temperature"] is False
-        assert o1["supports_reasoning"] is True
-
     def test_list_models_sorted(self, mock_models_list):
         """Test that models are sorted by ID."""
         mock_client = MagicMock()
         mock_client.models.list.return_value = mock_models_list
         mock_openai_module.OpenAI.return_value = mock_client
 
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         provider._client = None
         models = provider.list_models()
 
         model_ids = [m["id"] for m in models]
         assert model_ids == sorted(model_ids)
-
-
-# =============================================================================
-# Model API Detection Tests
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestOpenAIModelAPIDetection:
-    """Test detection of model API versions."""
-
-    def test_new_api_models_detected(self):
-        """Test that new API models are correctly detected."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        assert provider._uses_new_token_api("gpt-4o") is True
-        assert provider._uses_new_token_api("gpt-4o-mini") is True
-        assert provider._uses_new_token_api("o1") is True
-        assert provider._uses_new_token_api("o1-mini") is True
-        assert provider._uses_new_token_api("o3") is True
-        assert provider._uses_new_token_api("o3-mini") is True
-        assert provider._uses_new_token_api("gpt-5") is True
-
-    def test_legacy_api_models_detected(self):
-        """Test that legacy API models are correctly detected."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        assert provider._uses_new_token_api("gpt-4-turbo") is False
-        assert provider._uses_new_token_api("gpt-4") is False
-        assert provider._uses_new_token_api("gpt-3.5-turbo") is False
-
-    def test_case_insensitive_detection(self):
-        """Test case insensitivity in model detection."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        assert provider._uses_new_token_api("GPT-4O") is True
-        assert provider._uses_new_token_api("GPT-4O-MINI") is True
-        assert provider._uses_new_token_api("O1") is True
-
-
-# =============================================================================
-# Model Constraints Tests
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestOpenAIModelConstraints:
-    """Test model constraint detection."""
-
-    def test_reasoning_model_constraints(self):
-        """Test constraints for reasoning models (O1, O3, O4)."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        for model in ["o1", "o1-mini", "o3", "o3-mini", "o4-mini"]:
-            constraints = provider._get_model_constraints(model)
-            assert constraints["supports_temperature"] is False
-            assert constraints["min_temperature"] == 1.0
-            assert constraints["max_temperature"] == 1.0
-            assert constraints["supports_reasoning"] is True
-
-    def test_gpt_model_constraints(self):
-        """Test constraints for standard GPT models."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        for model in ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo"]:
-            constraints = provider._get_model_constraints(model)
-            assert constraints["supports_temperature"] is True
-            assert constraints["min_temperature"] == 0.0
-            assert constraints["max_temperature"] == 2.0
-            assert constraints["supports_reasoning"] is False
-
-    def test_vision_support_detection(self):
-        """Test vision capability detection."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        # Models with vision
-        assert provider._get_model_constraints("gpt-4o")["supports_vision"] is True
-        assert provider._get_model_constraints("gpt-4-turbo")["supports_vision"] is True
-        assert provider._get_model_constraints("o1")["supports_vision"] is True
-
-        # Models without vision
-        assert provider._get_model_constraints("gpt-3.5-turbo")["supports_vision"] is False
-
-    def test_context_length_detection(self):
-        """Test context length detection for models."""
-        provider = OpenAIProvider(api_key="sk-test")
-
-        assert provider._get_model_constraints("gpt-4o")["context_length"] == 128000
-        assert provider._get_model_constraints("gpt-4")["context_length"] == 8192
-        assert provider._get_model_constraints("gpt-3.5-turbo")["context_length"] == 16385
-        assert provider._get_model_constraints("o1")["context_length"] == 200000
-
-
-# =============================================================================
-# Error Handling Tests
-# =============================================================================
 
 
 # =============================================================================
@@ -620,13 +405,8 @@ class TestOpenAIProviderProperties:
 
     def test_provider_name(self):
         """Test provider_name property."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         assert provider.provider_name == "openai"
-
-    def test_default_model(self):
-        """Test default_model property."""
-        provider = OpenAIProvider(api_key="sk-test")
-        assert provider.default_model == "gpt-5.6-luna"
 
     def test_default_base_url(self):
         """Test default base URL constant."""
@@ -634,29 +414,7 @@ class TestOpenAIProviderProperties:
 
     def test_repr(self):
         """Test string representation."""
-        provider = OpenAIProvider(api_key="sk-test")
+        provider = OpenAIProvider(api_key="sk-test", model="test-model")
         repr_str = repr(provider)
         assert "OpenAIProvider" in repr_str
         assert "openai" in repr_str
-
-    def test_chat_model_prefixes(self):
-        """Test chat model prefix constants."""
-        assert "gpt-4" in OpenAIProvider.CHAT_MODEL_PREFIXES
-        assert "o1" in OpenAIProvider.CHAT_MODEL_PREFIXES
-        assert "o3" in OpenAIProvider.CHAT_MODEL_PREFIXES
-
-    def test_reasoning_model_no_temperature(self):
-        """Test reasoning models skip temperature via shared constraints module."""
-        from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
-
-        assert clamp_temperature("o1", 0.7) is None
-        assert clamp_temperature("o3", 0.5) is None
-        assert clamp_temperature("o4-mini", 0.3) is None
-
-    def test_gpt41_temperature_passthrough(self):
-        """Test GPT-4.1 models pass through temperature (min=0.0)."""
-        from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
-
-        assert clamp_temperature("gpt-4.1", 0.5) == 0.5
-        assert clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
-        assert clamp_temperature("gpt-4.1", 1.5) == 1.5  # In range, passthrough

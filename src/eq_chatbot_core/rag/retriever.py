@@ -169,10 +169,14 @@ class HybridRetriever:
         Ensure collection exists, create if not.
 
         Args:
-            vector_size: Vector dimensions (required for creation)
+            vector_size: Vector dimensions (defaults to the embedder's ``dimensions``)
 
         Returns:
             Collection name
+
+        Raises:
+            ValueError: If the collection must be created and the vector size is
+                unknown (no ``vector_size``, and the embedder has not learned it yet).
         """
         try:
             from qdrant_client.models import Distance, VectorParams
@@ -190,6 +194,11 @@ class HybridRetriever:
         if not exists:
             if vector_size is None:
                 vector_size = self.embedder.dimensions
+            if vector_size is None:
+                raise ValueError(
+                    f"Vector size unknown for collection '{self.collection}': pass vector_size=..., "
+                    "create the embedder with dimensions=..., or embed one text first."
+                )
 
             self.client.create_collection(
                 collection_name=self.collection,

@@ -37,60 +37,11 @@ def test_temperature_learning(wire_server):
     assert "temperature" not in wire_server.requests[1].json
 
 
-def test_list_models_from_public_endpoint(wire_server):
-    wire_server.expect(
-        "GET",
-        "/public/models",
-        Reply(body=[{"id": "gpt-x", "name": "GPT X", "max_input_tokens": 1000, "max_output_tokens": 100}]),
-    )
-    models = _provider(wire_server).list_models()
-    assert models == [
-        {
-            "id": "gpt-x",
-            "name": "GPT X",
-            "provider": "mammouth",
-            "context_length": 1000,
-            "max_output_tokens": 100,
-            "supports_temperature": True,
-            "min_temperature": 0.0,
-            "max_temperature": 2.0,
-            "supports_reasoning": False,
-            "supports_streaming": True,
-        }
-    ]
-    assert {k.lower(): v for k, v in wire_server.requests[0].headers.items()}["authorization"] == "Bearer mm-test"
-
-
 def test_construction_needs_no_network():
     MammouthProvider(api_key="mm-test")  # default URL is validated lazily, on first request
 
 
 # --- Ported from the old mocked tests (behaviour that still exists) ----------------
-
-
-def _models_payload():
-    return [
-        {"id": "o3", "name": "O3", "max_input_tokens": 200000, "max_output_tokens": 100000},
-        {"id": "gpt-4o", "name": "GPT-4o", "max_input_tokens": 128000, "max_output_tokens": 16384},
-        {"id": "gpt-4.1", "name": "GPT-4.1", "max_input_tokens": 1048576, "max_output_tokens": 32768},
-    ]
-
-
-def test_list_models_constraints_and_sorting(wire_server):
-    wire_server.expect("GET", "/public/models", Reply(body={"data": _models_payload()}))
-    models = _provider(wire_server).list_models()
-    assert [m["id"] for m in models] == ["gpt-4.1", "gpt-4o", "o3"]
-    by_id = {m["id"]: m for m in models}
-    assert by_id["gpt-4o"]["supports_temperature"] is True
-    assert (by_id["gpt-4o"]["min_temperature"], by_id["gpt-4o"]["max_temperature"]) == (0.0, 2.0)
-    assert by_id["o3"]["supports_temperature"] is False and by_id["o3"]["supports_reasoning"] is True
-    assert by_id["gpt-4.1"]["context_length"] == 1048576
-
-
-def test_reasoning_model_gets_no_temperature(wire_server):
-    wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body()))
-    _provider(wire_server).chat_completion(MSG, model="o1", temperature=0.7)
-    assert "temperature" not in wire_server.requests[0].json
 
 
 def test_temperature_passes_through_for_gpt41(wire_server):

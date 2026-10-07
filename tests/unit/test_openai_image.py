@@ -30,7 +30,7 @@ _FAKE_PNG_B64 = base64.b64encode(_FAKE_PNG_BYTES).decode()
 @pytest.fixture
 def provider():
     """OpenAI provider with injected mock client."""
-    p = OpenAIProvider(api_key="sk-test")
+    p = OpenAIProvider(api_key="sk-test", image_model="img-model")
     mock_client = MagicMock()
     p._client = mock_client
     return p, mock_client
@@ -43,10 +43,6 @@ class TestOpenAIImageGeneration:
     def test_supports_image_generation_flag(self):
         """supports_image_generation must be True for OpenAI."""
         assert OpenAIProvider.supports_image_generation is True
-
-    def test_default_image_model(self):
-        """Default image model should be gpt-image-1."""
-        assert OpenAIProvider.DEFAULT_IMAGE_MODEL == "gpt-image-1"
 
     def test_generate_image_returns_image_result(self, provider):
         """Successful call returns ImageResult with decoded bytes."""
@@ -62,24 +58,10 @@ class TestOpenAIImageGeneration:
 
         assert isinstance(result, ImageResult)
         assert result.data == _FAKE_PNG_BYTES
-        assert result.model == "gpt-image-1"
+        assert result.model == "img-model"
         assert result.provider == "openai"
         assert result.size == "1024x1024"
         assert result.mime == "image/png"
-
-    def test_generate_image_uses_default_model(self, provider):
-        """generate_image uses gpt-image-1 when model is None."""
-        p, mock_client = provider
-
-        mock_resp = MagicMock()
-        mock_resp.data = [MagicMock()]
-        mock_resp.data[0].b64_json = _FAKE_PNG_B64
-        mock_client.images.generate.return_value = mock_resp
-
-        p.generate_image("Test prompt")
-
-        call_kwargs = mock_client.images.generate.call_args[1]
-        assert call_kwargs["model"] == "gpt-image-1"
 
     def test_generate_image_no_response_format_for_gpt_image_1(self, provider):
         """gpt-image-1 must NOT receive response_format parameter."""
@@ -94,20 +76,6 @@ class TestOpenAIImageGeneration:
 
         call_kwargs = mock_client.images.generate.call_args[1]
         assert "response_format" not in call_kwargs
-
-    def test_generate_image_sends_response_format_for_dalle3(self, provider):
-        """dall-e-3 should receive response_format='b64_json'."""
-        p, mock_client = provider
-
-        mock_resp = MagicMock()
-        mock_resp.data = [MagicMock()]
-        mock_resp.data[0].b64_json = _FAKE_PNG_B64
-        mock_client.images.generate.return_value = mock_resp
-
-        p.generate_image("Test", model="dall-e-3")
-
-        call_kwargs = mock_client.images.generate.call_args[1]
-        assert call_kwargs.get("response_format") == "b64_json"
 
     def test_generate_image_custom_size(self, provider):
         """Custom size is forwarded to the API call."""

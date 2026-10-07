@@ -7,7 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Removed (breaking)
+
+- Built-in default models: `DEFAULT_MODEL` on every provider and the module-level `DEFAULT_MODEL` aliases (`ionos_provider`, `melious_provider`, `litellm_provider`, `privatemode_provider`), `OpenAIProvider.DEFAULT_IMAGE_MODEL`, `OpenRouterProvider.DEFAULT_IMAGE_MODEL`, `litellm_provider.DEFAULT_TTS_MODEL`, `DEFAULT_TTS_VOICE`, `DEFAULT_STT_MODEL`, the per-backend defaults of `LangDockProvider`, the default of `LangDockAgentManager.create_agent(model=...)`, the default models of `OpenAIRealtimeConfig` and `GeminiLiveConfig`.
+- Name lists: `MODEL_TEMPERATURE_CONSTRAINTS`, `DEFAULT_TEMP_CONSTRAINTS`, `get_temperature_constraints()` (`providers/temperature_constraints.py`; `strip_provider_prefix()` stays), `OpenAIProvider.NEW_API_MODELS`, `CHAT_MODEL_PREFIXES`, `MODEL_CONTEXT_LENGTHS`, `LangDockProvider.REASONING_MODELS`, `MODEL_CONTEXT_LENGTHS`, `MammouthProvider.REASONING_MODEL_PREFIXES`, `OpenRouterProvider.REASONING_MODEL_PREFIXES`, `OpenAIEmbedder.MODELS`, `ContextWindowManager.MODEL_LIMITS`, the encoding map in `estimate_tokens()`.
+- The bundled capability snapshot (`data/capability_catalog.json`, `data/capability_overrides.json`) and `CapabilityCatalog.from_snapshot()`.
+
+### Changed (stage 2: no model IDs in source)
+
+- `ModelNotSpecifiedError(ProviderError)` is raised when neither the call nor the provider instance names a model (chat, stream, image, TTS, STT, embedders). Every provider constructor takes `model=`; OpenAI and OpenRouter take `image_model=`; LiteLLM takes `tts_model=`, `tts_voice=`, `stt_model=`. New `resolve_model()` on every provider. LangDock's `agent` backend needs no model.
+- `clamp_temperature(temperature, *, maximum=2.0)` and `apply_anthropic_temperature(params, temperature)` lost their model argument and apply provider-level ranges only; `apply_anthropic_temperature` now returns `None` (was `bool`).
+- Parameter learning also covers `reasoning_effort` and, for `temperature`, Anthropic and LangDock's anthropic backend (Anthropic's "deprecated" wording and error envelope are recognised).
+- `OpenAIProvider` always sends `max_completion_tokens`; every other OpenAI-wire provider sends `max_tokens` and learns otherwise. `reasoning_effort` is sent whenever set.
+- `OpenAIProvider.generate_image()` no longer sets `response_format` by model name: models that answer with a URL need `response_format="b64_json"` from the caller; without base64 data a `ProviderError` says so.
+- `list_models()` returns every model the provider lists; values the provider does not report are `None`. Listing failures raise `ProviderError` instead of returning `[]`.
+- Embedders: `dimensions` may be passed, else it is read from the first response; a mismatch raises `ValueError`. `HybridRetriever.ensure_collection()` raises when the size is unknown.
+- `estimate_tokens(text, model=None)` always uses `cl100k_base`; the `model` argument is ignored and defaults to `None`.
+- `ContextWindowManager(..., context_length=None)`: without it 128000 is assumed and a WARNING is logged; zero or negative values raise.
+- `CapabilityCatalog.from_remote()` returns an empty catalog (WARNING logged) when the fetch fails.
+- CLI: model from `--model`, else the config file, else a message and exit code 1. `image` and `listing-assets` read the new config key `image_model` instead of the chat `model`. Server mode: the request's `model` (or `provider_extra`), else HTTP 400 (streams too, before the stream starts).
+- `tests/unit/test_no_model_ids_in_source.py` fails on any model ID under `src/`.
+
+### Upgrading from 3.x
+
+- Pass `model=` per call or to the provider constructor; without it calls raise `ModelNotSpecifiedError`. Same for `generate_image` (`image_model=`), `text_to_speech` (`tts_model=`, `tts_voice=`), `transcribe` (`stt_model=`) and the embedders.
+- `list_models()` returns all provider models; `None` means unknown. Treat `supports_temperature is None` as "allowed — the library adapts".
+- Removed constants and functions: see "Removed" above.
+- Embedders: pass `dimensions` when creating a vector collection before the first embed call.
+- The bundled capability snapshot is gone; offline the catalog is empty.
+- `ContextWindowManager`: pass `context_length=` (for example from `list_models()`), else 128000 is assumed.
+- Realtime: pass `model=` to `OpenAIRealtimeConfig` / `GeminiLiveConfig`.
+- Image generation with a URL-returning model: pass `response_format="b64_json"`.
+
+### Changed (stage 1: shared base class)
 
 - Mammouth, Local, OpenAI, OpenRouter and LangDock's `openai` backend now run on the shared `OpenAICompatibleProvider` base class (new module `providers/param_learning.py`; hooks `_build_params`, `_token_param`, `_default_headers`, `_client_kwargs`, `list_models`, `_error_from_message`; class switches `_validate_default_url`, `STREAM_INCLUDE_USAGE`). Provider modules shrank: mammouth 467 -> 110 lines, local 520 -> 164, openai 496 -> 243, openrouter 597 -> 262, langdock 2188 -> 2073.
 - `temperature` / `max_tokens` rejections are retried once per parameter (temperature dropped; `max_tokens` becomes `max_completion_tokens`) and learned per endpoint and model for the whole process. OpenRouter's `list_models()` pre-seeds only "temperature unsupported" and never re-enables a parameter.
@@ -17,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Mammouth, OpenRouter and Local now use the OpenAI SDK, with different error message wording. For Mammouth and OpenRouter the SDK retries on 429/5xx and also on timeouts and connection errors, so a timed-out request is re-sent up to `max_retries` times. Local does not retry (as before): `max_retries` is kept as an attribute but a timed-out local generation is never re-sent.
 - Mammouth and OpenRouter now request `stream_options.include_usage`, so streamed responses report token counts.
-- `LocalLLMProvider` now clamps temperature via the shared constraints (previously sent unchecked).
+- `LocalLLMProvider` now clamps temperature to the provider-level range 0–2 (previously sent unchecked).
 - Clients are closed on garbage collection again.
 - For LangDock the status-based error mapping applies to the `openai` backend only; the anthropic, google and agent backends keep their previous mapping.
 - `client` returns an `openai.OpenAI` for Mammouth, OpenRouter and Local.
@@ -33,7 +65,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - OpenRouter live tests are unverified: the configured key returns 401 on chat.
 - Local live tests are unverified: no LM Studio / Ollama was running.
-- LangDock's `openai` default model `gpt-5.6-luna` is no longer offered (to be handled in stage 2).
+- LangDock's former `openai` default model is no longer offered; resolved by stage 2 (no default models).
 - OpenAI rejects function tools on `gpt-5.6-*` with HTTP 400 unless `reasoning_effort="none"` (API restriction, independent of this change).
 
 ## [3.3.0] - 2026-09-08

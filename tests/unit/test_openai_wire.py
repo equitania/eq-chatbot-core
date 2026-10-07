@@ -5,7 +5,7 @@ import base64
 import pytest
 
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider
-from tests.wire_server import Reply, chat_body, models_body
+from tests.wire_server import Reply, chat_body
 
 pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("clean_param_memory")]
 MSG = [{"role": "user", "content": "x"}]
@@ -28,12 +28,6 @@ def test_organization_header(wire_server):
     assert headers.get("openai-organization") == "org-test"
 
 
-def test_list_models_filters_and_annotates(wire_server):
-    wire_server.expect("GET", "/v1/models", Reply(body=models_body(["gpt-4.1", "whisper-1", "o3"])))
-    ids = [m["id"] for m in _provider(wire_server).list_models()]
-    assert ids == ["gpt-4.1", "o3"]
-
-
 def test_generate_image(wire_server):
     png = b"\x89PNG\r\n"
     wire_server.expect(
@@ -41,9 +35,9 @@ def test_generate_image(wire_server):
         "/v1/images/generations",
         Reply(body={"created": 0, "data": [{"b64_json": base64.b64encode(png).decode()}]}),
     )
-    result = _provider(wire_server).generate_image("a cat")
+    result = _provider(wire_server).generate_image("a cat", model="img-model")
     assert result.data == png and result.provider == "openai"
-    assert wire_server.requests[0].json["model"] == "gpt-image-1"
+    assert wire_server.requests[0].json["model"] == "img-model"
 
 
 def test_default_base_url_and_offline_construction():
@@ -114,7 +108,7 @@ def test_generate_image_errors_by_status(wire_server, status, exc_name):
 
     wire_server.expect("POST", "/v1/images/generations", Reply(status, {"error": {"message": "nope"}}))
     with pytest.raises(base.ProviderError) as info:
-        _provider(wire_server).generate_image("a cat")
+        _provider(wire_server).generate_image("a cat", model="img-model")
     assert type(info.value) is getattr(base, exc_name)
 
 

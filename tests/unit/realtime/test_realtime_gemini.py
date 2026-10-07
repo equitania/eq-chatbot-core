@@ -49,13 +49,14 @@ _UNKNOWN_FRAME = {"someUnknownKey": {"data": "xyz"}}
 
 def _make_developer_client() -> GeminiLiveClient:
     """Construct a developer-mode client with a fake API key (no real network I/O)."""
-    config = GeminiLiveConfig(api_key=_FAKE_KEY, mode="developer")
+    config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY, mode="developer")
     return GeminiLiveClient(config)
 
 
 def _make_vertex_client() -> GeminiLiveClient:
     """Construct a vertex-mode client with a fake bearer token."""
     config = GeminiLiveConfig(
+        model="test-model",
         access_token=_FAKE_TOKEN,
         project="my-gcp-project",
         region="europe-west4",
@@ -75,14 +76,14 @@ class TestGeminiLiveConfig:
     @pytest.mark.unit
     def test_frozen(self) -> None:
         """Mutating a frozen dataclass must raise FrozenInstanceError (PROV-06)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
+        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
         with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
             config.api_key = "new-value"  # type: ignore[misc]
 
     @pytest.mark.unit
     def test_has_dataclass_fields(self) -> None:
         """GeminiLiveConfig must be a proper dataclass (slots present via dataclasses.fields)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
+        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
         fields = {f.name for f in dataclasses.fields(config)}
         assert "api_key" in fields
         assert "access_token" in fields
@@ -90,28 +91,15 @@ class TestGeminiLiveConfig:
         assert "mode" in fields
 
     @pytest.mark.unit
-    def test_default_model_contains_gemini(self) -> None:
-        """Default model must contain 'gemini' and NOT contain '2.0-flash' (CRITICAL ALIAS)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
-        assert "gemini" in config.model
-        assert "2.0-flash" not in config.model
-
-    @pytest.mark.unit
-    def test_default_model_is_verified_alias(self) -> None:
-        """Default model must be exactly 'gemini-3.1-flash-live-preview' (verified 2026-05-25)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
-        assert config.model == "gemini-3.1-flash-live-preview"
-
-    @pytest.mark.unit
     def test_default_mode_is_developer(self) -> None:
         """mode defaults to 'developer'."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
+        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.mode == "developer"
 
     @pytest.mark.unit
     def test_default_region_is_europe_west4(self) -> None:
         """region defaults to 'europe-west4' (DSGVO-compliant EU endpoint)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY)
+        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
         assert config.region == "europe-west4"
 
     @pytest.mark.unit
@@ -188,35 +176,35 @@ class TestConstructorValidation:
     @pytest.mark.unit
     def test_empty_api_key_for_developer_raises_value_error(self) -> None:
         """Empty api_key in developer mode must raise ValueError (D-06)."""
-        config = GeminiLiveConfig(api_key="", mode="developer")
+        config = GeminiLiveConfig(model="test-model", api_key="", mode="developer")
         with pytest.raises(ValueError, match="api_key"):
             GeminiLiveClient(config)
 
     @pytest.mark.unit
     def test_whitespace_api_key_for_developer_raises_value_error(self) -> None:
         """Whitespace-only api_key in developer mode must raise ValueError (D-06)."""
-        config = GeminiLiveConfig(api_key="   ", mode="developer")
+        config = GeminiLiveConfig(model="test-model", api_key="   ", mode="developer")
         with pytest.raises(ValueError, match="api_key"):
             GeminiLiveClient(config)
 
     @pytest.mark.unit
     def test_empty_access_token_for_vertex_raises_value_error(self) -> None:
         """Empty access_token in vertex mode must raise ValueError (D-06)."""
-        config = GeminiLiveConfig(access_token="", mode="vertex")
+        config = GeminiLiveConfig(model="test-model", access_token="", mode="vertex")
         with pytest.raises(ValueError, match="access_token"):
             GeminiLiveClient(config)
 
     @pytest.mark.unit
     def test_whitespace_access_token_for_vertex_raises_value_error(self) -> None:
         """Whitespace-only access_token in vertex mode must raise ValueError (D-06)."""
-        config = GeminiLiveConfig(access_token="   ", mode="vertex")
+        config = GeminiLiveConfig(model="test-model", access_token="   ", mode="vertex")
         with pytest.raises(ValueError, match="access_token"):
             GeminiLiveClient(config)
 
     @pytest.mark.unit
     def test_unknown_mode_raises_value_error(self) -> None:
         """Unknown mode value must raise ValueError (D-06)."""
-        config = GeminiLiveConfig(api_key=_FAKE_KEY, mode="unknown")  # type: ignore[arg-type]
+        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY, mode="unknown")  # type: ignore[arg-type]
         with pytest.raises(ValueError, match="mode"):
             GeminiLiveClient(config)
 

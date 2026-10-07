@@ -1,4 +1,4 @@
-"""The public provider surface must match the snapshot taken before the base-class migration.
+"""The public provider surface must match the reviewed snapshot (tests/compat/public_api.json).
 
 A failure here means a consumer (Odoo module, CLI, server mode) may break. Fix the
 code, not the snapshot — regenerating it is a reviewed API change.

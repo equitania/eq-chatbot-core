@@ -87,7 +87,7 @@ provider = get_provider("openai", api_key="sk-...")
 
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hello!"}],
-    model="gpt-4o",
+    model="your-model-id",  # required: there is no default model
 )
 print(response.content)
 ```
@@ -295,7 +295,7 @@ provider = get_provider("openai", api_key="sk-...")
 
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hallo!"}],
-    model="gpt-4o",
+    model="your-model-id",  # Pflicht: es gibt kein Standardmodell
 )
 print(response.content)
 ```

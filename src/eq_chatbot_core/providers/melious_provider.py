@@ -8,8 +8,7 @@ standard ``openai`` SDK (already a core dependency); no extra package is require
 Like the IONOS provider, Melious exposes a **fixed public endpoint**, so
 ``base_url`` defaults to the official Melious URL and is optional. The API key
 (prefix ``sk-mel-``) is generated in the Melious account dashboard and sent as a
-Bearer token. The default model is a soft default (overridable per call or via the
-``model`` constructor argument).
+Bearer token. There is no default model: pass ``model=`` per call or to the constructor.
 
 The wire protocol is plain OpenAI Chat Completions, so all request/response
 handling is inherited from :class:`OpenAICompatibleProvider`.
@@ -41,13 +40,9 @@ class MeliousProvider(OpenAICompatibleProvider):
     # Official Melious OpenAI-compatible endpoint (sovereign EU infrastructure).
     DEFAULT_BASE_URL = "https://api.melious.ai/v1"
     # Soft default — overridable per call or via the ``model`` constructor argument.
-    # minimax-428b-m3 was retired by the gateway; verified live on 23.08.2026
-    # that it is no longer listed and nemotron-3-nano-30b-a3b answers.
-    DEFAULT_MODEL = "nemotron-3-nano-30b-a3b"
     # Fixed public cloud endpoint: private/internal targets are never legitimate.
     ALLOW_PRIVATE_RANGES = False
 
 
 # Module-level aliases kept for backwards compatibility with existing importers.
 DEFAULT_BASE_URL = MeliousProvider.DEFAULT_BASE_URL
-DEFAULT_MODEL = MeliousProvider.DEFAULT_MODEL

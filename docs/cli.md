@@ -29,16 +29,16 @@ eq-chatbot info
 Smoke-test a provider connection by sending a single chat completion. Exits non-zero on auth or transport errors.
 
 ```bash
-eq-chatbot test-provider -p openai -k $OPENAI_API_KEY
-eq-chatbot test-provider -p anthropic -k sk-ant-... -m claude-3-5-sonnet-20241022
-eq-chatbot test-provider -p local --base-url http://localhost:1234/v1
+eq-chatbot test-provider -p openai -k $OPENAI_API_KEY -m your-model-id
+eq-chatbot test-provider -p anthropic -k sk-ant-... -m your-model-id
+eq-chatbot test-provider -p local --base-url http://localhost:1234/v1 -m your-local-model
 ```
 
 | Flag | Purpose |
 |------|---------|
 | `-p`, `--provider` | Provider name (`openai`, `anthropic`, `langdock`, `openrouter`, `mammouth`, `ionos`, `melious`, `privatemode`, `local`, `lm_studio`, `ollama`) |
 | `-k`, `--api-key` | API key (cloud providers only) |
-| `-m`, `--model` | Model id (defaults to provider's `default_model`) |
+| `-m`, `--model` | Model id (required unless `model` is set in the config file) |
 | `--message` | Custom test prompt (default: a short greeting) |
 | `--base-url` | Custom endpoint (LiteLLM gateway, Privatemode proxy, local OpenAI-compatible) |
 
@@ -89,7 +89,7 @@ Stdin is capped at **1 MB** to avoid runaway memory usage.
 ```json
 {
   "content": "model response text",
-  "model": "gpt-4o-mini",
+  "model": "your-model-id",
   "input_tokens": 42,
   "output_tokens": 17
 }
@@ -99,7 +99,7 @@ Stdin is capped at **1 MB** to avoid runaway memory usage.
 |------|---------|
 | `-p`, `--provider` | Provider name |
 | `-k`, `--api-key` | API key (or set `LLM_API_KEY` env) |
-| `-m`, `--model` | Model id |
+| `-m`, `--model` | Model id (required unless `model` is set in the config file) |
 | `-t`, `--temperature` | Sampling temperature (clamped per provider rules) |
 | `--max-tokens` | Output token cap |
 | `--base-url` | Custom endpoint |
@@ -108,24 +108,24 @@ This subcommand was added in v1.5.0 and is used by external tools like the sysRe
 
 #### `eq-chatbot image`
 
-Generate a single image from a text prompt and save it to a file (added in v1.14.0). Supported providers: `openai` (`gpt-image-1`) and `openrouter` (e.g. `gemini-2.5-flash-image`).
+Generate a single image from a text prompt and save it to a file (added in v1.14.0). Supported providers: `openai` and `openrouter`. The image model comes from `--model` or `image_model` in the config file (never from the chat `model`); there is no default.
 
 ```bash
-# Prompt inline, default model, write to output.png
-eq-chatbot image -p openai -k sk-... --prompt "A sunset over the ocean"
+# Prompt inline, write to output.png
+eq-chatbot image -p openai -k sk-... -m your-image-model --prompt "A sunset over the ocean"
 
 # OpenRouter, explicit output file
-eq-chatbot image -p openrouter -k sk-or-... --prompt "A cat in space" -o cat.png
+eq-chatbot image -p openrouter -k sk-or-... -m your-image-model --prompt "A cat in space" -o cat.png
 
 # Prompt from a file, resize the result (requires the [image] extra)
-eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cover
+eq-chatbot image -p openai -k sk-... -m your-image-model --prompt-file prompt.txt --fit 512x512:cover
 ```
 
 | Flag | Purpose |
 |------|---------|
 | `-p`, `--provider` | `openai` or `openrouter` (**required**) |
 | `-k`, `--api-key` | API key (or set `LLM_API_KEY` env) |
-| `-m`, `--model` | Model id (provider default if omitted) |
+| `-m`, `--model` | Model id (required unless `model` is set in the config file) |
 | `--prompt` | Text prompt describing the image |
 | `--prompt-file` | Read the prompt from a file instead of `--prompt` |
 | `--size` | Dimensions, e.g. `1024x1024`, `1024x1536`, `auto` (default `1024x1024`) |
@@ -141,7 +141,7 @@ Batch-generate images from a recipe JSON file (schema `eq-listing-assets/v1`) �
 {
   "schema": "eq-listing-assets/v1",
   "module": "eq_chatbot",
-  "defaults": {"provider": "openai", "model": "gpt-image-1"},
+  "defaults": {"provider": "openai", "model": "your-image-model"},
   "assets": [
     {"id": "banner", "out": "banner.png", "size": "1536x1024",
      "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot mascot, bold headline 'eq_chatbot - AI Assistant for Odoo'"},
@@ -217,7 +217,7 @@ Provider-specific variables: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_AP
 ### Configuration file
 
 Instead of (or in addition to) environment variables you can store keys, base URLs,
-default models, a default provider and chat defaults in a TOML file. Default path:
+models, a default provider and chat defaults in a TOML file. Default path:
 `~/.config/eq-chatbot/config.toml` (honours `$XDG_CONFIG_HOME`; override with
 `$EQ_CHATBOT_CONFIG`).
 
@@ -238,7 +238,7 @@ max_tokens  = 4096
 
 [providers.openrouter]
 api_key  = "sk-or-..."
-model    = "openai/gpt-4o"       # optional
+model    = "vendor/your-model-id" # used when --model is not given
 # base_url = "https://openrouter.ai/api/v1"   # optional
 ```
 
@@ -248,7 +248,8 @@ Resolution (highest priority first):
 |-------|-------|
 | api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > config |
 | base_url | `--base-url` > config > provider default |
-| model | `--model` > config > provider default |
+| model | `--model` > config > error (no default) |
+| image_model (`image`, `listing-assets`) | `--model` > recipe `defaults.model` > config `image_model` > error |
 | provider | `--provider` > config `default_provider` |
 | temperature / max_tokens | flag > config `[defaults]` > built-in (0.7 / 4096) |
 
@@ -291,16 +292,16 @@ eq-chatbot info
 Smoke-Test einer Provider-Verbindung über eine einzelne Chat-Completion. Exit-Code != 0 bei Auth-/Transport-Fehlern.
 
 ```bash
-eq-chatbot test-provider -p openai -k $OPENAI_API_KEY
-eq-chatbot test-provider -p anthropic -k sk-ant-... -m claude-3-5-sonnet-20241022
-eq-chatbot test-provider -p local --base-url http://localhost:1234/v1
+eq-chatbot test-provider -p openai -k $OPENAI_API_KEY -m your-model-id
+eq-chatbot test-provider -p anthropic -k sk-ant-... -m your-model-id
+eq-chatbot test-provider -p local --base-url http://localhost:1234/v1 -m your-local-model
 ```
 
 | Flag | Zweck |
 |------|-------|
 | `-p`, `--provider` | Provider-Name (`openai`, `anthropic`, `langdock`, `openrouter`, `mammouth`, `ionos`, `melious`, `privatemode`, `local`, `lm_studio`, `ollama`) |
 | `-k`, `--api-key` | API-Key (nur Cloud-Provider) |
-| `-m`, `--model` | Modell-ID (Default: `default_model` des Providers) |
+| `-m`, `--model` | Modell-ID (Pflicht, sofern `model` nicht in der Konfigurationsdatei steht) |
 | `--message` | Eigener Test-Prompt (Default: kurzer Gruß) |
 | `--base-url` | Eigener Endpoint (LiteLLM-Gateway, Privatemode-Proxy, lokale OpenAI-kompatible) |
 
@@ -351,7 +352,7 @@ Stdin ist auf **1 MB** begrenzt um Runaway-Memory zu vermeiden.
 ```json
 {
   "content": "Modell-Antwort",
-  "model": "gpt-4o-mini",
+  "model": "your-model-id",
   "input_tokens": 42,
   "output_tokens": 17
 }
@@ -361,7 +362,7 @@ Stdin ist auf **1 MB** begrenzt um Runaway-Memory zu vermeiden.
 |------|-------|
 | `-p`, `--provider` | Provider-Name |
 | `-k`, `--api-key` | API-Key (oder `LLM_API_KEY`-Env) |
-| `-m`, `--model` | Modell-ID |
+| `-m`, `--model` | Modell-ID (Pflicht, sofern `model` nicht in der Konfigurationsdatei steht) |
 | `-t`, `--temperature` | Sampling-Temperatur (per Provider-Regel geclampt) |
 | `--max-tokens` | Output-Token-Cap |
 | `--base-url` | Eigener Endpoint |
@@ -370,24 +371,24 @@ Dieser Subcommand wurde in v1.5.0 hinzugefügt und wird z.B. vom sysReporter-Rus
 
 #### `eq-chatbot image`
 
-Generiert ein einzelnes Bild aus einem Text-Prompt und speichert es in eine Datei (hinzugefügt in v1.14.0). Unterstützte Provider: `openai` (`gpt-image-1`) und `openrouter` (z.B. `gemini-2.5-flash-image`).
+Generiert ein einzelnes Bild aus einem Text-Prompt und speichert es in eine Datei (hinzugefügt in v1.14.0). Unterstützte Provider: `openai` und `openrouter`. Das Bildmodell kommt aus `--model` oder `image_model` in der Konfigurationsdatei (nie aus dem Chat-`model`); einen Default gibt es nicht.
 
 ```bash
-# Prompt inline, Default-Modell, Ausgabe nach output.png
-eq-chatbot image -p openai -k sk-... --prompt "Ein Sonnenuntergang über dem Meer"
+# Prompt inline, Ausgabe nach output.png
+eq-chatbot image -p openai -k sk-... -m your-image-model --prompt "Ein Sonnenuntergang über dem Meer"
 
 # OpenRouter, explizite Ausgabedatei
-eq-chatbot image -p openrouter -k sk-or-... --prompt "Eine Katze im Weltall" -o cat.png
+eq-chatbot image -p openrouter -k sk-or-... -m your-image-model --prompt "Eine Katze im Weltall" -o cat.png
 
 # Prompt aus Datei, Ergebnis skalieren (benötigt das [image]-Extra)
-eq-chatbot image -p openai -k sk-... --prompt-file prompt.txt --fit 512x512:cover
+eq-chatbot image -p openai -k sk-... -m your-image-model --prompt-file prompt.txt --fit 512x512:cover
 ```
 
 | Flag | Zweck |
 |------|-------|
 | `-p`, `--provider` | `openai` oder `openrouter` (**erforderlich**) |
 | `-k`, `--api-key` | API-Key (oder `LLM_API_KEY`-Env) |
-| `-m`, `--model` | Modell-ID (Provider-Default wenn weggelassen) |
+| `-m`, `--model` | Modell-ID (Pflicht, sofern `model` nicht in der Konfigurationsdatei steht) |
 | `--prompt` | Text-Prompt zur Bildbeschreibung |
 | `--prompt-file` | Prompt aus Datei lesen statt `--prompt` |
 | `--size` | Abmessungen, z.B. `1024x1024`, `1024x1536`, `auto` (Default `1024x1024`) |
@@ -403,7 +404,7 @@ Generiert mehrere Bilder im Batch aus einer Recipe-JSON-Datei (Schema `eq-listin
 {
   "schema": "eq-listing-assets/v1",
   "module": "eq_chatbot",
-  "defaults": {"provider": "openai", "model": "gpt-image-1"},
+  "defaults": {"provider": "openai", "model": "your-image-model"},
   "assets": [
     {"id": "banner", "out": "banner.png", "size": "1536x1024",
      "prompt": "Wide App-Store banner, deep-blue gradient, friendly robot mascot, bold headline 'eq_chatbot - AI Assistant for Odoo'"},
@@ -479,7 +480,7 @@ Provider-spezifische Variablen: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK
 ### Konfigurationsdatei
 
 Statt (oder zusätzlich zu) Umgebungsvariablen lassen sich Keys, base_urls,
-Default-Modelle, ein Default-Provider und Chat-Defaults in einer TOML-Datei ablegen.
+Modelle, ein Default-Provider und Chat-Defaults in einer TOML-Datei ablegen.
 Default-Pfad: `~/.config/eq-chatbot/config.toml` (beachtet `$XDG_CONFIG_HOME`;
 übersteuerbar via `$EQ_CHATBOT_CONFIG`).
 
@@ -500,7 +501,7 @@ max_tokens  = 4096
 
 [providers.openrouter]
 api_key  = "sk-or-..."
-model    = "openai/gpt-4o"       # optional
+model    = "vendor/your-model-id" # used when --model is not given
 # base_url = "https://openrouter.ai/api/v1"   # optional
 ```
 
@@ -510,7 +511,8 @@ Auflösung (höchste Priorität zuerst):
 |------|-------------|
 | api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > Config |
 | base_url | `--base-url` > Config > Provider-Default |
-| model | `--model` > Config > Provider-Default |
+| model | `--model` > Config > Fehler (kein Default) |
+| image_model (`image`, `listing-assets`) | `--model` > Recipe `defaults.model` > Config `image_model` > Fehler |
 | provider | `--provider` > Config `default_provider` |
 | temperature / max_tokens | Flag > Config `[defaults]` > eingebaut (0.7 / 4096) |
 

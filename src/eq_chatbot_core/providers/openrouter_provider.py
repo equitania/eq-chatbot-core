@@ -9,7 +9,7 @@ import logging
 from typing import Any
 
 from eq_chatbot_core.providers import param_learning
-from eq_chatbot_core.providers.base import ImageResult, ProviderError
+from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError, ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 _logger = logging.getLogger(__name__)
@@ -17,42 +17,18 @@ _logger = logging.getLogger(__name__)
 
 class OpenRouterProvider(OpenAICompatibleProvider):
     """
-    OpenRouter API provider for 400+ AI models.
+    OpenRouter API provider for 400+ models from many vendors.
 
-    Supports models from multiple providers through a unified API:
-    - OpenAI (GPT-4, GPT-4o, O1, O3, O4)
-    - Anthropic (Claude 3, Claude 3.5, Claude 4)
-    - Google (Gemini Pro, Gemini Ultra)
-    - Meta (Llama 3, Llama 4)
-    - Mistral (Mistral Large, Mixtral)
-    - And many more...
-
-    Model IDs follow the format: provider/model-name
-    Examples:
-    - openai/gpt-4o
-    - anthropic/claude-3.5-sonnet
-    - google/gemini-pro-1.5
-    - meta-llama/llama-3.1-70b-instruct
+    Model ids follow the format ``vendor/model-name``; ``list_models()`` returns
+    them with the metadata OpenRouter reports.
     """
 
     DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
     PROVIDER_NAME = "openrouter"
-    # Model IDs leave the source in stage 2.
-    DEFAULT_MODEL = "openai/gpt-5.6-luna"
     _validate_default_url = False
 
     # Image generation is supported via chat/completions with image modality.
     supports_image_generation: bool = True
-
-    # Default model for image generation via OpenRouter.
-    DEFAULT_IMAGE_MODEL = "google/gemini-2.5-flash-image"
-
-    # Reasoning models that don't support temperature
-    REASONING_MODEL_PREFIXES = (
-        "openai/o1",
-        "openai/o3",
-        "openai/o4",
-    )
 
     def __init__(
         self,
@@ -62,6 +38,8 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         max_retries: int = 2,
         site_url: str | None = None,
         site_name: str | None = None,
+        model: str | None = None,
+        image_model: str | None = None,
     ):
         """
         Initialize the OpenRouter provider.
@@ -73,10 +51,13 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             max_retries: Number of retries on transient failures
             site_url: Optional site URL for HTTP-Referer header (for rankings)
             site_name: Optional site name for X-Title header (for display)
+            model: Chat model used when a call passes none
+            image_model: Image model used when ``generate_image`` gets none
         """
         self.site_url = site_url
         self.site_name = site_name
-        super().__init__(api_key, base_url, timeout, max_retries)
+        self.image_model = image_model or None
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _default_headers(self) -> dict[str, str]:
         headers: dict[str, str] = {}
@@ -86,28 +67,30 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             headers["X-Title"] = self.site_name
         return headers
 
-    def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model (O1, O3, O4)."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
-
     def list_models(self) -> list[dict[str, Any]]:
-        """List models; seeds parameter learning from `supported_parameters`.
+        """List models with the metadata OpenRouter reports; seeds parameter learning.
 
-        Only "temperature is not supported" is seeded. A model list that claims
-        support never overrides what a rejected request taught us at runtime.
+        A model whose ``supported_parameters`` omit ``temperature`` is seeded as
+        "temperature unsupported". A learned rejection always wins over the list:
+        ``supports_temperature`` is then ``False`` whatever the list claims.
+        Values OpenRouter does not report are ``None``.
         """
         try:
             data = self.client.get("/models", cast_to=object)
         except Exception as e:
             raise self._handle_error(e) from e
 
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise ProviderError("OpenRouter model listing returned an unusable response", provider=self.provider_name)
+
         models = []
-        for model_data in data.get("data", []) if isinstance(data, dict) else []:
+        for model_data in data["data"]:
             model_id = model_data.get("id", "")
             constraints = self._get_model_constraints(model_data)
-            if model_data.get("supported_parameters") and not constraints["supports_temperature"]:
+            if constraints["supports_temperature"] is False:
                 param_learning.seed_temperature_support(self._effective_base_url, model_id, False)
+            if param_learning.temperature_support(self._effective_base_url, model_id) is False:
+                constraints["supports_temperature"] = False
             models.append(
                 {
                     "id": model_id,
@@ -139,7 +122,7 @@ class OpenRouterProvider(OpenAICompatibleProvider):
 
         Args:
             prompt: Text description of the image to generate
-            model: Model to use (defaults to 'google/gemini-2.5-flash-image')
+            model: Image model; falls back to the constructor's ``image_model``.
             size: Not controllable via OpenRouter; stored in ImageResult.size as-is.
             **kwargs: Additional provider-specific parameters
 
@@ -151,7 +134,9 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         """
         import base64
 
-        model = model or self.DEFAULT_IMAGE_MODEL
+        model = model or self.image_model
+        if not model:
+            raise ModelNotSpecifiedError(self.provider_name, what="image model", constructor_argument="image_model")
 
         try:
             payload: dict[str, Any] = {
@@ -200,63 +185,27 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             raise self._handle_error(e) from e
 
     def _get_model_constraints(self, model_data: dict[str, Any]) -> dict[str, Any]:
+        """Metadata from OpenRouter's model entry; ``None`` where it says nothing.
+
+        OpenRouter may send these fields as JSON null rather than omitting them,
+        so ``or`` treats null and absent alike.
         """
-        Extract temperature, token, and capability constraints from model data.
-
-        OpenRouter provides:
-        - supported_parameters: list of parameters the model accepts
-        - default_parameters: dict of default values
-        - input_modalities: list like ["text", "image"]
-        - output_modalities: list like ["text"]
-        """
-        model_id = model_data.get("id", "").lower()
-        # OpenRouter may return these fields explicitly as JSON null (not absent),
-        # so a dict.get(key, default) fallback does NOT apply — coerce with `or`.
-        supported_params = model_data.get("supported_parameters") or []
-        default_params = model_data.get("default_parameters") or {}
-        input_modalities = model_data.get("input_modalities") or ["text"]
-        output_modalities = model_data.get("output_modalities") or ["text"]
-
-        # Check if it's a reasoning model
-        is_reasoning = any(model_id.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
-
-        # Determine temperature support
-        # Either from supported_parameters or by checking if not a reasoning model
-        supports_temperature = "temperature" in supported_params if supported_params else not is_reasoning
-
-        # Get temperature bounds from default_parameters or use defaults
-        if is_reasoning:
-            min_temp = 1.0
-            max_temp = 1.0
-            default_temp = 1.0
-        else:
-            # Try to extract from model data, fallback to standard bounds
-            min_temp = default_params.get("min_temperature", 0.0)
-            max_temp = default_params.get("max_temperature", 2.0)
-            default_temp = default_params.get("temperature", 1.0)
-
-        # Vision support from input modalities
-        supports_vision = "image" in input_modalities
-
-        # Tool/function calling support
-        supports_tools = "tools" in supported_params or "tool_choice" in supported_params
-
-        # Max output tokens
-        max_output = (model_data.get("top_provider") or {}).get("max_completion_tokens")
-        if not max_output:
-            max_output = model_data.get("max_tokens", 4096)
-
+        supported = model_data.get("supported_parameters") or None
+        defaults = model_data.get("default_parameters") or {}
+        input_modalities = model_data.get("input_modalities") or None
+        output_modalities = model_data.get("output_modalities") or None
+        max_output = (model_data.get("top_provider") or {}).get("max_completion_tokens") or model_data.get("max_tokens")
         return {
-            "supports_temperature": supports_temperature,
-            "default_temperature": default_temp,
-            "min_temperature": min_temp,
-            "max_temperature": max_temp,
-            "supports_reasoning": is_reasoning,
-            "supports_vision": supports_vision,
-            "supports_tools": supports_tools,
-            "supports_streaming": True,  # OpenRouter supports streaming for all models
-            "max_output_tokens": max_output,
-            "default_max_tokens": min(max_output, 4096) if max_output else 4096,
+            "supports_temperature": ("temperature" in supported) if supported else None,
+            "default_temperature": defaults.get("temperature"),
+            "min_temperature": defaults.get("min_temperature"),
+            "max_temperature": defaults.get("max_temperature"),
+            "supports_reasoning": ("reasoning" in supported) if supported else None,
+            "supports_vision": ("image" in input_modalities) if input_modalities else None,
+            "supports_tools": ("tools" in supported or "tool_choice" in supported) if supported else None,
+            "supports_streaming": True,  # OpenRouter streams every model (provider-level)
+            "max_output_tokens": max_output or None,
+            "default_max_tokens": None,
             "input_modalities": input_modalities,
             "output_modalities": output_modalities,
         }

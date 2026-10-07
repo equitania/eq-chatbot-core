@@ -24,6 +24,7 @@ def _provider(**kwargs):
     with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
         from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 
+        kwargs.setdefault("model", "test-model")
         return LangDockProvider(api_key="test-key", **kwargs)
 
 

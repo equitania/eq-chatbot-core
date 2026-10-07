@@ -17,7 +17,7 @@
 - Send one-shot prompts to any supported provider and get a parseable JSON reply (`chat`) — ideal for non-Python callers.
 - Smoke-test a provider/API key and inspect token usage (`test-provider`).
 - Enumerate a provider's models with vision/tool-support metadata (`list-models`, `--json`).
-- Generate a single image from a text prompt (`image`) — OpenAI `gpt-image-1` or OpenRouter image models.
+- Generate a single image from a text prompt (`image`) — OpenAI or OpenRouter image models.
 - Batch-generate App-Store listing assets (icon/banner/eyecatchers) from a recipe JSON (`listing-assets`).
 - Run a localhost-only HTTP/SSE sidecar exposing the gateway to other apps (`serve`) — bearer-auth, streaming.
 - Reach an end-to-end encrypted provider through its local proxy (`-p privatemode`) — confidential computing, no key needed on this side.
@@ -39,14 +39,14 @@ Notation: `[ARG]` optional positional · `ARG` required positional · `a|b` choi
 | `eq-chatbot serve` | Run a localhost HTTP/SSE server exposing the LLM provider gateway. | --host TEXT, --port INTEGER, --auth-token TEXT, --auth-token-fd INTEGER, --parent-pid INTEGER, --log-level debug\|info\|warning\|error |
 | `eq-chatbot test-provider` | Test connection to an LLM provider. | --provider/-p openai\|anthropic\|langdock\|openrouter\|mammouth\|litellm\|ionos\|melious\|privatemode\|local\|lm_studio\|lmstudio\|ollama, --api-key/-k TEXT, --model/-m TEXT, --message/-msg TEXT, --base-url/-u TEXT |
 
-**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `privatemode` (the local proxy holds the key) need no key.
+**Key env vars:** On `chat`/`test-provider`/`list-models`/`image`/`listing-assets` the API key resolves as `--api-key` > `<PROVIDER>_API_KEY` > `LLM_API_KEY` > config file (`~/.config/eq-chatbot/config.toml`, `[providers.<name>].api_key`). Provider-specific vars: `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `LANGDOCK_API_KEY`, `OPENROUTER_API_KEY`, `MAMMOUTH_API_KEY`, `LITELLM_API_KEY`, `IONOS_API_KEY`, `MELIOUS_API_KEY`, `PRIVATEMODE_API_KEY` (a key for one provider never satisfies another). The config file also supplies base_url, model, `default_provider` and chat `[defaults]`. There is no built-in default model: without `--model/-m` or `model` in the config file, `chat`/`test-provider`/`image`/`listing-assets` exit 1 with a message naming both; override its path with `EQ_CHATBOT_CONFIG`. `--provider` is optional when `default_provider` is set. `serve` reads `EQ_CHATBOT_AUTH_TOKEN`. Local providers (`local`, `lm_studio`, `ollama`) and `privatemode` (the local proxy holds the key) need no key.
 
 ## Recipes
 
 ### Programmatic one-shot completion (parse the JSON result)
 ```bash
 echo '{"messages":[{"role":"user","content":"Summarize: ..."}]}' \
-  | eq-chatbot chat -p openai -k "$OPENAI_KEY" -m gpt-4o-mini -t 0.3
+  | eq-chatbot chat -p openai -k "$OPENAI_KEY" -m your-model-id -t 0.3
 ```
 Reads JSON `{"messages":[{role,content},...]}` from **stdin** (≤1 MB). Writes JSON `{"content","model","input_tokens","output_tokens"}` to **stdout**. On failure: JSON `{"error": ...}` on **stderr** and non-zero exit — branch on exit code, not on parsing stdout.
 
@@ -58,8 +58,8 @@ eq-chatbot list-models -p anthropic -k "$KEY" --json --vision-only
 
 ### Validate a key / provider before a batch job
 ```bash
-eq-chatbot test-provider -p ionos -k "$KEY" -msg "ping"
-LLM_API_KEY="$KEY" eq-chatbot test-provider -p openai
+eq-chatbot test-provider -p ionos -k "$KEY" -m your-model-id -msg "ping"
+LLM_API_KEY="$KEY" eq-chatbot test-provider -p openai -m your-model-id
 ```
 Human-readable success/usage report; exits non-zero on auth/connection failure. Good as a CI/pre-flight gate.
 
@@ -67,24 +67,24 @@ Human-readable success/usage report; exits non-zero on auth/connection failure. 
 ```bash
 docker run -d -p 8080:8080 ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest --apiKey "$PM_KEY"
 eq-chatbot list-models   -p privatemode                 # defaults to http://localhost:8080/v1
-eq-chatbot test-provider -p privatemode -m kimi-latest
+eq-chatbot test-provider -p privatemode -m your-model-id   # an id from list-models
 ```
 The proxy does the encryption and the remote attestation; the CLI speaks plain OpenAI to it and needs no key of its own. Model ids come from the proxy — use `list-models`, do not hardcode them.
 
 ### Talk to a local model (no key)
 ```bash
-eq-chatbot test-provider -p lm_studio                 # defaults to localhost:1234
+eq-chatbot test-provider -p lm_studio -m your-local-model   # localhost:1234
 eq-chatbot list-models  -p ollama                      # defaults to localhost:11434
-eq-chatbot test-provider -p local -u http://host:1234/v1
+eq-chatbot test-provider -p local -u http://host:1234/v1 -m your-local-model
 ```
 Requires the local server already running. `lm_studio`/`ollama` carry built-in default base URLs; `local` requires `-u`.
 
 ### Generate a single image
 ```bash
-eq-chatbot image -p openai -k "$KEY" --prompt "A sunset over the ocean" -o sunset.png
-eq-chatbot image -p openai -k "$KEY" --prompt-file prompt.txt --size 1024x1536 --fit 512x512:cover
+eq-chatbot image -p openai -k "$KEY" -m your-image-model --prompt "A sunset over the ocean" -o sunset.png
+eq-chatbot image -p openai -k "$KEY" -m your-image-model --prompt-file prompt.txt --size 1024x1536 --fit 512x512:cover
 ```
-Providers limited to `openai` (`gpt-image-1`) and `openrouter` (e.g. `gemini-2.5-flash-image`). Default output `output.png`. `--fit WxH[:mode]` (cover/contain/stretch) requires the `[image]` extra.
+Providers limited to `openai` and `openrouter`; the image model comes from `-m` or `image_model` in the config file (never from the chat `model`). Default output `output.png`. `--fit WxH[:mode]` (cover/contain/stretch) requires the `[image]` extra.
 
 ### Batch-generate listing assets from a recipe
 ```bash

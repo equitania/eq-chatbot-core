@@ -15,10 +15,6 @@ mock_openai_module = MagicMock()
 sys.modules["openai"] = mock_openai_module
 
 from eq_chatbot_core.providers.litellm_provider import (
-    DEFAULT_MODEL,
-    DEFAULT_STT_MODEL,
-    DEFAULT_TTS_MODEL,
-    DEFAULT_TTS_VOICE,
     LiteLLMProvider,
 )
 
@@ -91,9 +87,9 @@ def mock_models_list():
     """Mock /v1/models response — gateway serves non-gpt models + audio models."""
     models = MagicMock()
     models.data = [
-        MagicMock(id="qwen3.6-35b-a3b", created=1700000000, owned_by="ccsio"),
-        MagicMock(id="kokoro-tts-1", created=1700000000, owned_by="ccsio"),
-        MagicMock(id="whisper-large-v3", created=1700000000, owned_by="ccsio"),
+        MagicMock(id="qwen3.6-35b-a3b", created=1700000000, owned_by="example"),
+        MagicMock(id="kokoro-tts-1", created=1700000000, owned_by="example"),
+        MagicMock(id="whisper-large-v3", created=1700000000, owned_by="example"),
     ]
     return models
 
@@ -121,7 +117,7 @@ def _use_litellm_openai_mock():
 def _make_provider_with_client(mock_client) -> LiteLLMProvider:
     """Build a provider whose openai client is the given mock."""
     mock_openai_module.OpenAI = MagicMock(return_value=mock_client)
-    provider = LiteLLMProvider(api_key="test-key", base_url=TEST_BASE_URL)
+    provider = LiteLLMProvider(api_key="test-key", base_url=TEST_BASE_URL, model="test-model")
     provider._client = None  # force lazy re-creation through the mocked OpenAI()
     return provider
 
@@ -185,10 +181,6 @@ class TestLiteLLMProviderProperties:
         provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL)
         assert provider.provider_name == "litellm"
 
-    def test_default_model_fallback(self):
-        provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL)
-        assert provider.default_model == DEFAULT_MODEL
-
     def test_default_model_override(self):
         provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL, model="custom-1")
         assert provider.default_model == "custom-1"
@@ -213,14 +205,6 @@ class TestLiteLLMChatCompletion:
         assert response.input_tokens == 12
         assert response.output_tokens == 8
         assert response.finish_reason == "stop"
-
-    def test_uses_default_model(self, mock_chat_response):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_chat_response
-        provider = _make_provider_with_client(mock_client)
-
-        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-        assert mock_client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_MODEL
 
     def test_explicit_model_and_max_tokens(self, mock_chat_response):
         mock_client = MagicMock()
@@ -330,29 +314,12 @@ class TestLiteLLMListModels:
 
 
 # =============================================================================
-# Error handling
-# =============================================================================
-
-
-# =============================================================================
 # Audio: TTS + STT
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestLiteLLMAudio:
-    def test_text_to_speech_returns_bytes(self):
-        mock_client = MagicMock()
-        mock_client.audio.speech.create.return_value.read.return_value = b"RIFFfake-wav-bytes"
-        provider = _make_provider_with_client(mock_client)
-
-        audio = provider.text_to_speech("Hello from ccsolutions.")
-        assert audio == b"RIFFfake-wav-bytes"
-        kwargs = mock_client.audio.speech.create.call_args.kwargs
-        assert kwargs["model"] == DEFAULT_TTS_MODEL
-        assert kwargs["voice"] == DEFAULT_TTS_VOICE
-        assert kwargs["input"] == "Hello from ccsolutions."
-
     def test_text_to_speech_custom_voice_and_model(self):
         mock_client = MagicMock()
         mock_client.audio.speech.create.return_value.read.return_value = b"data"
@@ -363,17 +330,6 @@ class TestLiteLLMAudio:
         assert kwargs["model"] == "kokoro-tts-2"
         assert kwargs["voice"] == "af_nova"
         assert kwargs["response_format"] == "mp3"
-
-    def test_transcribe_returns_text(self):
-        mock_client = MagicMock()
-        mock_client.audio.transcriptions.create.return_value.text = "Hello from ccsolutions."
-        provider = _make_provider_with_client(mock_client)
-
-        text = provider.transcribe(b"fake-audio-bytes")
-        assert text == "Hello from ccsolutions."
-        kwargs = mock_client.audio.transcriptions.create.call_args.kwargs
-        assert kwargs["model"] == DEFAULT_STT_MODEL
-        assert kwargs["file"] == b"fake-audio-bytes"
 
 
 # =============================================================================

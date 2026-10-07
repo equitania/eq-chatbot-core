@@ -18,30 +18,16 @@ from eq_chatbot_core.rag.embedder import (
 )
 
 
-class TestOpenAIEmbedder:
-    """OpenAI embedder validates against its static catalog."""
-
-    def test_unknown_model_raises(self):
-        """An unknown model id is rejected at construction time."""
-        with pytest.raises(ValueError):
-            OpenAIEmbedder(api_key="sk-test", model="not-a-real-model")
-
-    def test_dimensions_from_catalog(self):
-        """Dimensions are read from the static MODELS map."""
-        emb = OpenAIEmbedder(api_key="sk-test", model="text-embedding-3-large")
-        assert emb.dimensions == 3072
-
-
 class TestLangDockEmbedder:
     """LangDock embedder maps the region to the correct base URL."""
 
     def test_region_sets_base_url(self):
-        emb = LangDockEmbedder(api_key="k", region="us")
+        emb = LangDockEmbedder(api_key="k", model="test-model", region="us")
         assert emb.base_url == LangDockEmbedder.BASE_URLS["us"]
         assert emb.region == "us"
 
     def test_default_region_is_eu(self):
-        emb = LangDockEmbedder(api_key="k")
+        emb = LangDockEmbedder(api_key="k", model="test-model")
         assert emb.base_url == LangDockEmbedder.BASE_URLS["eu"]
 
 
@@ -69,16 +55,12 @@ class TestMeliousEmbedder:
         with pytest.raises(ValueError):
             MeliousEmbedder(api_key="k", model="m", base_url="file:///etc/passwd")
 
-    def test_default_dimensions(self):
-        emb = MeliousEmbedder(api_key="k", model="m")
-        assert emb.dimensions == 1536
-
     def test_configurable_dimensions(self):
         emb = MeliousEmbedder(api_key="k", model="m", dimensions=1024)
         assert emb.dimensions == 1024
 
     def test_skips_static_model_validation(self):
-        """A dynamic (non-catalog) model id must be accepted."""
+        """Any model id is accepted; nothing is checked against a list."""
         emb = MeliousEmbedder(api_key="k", model="some-dynamic-model")
         assert emb.model == "some-dynamic-model"
 
@@ -128,8 +110,8 @@ class TestEmbedderTransport:
     @pytest.mark.parametrize(
         ("factory", "expected_url"),
         [
-            (lambda: OpenAIEmbedder(api_key="k"), "https://api.openai.com/v1"),
-            (lambda: LangDockEmbedder(api_key="k"), "https://api.langdock.com/openai/eu/v1"),
+            (lambda: OpenAIEmbedder(api_key="k", model="test-model"), "https://api.openai.com/v1"),
+            (lambda: LangDockEmbedder(api_key="k", model="test-model"), "https://api.langdock.com/openai/eu/v1"),
             (lambda: MeliousEmbedder(api_key="k", model="m"), "https://api.melious.ai/v1"),
         ],
     )

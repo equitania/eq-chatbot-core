@@ -481,19 +481,6 @@ class TestLangDockDefaultsAreLive:
     red run instead of a production incident.
     """
 
-    @pytest.mark.parametrize("backend", ["openai", "anthropic", "google"])
-    def test_backend_defaults_are_actually_available(self, langdock_api_key, backend):
-        if not langdock_api_key:
-            pytest.skip("LANGDOCK_API_KEY not set")
-
-        provider = get_provider("langdock", api_key=langdock_api_key, backend=backend, region="eu")
-        available = {m["id"] for m in provider.list_models()}
-
-        assert provider.default_model in available, (
-            f"LangDock no longer serves the {backend} default "
-            f"{provider.default_model!r} — available: {sorted(available)}"
-        )
-
     def test_listing_reflects_the_workspace_not_a_catalogue(self, langdock_api_key):
         """A model the listing offers must be one the endpoint actually accepts."""
         if not langdock_api_key:
@@ -508,68 +495,6 @@ class TestLangDockDefaultsAreLive:
                 max_tokens=512,
             )
             assert response.content, f"listing offers {model['id']} but it returned nothing"
-
-
-@pytest.mark.integration
-class TestProviderDefaultsAreLive:
-    """Every provider's default model must be one the provider still serves.
-
-    On 23.08.2026 four of them were not: anthropic pointed at
-    claude-sonnet-4-20250514 and melious at minimax-428b-m3, both withdrawn, while
-    openai/mammouth/openrouter still named gpt-4o — a generation this workspace no
-    longer runs. A default is the id a caller gets when they pass none, so a stale
-    one fails the very first call of anyone who did not choose explicitly.
-    """
-
-    @pytest.mark.parametrize(
-        "provider_name,key_fixture",
-        [
-            ("openai", "openai_api_key"),
-            ("anthropic", "anthropic_api_key"),
-            ("openrouter", "openrouter_api_key"),
-            ("mammouth", "mammouth_api_key"),
-            ("melious", "melious_api_key"),
-        ],
-    )
-    def test_default_model_is_still_served(self, request, provider_name, key_fixture):
-        api_key = request.getfixturevalue(key_fixture)
-        if not api_key:
-            pytest.skip(f"{key_fixture.upper()} not set")
-
-        provider = get_provider(provider_name, api_key=api_key)
-        available = {m["id"] for m in provider.list_models()}
-
-        assert provider.default_model in available, (
-            f"{provider_name} no longer serves its default {provider.default_model!r}"
-        )
-
-    @pytest.mark.parametrize(
-        "provider_name,key_fixture",
-        [
-            ("openai", "openai_api_key"),
-            ("anthropic", "anthropic_api_key"),
-            ("melious", "melious_api_key"),
-        ],
-    )
-    def test_default_model_actually_answers(self, request, provider_name, key_fixture):
-        """Being listed is not enough — the temperature handling must fit too.
-
-        gpt-5.6 refuses the `temperature` parameter outright, so a provider that
-        sends it anyway gets HTTP 400 on a model that looks perfectly available.
-        """
-        api_key = request.getfixturevalue(key_fixture)
-        if not api_key:
-            pytest.skip(f"{key_fixture.upper()} not set")
-
-        provider = get_provider(provider_name, api_key=api_key)
-        response = provider.chat_completion(
-            messages=[{"role": "user", "content": "Say OK"}],
-            model=provider.default_model,
-            temperature=0.7,
-            max_tokens=512,
-        )
-
-        assert response.content.strip()
 
 
 # =============================================================================
@@ -634,3 +559,46 @@ class TestOpenAIOnBaseClass:
         with caplog.at_level("INFO", logger="eq_chatbot_core.providers.openai_compatible"):
             provider.chat_completion(msg, model=PARAMETER_REJECTING_MODEL, temperature=0.7, max_tokens=512)
         assert "rejected" not in caplog.text
+
+
+@pytest.mark.integration
+class TestRegistryModelsAreLive:
+    """The registry model appears in list_models() and answers — set via the constructor, as callers now must."""
+
+    @pytest.mark.parametrize(
+        ("provider_name", "key_fixture", "model_fixture", "extra"),
+        [
+            ("openai", "openai_api_key", "openai_resolved_model", {}),
+            ("anthropic", "anthropic_api_key", "anthropic_resolved_model", {}),
+            ("openrouter", "openrouter_api_key", "openrouter_resolved_model", {}),
+            ("mammouth", "mammouth_api_key", "mammouth_resolved_model", {}),
+            ("melious", "melious_api_key", "melious_resolved_model", {}),
+            ("ionos", "ionos_api_key", "ionos_resolved_model", {}),
+            ("langdock", "langdock_api_key", "langdock_resolved_model", {"backend": "openai"}),
+            ("langdock", "langdock_api_key", "langdock_anthropic_resolved_model", {"backend": "anthropic"}),
+            ("langdock", "langdock_api_key", "langdock_google_resolved_model", {"backend": "google"}),
+        ],
+        ids=[
+            "openai",
+            "anthropic",
+            "openrouter",
+            "mammouth",
+            "melious",
+            "ionos",
+            "ld-openai",
+            "ld-anthropic",
+            "ld-google",
+        ],
+    )
+    def test_registry_model_is_listed_and_answers(self, request, provider_name, key_fixture, model_fixture, extra):
+        api_key = request.getfixturevalue(key_fixture)
+        if not api_key:
+            pytest.skip(f"{key_fixture.upper()} not set")
+        model = request.getfixturevalue(model_fixture)
+        provider = get_provider(provider_name, api_key=api_key, model=model, **extra)
+
+        assert model in {m["id"] for m in provider.list_models()}
+        response = provider.chat_completion(
+            messages=[{"role": "user", "content": "Say OK"}], temperature=0.7, max_tokens=512
+        )
+        assert response.content.strip()

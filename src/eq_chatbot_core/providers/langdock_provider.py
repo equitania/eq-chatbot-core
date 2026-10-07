@@ -1,12 +1,12 @@
 """
 LangDock provider implementation.
 
-LangDock is a unified API gateway supporting multiple LLM providers:
-- OpenAI (GPT-4, GPT-5, O1-O4 series)
-- Anthropic (Claude models)
-- Google (Gemini models via Vertex AI)
-- Codestral (Mistral code generation)
-- Agents (LangDock custom agents with knowledge)
+LangDock is a unified API gateway with several backends:
+- openai: OpenAI-compatible chat completions
+- anthropic: Anthropic Messages API
+- google: Google Generative Language API (via Vertex AI)
+- codestral: fill-in-the-middle code completion
+- agent: LangDock custom agents with knowledge
 
 Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 """
@@ -14,10 +14,13 @@ Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 import json
 import logging
 from collections.abc import Iterable, Iterator
+from contextlib import ExitStack
 from typing import Any
 
 import httpx2
 
+from eq_chatbot_core.providers import param_learning
+from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -33,7 +36,6 @@ from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     apply_anthropic_temperature,
     clamp_temperature,
-    get_temperature_constraints,
 )
 
 _logger = logging.getLogger(__name__)
@@ -148,9 +150,6 @@ class _LangDockOpenAIBackend(OpenAICompatibleProvider):
         self._owner = owner
         super().__init__(owner.api_key, owner._get_backend_url(), owner.timeout, owner.max_retries)
 
-    def _token_param(self, model: str) -> str:
-        return "max_completion_tokens" if self._owner._uses_new_token_api(model) else "max_tokens"
-
     def _build_params(
         self,
         messages: list[dict[str, Any]],
@@ -162,7 +161,7 @@ class _LangDockOpenAIBackend(OpenAICompatibleProvider):
     ) -> dict[str, Any]:
         effort = kwargs.pop("reasoning_effort", None) or self._owner.reasoning_effort
         params = super()._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
-        if effort and self._owner._is_reasoning_model(model):
+        if effort:
             params["reasoning_effort"] = effort
         return params
 
@@ -174,16 +173,16 @@ class LangDockProvider(BaseLLMProvider):
     LangDock provides access to multiple LLM providers through a single API:
 
     Backends:
-    - openai: GPT-4 Turbo, GPT-4o, GPT-5, O1/O3/O4 series
-    - anthropic: Claude 3.5, Claude 4 models
-    - google: Gemini models via Vertex AI
-    - codestral: Mistral Codestral for code generation (FIM)
+    - openai: OpenAI-compatible chat completions
+    - anthropic: Anthropic Messages API
+    - google: Google Generative Language API (via Vertex AI)
+    - codestral: fill-in-the-middle code completion (FIM)
     - agent: LangDock custom agents with knowledge folders
 
     Features:
     - EU/US region selection (GDPR compliance)
     - Unified API key for all providers
-    - Reasoning effort control for O1/O3/O4 models
+    - Reasoning effort, sent with every openai-backend request when set
     - Agent integration with knowledge folders
     """
 
@@ -199,36 +198,6 @@ class LangDockProvider(BaseLLMProvider):
         "agent": "/agent/v1",
     }
 
-    # Models that don't support temperature (reasoning models)
-    REASONING_MODELS = ("o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o4", "o4-mini")
-
-    # Model context lengths
-    MODEL_CONTEXT_LENGTHS = {
-        # OpenAI models
-        "gpt-4-turbo": 128000,
-        "gpt-4o": 128000,
-        "gpt-4o-mini": 128000,
-        "gpt-5": 200000,
-        "o1": 200000,
-        "o1-mini": 128000,
-        "o1-preview": 128000,
-        "o3": 200000,
-        "o3-mini": 200000,
-        "o4-mini": 200000,
-        # Anthropic models
-        "claude-3-5-sonnet": 200000,
-        "claude-3-5-haiku": 200000,
-        "claude-sonnet-4": 200000,
-        "claude-opus-4": 200000,
-        # Google models — ids come from the live endpoint, these are only the
-        # context hints. Unknown ids fall back to the generic default.
-        "gemini-3.7-flash": 1000000,
-        "gemini-3.5-flash": 1000000,
-        "gemini-2.5-pro": 1000000,
-        # Codestral
-        "codestral": 32000,
-    }
-
     def __init__(
         self,
         api_key: str,
@@ -239,6 +208,7 @@ class LangDockProvider(BaseLLMProvider):
         backend: str = "openai",
         reasoning_effort: str | None = None,
         agent_id: str | None = None,
+        model: str | None = None,
     ):
         """
         Initialize LangDock provider.
@@ -250,8 +220,11 @@ class LangDockProvider(BaseLLMProvider):
             max_retries: Number of retries on transient failures
             region: API region - 'eu' or 'us' (default: eu for GDPR)
             backend: LangDock backend - 'openai', 'anthropic', 'google', 'codestral', 'agent'
-            reasoning_effort: For O1/O3/O4 models - 'low', 'medium', 'high'
+            reasoning_effort: 'low', 'medium' or 'high'; sent with every openai-backend request when set.
+                A model that rejects it is learned and the parameter dropped.
             agent_id: LangDock Agent ID (required for backend='agent')
+            model: Model used when a call passes none (not used by the agent
+                backend, whose model is configured in LangDock)
         """
         # Initialize clients BEFORE validation to ensure __del__ works even when
         # the SSRF guard below rejects the URL.
@@ -267,7 +240,7 @@ class LangDockProvider(BaseLLMProvider):
 
             validate_url(base_url, allow_private_ranges=False)
 
-        super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries)
+        super().__init__(api_key, base_url or self.BASE_URL, timeout, max_retries, model)
 
         self.region = region.lower()
         self.backend = backend.lower()
@@ -286,33 +259,11 @@ class LangDockProvider(BaseLLMProvider):
     def provider_name(self) -> str:
         return "langdock"
 
-    @property
-    def default_model(self) -> str:
-        """Return default model based on backend."""
-        defaults = {
-            "openai": "gpt-5.6-luna",
-            "anthropic": "claude-sonnet-5-default",
-            # These are FALLBACKS, not a catalogue. Model discovery is live
-            # everywhere — list_models() asks LangDock and gets back exactly the
-            # models the workspace enabled — but `model or self.default_model`
-            # needs something when a caller passes nothing, so one id per backend
-            # has to be written down.
-            #
-            # Treat them as perishable: which models a LangDock workspace enables
-            # is a per-customer setting, so no constant here can be right for
-            # everyone. On 23.08.2026 three of the four were dead at once (gpt-4o,
-            # claude-sonnet-4-20250514, gemini-2.5-flash) and every default-model
-            # call answered 400. The live test
-            # test_backend_defaults_are_actually_available turns that into a red
-            # run; callers who need certainty should take list_models()[0].
-            "google": "gemini-3.7-flash",
-            "codestral": "codestral-2501",
-            "agent": None,  # Agent uses its configured model
-        }
-        # The "agent" backend maps to None on purpose: its model is configured
-        # in LangDock, not chosen per request. The base class declares `str`,
-        # and callers use this only as `model or self.default_model`.
-        return defaults.get(self.backend, "gpt-4o")  # type: ignore[return-value]
+    def resolve_model(self, model: str | None = None) -> str:
+        """Model for one call; the agent backend needs none (its model lives in LangDock)."""
+        if self.backend == "agent":
+            return model or ""
+        return super().resolve_model(model)
 
     def _get_backend_url(self) -> str:
         """Get the full base URL for the current backend."""
@@ -385,11 +336,6 @@ class LangDockProvider(BaseLLMProvider):
             )
         return self._anthropic_client
 
-    def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model that doesn't support temperature."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODELS)
-
     def _extract_system_prompt(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
         """Extract system prompt for Anthropic backend."""
         system_prompt = None
@@ -423,7 +369,7 @@ class LangDockProvider(BaseLLMProvider):
 
         Routes to the appropriate backend based on configuration.
         """
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # backends below build request payloads from plain dicts.
         tools = normalize_tools(tools)
@@ -460,18 +406,6 @@ class LangDockProvider(BaseLLMProvider):
         return self._get_openai_backend().chat_completion(
             messages, model=model, temperature=temperature, max_tokens=max_tokens, tools=tools, **extra
         )
-
-    def _uses_new_token_api(self, model: str) -> bool:
-        """Check if model uses max_completion_tokens instead of max_tokens."""
-        model_lower = model.lower()
-        new_api_prefixes = (
-            "gpt-4o",
-            "gpt-5",
-            "o1",
-            "o3",
-            "o4",
-        )
-        return any(model_lower.startswith(prefix) for prefix in new_api_prefixes)
 
     def _filter_agent_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Filter messages for Agent API compatibility.
@@ -684,8 +618,7 @@ class LangDockProvider(BaseLLMProvider):
                 "max_tokens": max_tokens or 4096,
             }
 
-            # Clamp temperature per model constraints
-            apply_anthropic_temperature(params, model, temperature)
+            apply_anthropic_temperature(params, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -708,7 +641,9 @@ class LangDockProvider(BaseLLMProvider):
 
             params.update(kwargs)
 
-            response = self.anthropic_client.messages.create(**params)
+            response = create_message(
+                self.anthropic_client, params, base_url=self._get_backend_url(), provider="langdock", logger=_logger
+            )
 
             # Extract text content
             content = ""
@@ -785,13 +720,10 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
-            # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": clamped if clamped is not None else temperature,
+                    "temperature": clamp_temperature(temperature),
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }
@@ -929,7 +861,7 @@ class LangDockProvider(BaseLLMProvider):
 
         Routes to the appropriate backend based on configuration.
         """
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # backends below build request payloads from plain dicts.
         tools = normalize_tools(tools)
@@ -1081,8 +1013,7 @@ class LangDockProvider(BaseLLMProvider):
                 "max_tokens": max_tokens or 4096,
             }
 
-            # Clamp temperature per model constraints
-            apply_anthropic_temperature(params, model, temperature)
+            apply_anthropic_temperature(params, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -1113,7 +1044,15 @@ class LangDockProvider(BaseLLMProvider):
             accumulated_tool_calls: dict[int, dict[str, Any]] = {}
             current_block_index = 0
 
-            with self.anthropic_client.messages.stream(**params) as stream:
+            with ExitStack() as stack:
+                stream = open_message_stream(
+                    stack,
+                    self.anthropic_client,
+                    params,
+                    base_url=self._get_backend_url(),
+                    provider="langdock",
+                    logger=_logger,
+                )
                 for event in stream:
                     # Capture input tokens from message_start event
                     if event.type == "message_start":
@@ -1297,13 +1236,10 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
-            # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": clamped if clamped is not None else temperature,
+                    "temperature": clamp_temperature(temperature),
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }
@@ -1379,74 +1315,6 @@ class LangDockProvider(BaseLLMProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
-    def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
-        """Get temperature, token, and capability constraints for a model."""
-        model_lower = model_id.lower()
-
-        # Use shared temperature constraints for accurate min/max
-        temp_constraints = get_temperature_constraints(model_id)
-        is_reasoning = not temp_constraints["supports_temperature"]
-
-        # Check if model supports vision
-        # GPT-4o/4-turbo/5, Claude 3+, Gemini, O1/O3/O4 support vision
-        supports_vision = False
-
-        # GPT vision models
-        if any(model_lower.startswith(p) for p in ("gpt-4o", "gpt-4-turbo", "gpt-5")):
-            supports_vision = True
-        # O-series reasoning models with vision
-        elif any(model_lower.startswith(p) for p in ("o1", "o3", "o4")):
-            supports_vision = True
-        # Gemini models
-        elif model_lower.startswith("gemini"):
-            supports_vision = True
-        # Claude 3+ models (various naming patterns)
-        elif "claude" in model_lower:
-            if any(v in model_lower for v in ("-3-", "-3.", "-4-", "-4.", "haiku", "sonnet", "opus")):
-                supports_vision = True
-
-        # Get context length
-        context_length = None
-        for prefix, length in self.MODEL_CONTEXT_LENGTHS.items():
-            if model_lower.startswith(prefix):
-                context_length = length
-                break
-
-        if is_reasoning:
-            return {
-                "supports_temperature": False,
-                "default_temperature": 1.0,
-                "min_temperature": 1.0,
-                "max_temperature": 1.0,
-                "supports_reasoning": True,
-                "supports_vision": supports_vision,
-                "max_output_tokens": 100000 if "o1" in model_lower else 65536,
-                "default_max_tokens": 16384,
-                "context_length": context_length or 200000,
-            }
-        else:
-            # Determine max_output based on model family
-            if "claude" in model_lower:
-                max_output = 8192
-            elif "gemini" in model_lower:
-                max_output = 8192
-            elif "codestral" in model_lower:
-                max_output = 16384
-            else:
-                max_output = 16384
-
-            return {
-                "supports_temperature": True,
-                "default_temperature": 1.0,
-                "min_temperature": temp_constraints["min"],
-                "max_temperature": temp_constraints["max"],
-                "supports_reasoning": False,
-                "supports_vision": supports_vision,
-                "max_output_tokens": max_output,
-                "default_max_tokens": 4096,
-                "context_length": context_length or 128000,
-            }
-
     def list_models(self) -> list[dict[str, Any]]:
         """
         List available models from LangDock.
@@ -1469,7 +1337,9 @@ class LangDockProvider(BaseLLMProvider):
             elif self.backend == "agent":
                 return self._list_agent_models()
             else:
-                return []
+                raise ProviderError(
+                    f"Cannot list models: unknown LangDock backend {self.backend!r}", provider=self.provider_name
+                )
 
         except ProviderError:
             # Already a typed error carrying status/context. Routing it through
@@ -1480,104 +1350,48 @@ class LangDockProvider(BaseLLMProvider):
             raise self._handle_error(e) from e
 
     def _list_openai_models(self) -> list[dict[str, Any]]:
-        """List OpenAI models available via LangDock."""
+        """Every model LangDock's OpenAI endpoint lists for this workspace."""
         models = self.openai_client.models.list()
-
-        # LangDock-supported OpenAI models
-        supported_prefixes = (
-            "gpt-4-turbo",
-            "gpt-4o",
-            "gpt-5",
-            "o1",
-            "o3",
-            "o4",
-        )
-
-        result = []
-        for model in models.data:
-            model_id = model.id.lower()
-            if any(model_id.startswith(prefix) for prefix in supported_prefixes):
-                constraints = self._get_model_constraints(model.id)
-                result.append(
-                    {
-                        "id": model.id,
-                        "name": model.id,
-                        "created": getattr(model, "created", None),
-                        "owned_by": getattr(model, "owned_by", "langdock"),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        "region": self.region,
-                        **constraints,
-                    }
-                )
-
+        base = self._get_backend_url()
+        result = [
+            {
+                "id": model.id,
+                "name": model.id,
+                "created": getattr(model, "created", None),
+                "owned_by": getattr(model, "owned_by", "langdock"),
+                "provider": self.provider_name,
+                "backend": self.backend,
+                "region": self.region,
+                **param_learning.model_metadata(base, model.id),
+            }
+            for model in models.data
+        ]
         result.sort(key=lambda m: m["id"])
         return result
 
     def _list_anthropic_models(self) -> list[dict[str, Any]]:
-        """List Anthropic models available via LangDock."""
+        """Anthropic models LangDock lists, with what the Models API reports."""
         try:
-            models_response = self.anthropic_client.models.list(limit=100)
-
-            result = []
-            for model in models_response.data:
-                constraints = self._get_model_constraints(model.id)
-                # Use 'or' to handle None values (getattr returns None if attr is None)
-                model_name = getattr(model, "display_name", None) or model.id
-                result.append(
-                    {
-                        "id": model.id,
-                        "name": model_name,
-                        "created": getattr(model, "created_at", None),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        "region": self.region,
-                        **constraints,
-                    }
-                )
-
-            result.sort(key=lambda m: m.get("created") or "", reverse=True)
-            return result
-        except (AttributeError, KeyError, TypeError) as e:
-            # Fallback to known models if API doesn't support listing
-            _logger.warning("Anthropic model listing not supported, using known models: %s", e)
-            return self._get_known_anthropic_models()
-
-    def _get_known_anthropic_models(self) -> list[dict[str, Any]]:
-        """Return known Anthropic models as fallback."""
-        known_models = [
-            "claude-opus-4-5-20251101",
-            "claude-sonnet-4-20250514",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-        ]
-        result = []
-        for model_id in known_models:
-            constraints = self._get_model_constraints(model_id)
-            result.append(
-                {
-                    "id": model_id,
-                    "name": model_id,
-                    "provider": self.provider_name,
-                    "backend": self.backend,
-                    "region": self.region,
-                    **constraints,
-                }
+            return list_anthropic_models(
+                self.anthropic_client,
+                self._get_backend_url(),
+                self.provider_name,
+                backend=self.backend,
+                region=self.region,
             )
-        return result
+        except (AttributeError, KeyError, TypeError) as e:
+            # No static fallback list and no silent []: an unusable listing is an error.
+            raise ProviderError(
+                f"LangDock Anthropic model listing returned an unusable response: {_safe_detail(str(e))}",
+                provider=self.provider_name,
+            ) from e
 
     def _list_google_models(self) -> list[dict[str, Any]]:
-        """List Google Gemini models by asking LangDock, not from a hardcoded list.
+        """List the Google models LangDock offers this workspace, live.
 
-        This used to return a hand-maintained ("gemini-2.5-flash", "gemini-2.5-pro")
-        pair. LangDock retired 2.5-flash, so both the catalogue and the backend
-        default pointed at a model that answers
-        ``400 Invalid model, available models are: …`` — every default-model call
-        to this backend failed. The endpoint below is the same one that error
-        message is generated from, so it cannot go stale.
-
-        Gemini reports ids as ``models/<id>``; the prefix is stripped because
-        sending it back is itself a 400.
+        The endpoint is the one LangDock's "Invalid model, available models are: …"
+        error is generated from, so the list cannot go stale. Ids come back as
+        ``models/<id>``; the prefix is stripped because sending it back is a 400.
         """
         response = self.http_client.get("/models")
         response.raise_for_status()
@@ -1588,15 +1402,23 @@ class LangDockProvider(BaseLLMProvider):
             model_id = str(model.get("name", "")).removeprefix("models/")
             if not model_id:
                 continue
-            constraints = self._get_model_constraints(model_id)
+            thinking = model.get("thinking")
             result.append(
                 {
                     "id": model_id,
-                    "name": model_id.replace("-", " ").title(),
+                    "name": model.get("displayName") or model_id,
                     "provider": self.provider_name,
                     "backend": self.backend,
                     "region": self.region,
-                    **constraints,
+                    **param_learning.model_metadata(
+                        self._get_backend_url(),
+                        model_id,
+                        context_length=model.get("inputTokenLimit"),
+                        max_output_tokens=model.get("outputTokenLimit"),
+                        default_temperature=model.get("temperature"),
+                        max_temperature=model.get("maxTemperature"),
+                        supports_reasoning=thinking if isinstance(thinking, bool) else None,
+                    ),
                 }
             )
         return result
@@ -1604,39 +1426,35 @@ class LangDockProvider(BaseLLMProvider):
     def _list_codestral_models(self) -> list[dict[str, Any]]:
         """Deliberately empty: Codestral is FIM-only, not a chat model.
 
-        LangDock does serve ``GET /mistral/eu/v1/models`` (it returns
-        ``codestral-2501``), but surfacing that here would put a
-        fill-in-the-middle model into a chat model picker, where it cannot
-        answer. Callers who want it address it explicitly via the backend
-        default. The default id is checked by a unit test against what the
-        endpoint actually serves.
+        LangDock does serve ``GET /mistral/eu/v1/models``, but surfacing that
+        here would put a fill-in-the-middle model into a chat model picker, where
+        it cannot answer. Callers address it explicitly with ``model=``.
         """
         return []
 
     def _list_agent_models(self) -> list[dict[str, Any]]:
         """List models available for LangDock agents."""
-        try:
-            response = self.http_client.get("/models")
-            response.raise_for_status()
-            data = response.json()
+        response = self.http_client.get("/models")
+        response.raise_for_status()
+        data = response.json()
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise ProviderError(
+                "LangDock agent model listing returned an unusable response", provider=self.provider_name
+            )
 
-            result = []
-            for model in data.get("data", []):
-                model_id = model.get("id", "")
-                constraints = self._get_model_constraints(model_id)
-                result.append(
-                    {
-                        "id": model_id,
-                        "name": model.get("name", model_id),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        **constraints,
-                    }
-                )
-            return result
-        except (AttributeError, KeyError, TypeError, ConnectionError) as e:
-            _logger.warning("Agent model listing failed, returning empty list: %s", e)
-            return []
+        result = []
+        for model in data["data"]:
+            model_id = model.get("id", "")
+            result.append(
+                {
+                    "id": model_id,
+                    "name": model.get("name", model_id),
+                    "provider": self.provider_name,
+                    "backend": self.backend,
+                    **param_learning.model_metadata(self._get_backend_url(), model_id),
+                }
+            )
+        return result
 
     def _raise_http_error(self, response: Any, label: str) -> None:
         """Raise a typed error that carries the upstream body, not just the status.
@@ -1857,7 +1675,7 @@ class LangDockAgentManager:
         self,
         name: str,
         instruction: str,
-        model: str = "gpt-4o",
+        model: str,
         knowledge_folder_ids: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -1867,7 +1685,7 @@ class LangDockAgentManager:
         Args:
             name: Agent name
             instruction: System instruction for the agent
-            model: LLM model to use
+            model: Model the agent runs (required; there is no default)
             knowledge_folder_ids: List of knowledge folder IDs to attach
             **kwargs: Additional agent configuration (e.g. creativity, webSearch)
 

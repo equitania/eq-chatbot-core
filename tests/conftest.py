@@ -26,6 +26,7 @@ from unittest.mock import MagicMock
 # Capture the real openai SDK before any test module can replace it with a mock.
 # This is needed because conftest is imported before test modules, and wire-server tests
 # always need the real SDK, not mocks from older test files.
+import anthropic as _REAL_ANTHROPIC  # tests/unit/test_anthropic.py replaces it at import time
 import openai as _REAL_OPENAI
 import pytest
 
@@ -1684,10 +1685,16 @@ def real_openai(monkeypatch):
 
 
 @pytest.fixture
-def wire_server(real_openai):
+def real_anthropic(monkeypatch):
+    """Make ``sys.modules["anthropic"]`` the real SDK for the duration of a test (see ``real_openai``)."""
+    monkeypatch.setitem(sys.modules, "anthropic", _REAL_ANTHROPIC)
+
+
+@pytest.fixture
+def wire_server(real_openai, real_anthropic):
     """A local OpenAI-wire HTTP server; see tests/wire_server.py.
 
-    Depends on ``real_openai``: wire tests always run the real openai SDK.
+    Depends on ``real_openai`` and ``real_anthropic``: wire tests always run the real SDKs.
     """
     from tests.wire_server import WireServer
 

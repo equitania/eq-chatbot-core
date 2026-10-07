@@ -3,11 +3,13 @@ Integration tests for the LiteLLM provider (OpenAI-compatible gateway).
 
 These tests require valid credentials in ~/.config/eq-chatbot/config.toml:
 - LITELLM_API_KEY  — Bearer token for the gateway
-- LITELLM_BASE_URL — gateway endpoint, e.g. https://api.ccsio.ai/v1
+- LITELLM_BASE_URL — gateway endpoint, e.g. https://litellm.example.com/v1
 
 Run with: pytest -m integration tests/integration/test_litellm_live.py -v
 Live tests run by default; export SKIP_LIVE_TESTS=true to skip them.
 """
+
+import os
 
 import pytest
 
@@ -20,6 +22,12 @@ from eq_chatbot_core.providers import get_provider
 # model-agnostic; only the test injects this gateway-specific flag (passed through
 # verbatim to the OpenAI SDK via extra_body / **kwargs).
 _NO_THINKING = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
+
+# Probe audio models: the library has no default TTS/STT model any more (stage 2).
+# Former gateway defaults, overridable per environment.
+TTS_TEST_MODEL = os.getenv("LITELLM_TTS_TEST_MODEL", "kokoro-tts-1")
+TTS_TEST_VOICE = os.getenv("LITELLM_TTS_TEST_VOICE", "af_bella")
+STT_TEST_MODEL = os.getenv("LITELLM_STT_TEST_MODEL", "whisper-large-v3")
 
 
 @pytest.mark.integration
@@ -74,7 +82,7 @@ class TestLiteLLMLive:
     def test_tts_stt_roundtrip(self, provider):
         """TTS -> STT roundtrip (optional; skips if the gateway lacks audio models)."""
         try:
-            audio = provider.text_to_speech("Hello from ccsolutions.")
+            audio = provider.text_to_speech("Hello from the test suite.", model=TTS_TEST_MODEL, voice=TTS_TEST_VOICE)
         except Exception as exc:  # gateway may not expose audio models
             pytest.skip(f"TTS unavailable on this gateway: {exc}")
 
@@ -82,7 +90,7 @@ class TestLiteLLMLive:
         assert len(audio) > 0
 
         try:
-            text = provider.transcribe(("speech.wav", audio, "audio/wav"))
+            text = provider.transcribe(("speech.wav", audio, "audio/wav"), model=STT_TEST_MODEL)
         except Exception as exc:
             pytest.skip(f"STT unavailable on this gateway: {exc}")
 

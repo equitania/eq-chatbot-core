@@ -1,13 +1,15 @@
 """
-Anthropic Claude provider implementation.
+Anthropic provider implementation.
 """
 
 import json
 import logging
 import time
 from collections.abc import Iterator
+from contextlib import ExitStack
 from typing import Any
 
+from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -20,24 +22,17 @@ from eq_chatbot_core.providers.base import (
     ToolDefinition,
     normalize_tools,
 )
-from eq_chatbot_core.providers.temperature_constraints import (
-    apply_anthropic_temperature,
-    get_temperature_constraints,
-)
+from eq_chatbot_core.providers.temperature_constraints import apply_anthropic_temperature
 
 logger = logging.getLogger(__name__)
 
 
 class AnthropicProvider(BaseLLMProvider):
     """
-    Anthropic API provider for Claude models.
+    Anthropic Messages API provider.
 
-    Supports:
-    - Claude 4.5 Opus (claude-opus-4-5-20251101) - newest, most capable
-    - Claude 4 Sonnet (claude-sonnet-4-20250514)
-    - Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)
-    - Claude 3.5 Haiku (claude-3-5-haiku-20241022)
-    - Claude 3 Opus (claude-3-opus-20240229)
+    Pass the model per call or as ``model=`` to the constructor; ``list_models()``
+    returns the ids the account can use.
     """
 
     DEFAULT_BASE_URL = "https://api.anthropic.com"
@@ -53,6 +48,7 @@ class AnthropicProvider(BaseLLMProvider):
         base_url: str | None = None,
         timeout: float = 60.0,
         max_retries: int = 2,
+        model: str | None = None,
     ):
         # Initialize the client attribute BEFORE validation so close()/__del__
         # stay safe if the SSRF guard below raises.
@@ -67,7 +63,7 @@ class AnthropicProvider(BaseLLMProvider):
 
             validate_url(base_url, allow_private_ranges=False)
 
-        super().__init__(api_key, base_url, timeout, max_retries)
+        super().__init__(api_key, base_url, timeout, max_retries, model)
 
     def _should_retry_error(self, error: Exception) -> bool:
         """Check if an error is retryable (overloaded, temporary failures)."""
@@ -83,17 +79,13 @@ class AnthropicProvider(BaseLLMProvider):
         jitter: float = delay * 0.25 * (2 * random.random() - 1)
         return delay + jitter
 
+    def _endpoint(self) -> str:
+        """Endpoint key for parameter learning."""
+        return self.base_url or self.DEFAULT_BASE_URL
+
     @property
     def provider_name(self) -> str:
         return "anthropic"
-
-    @property
-    def default_model(self) -> str:
-        # Verified live on 23.08.2026: the previous default had either been
-        # retired or belonged to a generation we no longer run. Policy is to
-        # default to the current one — see the live test that fails when this
-        # id stops being served.
-        return "claude-sonnet-5"
 
     @property
     def client(self) -> Any:
@@ -296,7 +288,7 @@ class AnthropicProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to Anthropic with retry on overload."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)
@@ -312,8 +304,7 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Clamp temperature per model constraints
-        apply_anthropic_temperature(params, model, temperature)
+        apply_anthropic_temperature(params, temperature)
 
         if system_prompt:
             params["system"] = system_prompt
@@ -327,7 +318,9 @@ class AnthropicProvider(BaseLLMProvider):
 
         for attempt in range(self.OVERLOAD_MAX_RETRIES + 1):
             try:
-                response = self.client.messages.create(**params)
+                response = create_message(
+                    self.client, params, base_url=self._endpoint(), provider=self.provider_name, logger=logger
+                )
 
                 # Extract text content
                 content = ""
@@ -387,7 +380,7 @@ class AnthropicProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from Anthropic with retry on overload."""
-        model = model or self.default_model
+        model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)
@@ -403,8 +396,7 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Clamp temperature per model constraints
-        apply_anthropic_temperature(params, model, temperature)
+        apply_anthropic_temperature(params, temperature)
 
         if system_prompt:
             params["system"] = system_prompt
@@ -427,7 +419,15 @@ class AnthropicProvider(BaseLLMProvider):
                 accumulated_tool_calls: dict[int, dict[str, Any]] = {}
                 current_block_index = 0
 
-                with self.client.messages.stream(**params) as stream:
+                with ExitStack() as stack:
+                    stream = open_message_stream(
+                        stack,
+                        self.client,
+                        params,
+                        base_url=self._endpoint(),
+                        provider=self.provider_name,
+                        logger=logger,
+                    )
                     for event in stream:
                         # Capture input tokens from message_start event
                         if event.type == "message_start":
@@ -532,74 +532,15 @@ class AnthropicProvider(BaseLLMProvider):
         if last_error:
             raise self._handle_error(last_error) from last_error
 
-    def _get_model_constraints(self, model_id: str) -> dict[str, Any]:
-        """Get temperature, token, and capability constraints for a model."""
-        model_lower = model_id.lower()
-
-        # Use shared temperature constraints
-        temp_constraints = get_temperature_constraints(model_id)
-        supports_temp = temp_constraints["supports_temperature"]
-
-        # All Claude 3.x and 4.x models support vision
-        # Check for various naming patterns: claude-3-*, claude-4-*, claude-haiku-*, etc.
-        supports_vision = (
-            "claude-3" in model_lower
-            or "claude-4" in model_lower
-            or any(v in model_lower for v in ("haiku", "sonnet", "opus"))
-        )
-
-        # Determine max output tokens based on model family
-        if "opus-4" in model_lower or "sonnet-4" in model_lower:
-            max_output = 16384
-        elif "3-5" in model_lower or "3.5" in model_lower:
-            max_output = 8192
-        else:
-            max_output = 4096
-
-        return {
-            "supports_temperature": supports_temp,
-            "default_temperature": 1.0,
-            "min_temperature": temp_constraints["min"],
-            "max_temperature": temp_constraints["max"],
-            "supports_reasoning": False,
-            "supports_vision": supports_vision,
-            "max_output_tokens": max_output,
-            "default_max_tokens": 4096,
-            "context_length": 200000,  # All Claude models support 200k context
-        }
-
     def list_models(self) -> list[dict[str, Any]]:
         """
-        List available Claude models from the Anthropic API.
+        List the models the Anthropic Models API reports, with the limits and
+        capabilities it reports; everything else is ``None`` (unknown).
 
-        Uses the Models API endpoint to fetch available models dynamically.
-
-        Returns:
-            List of model dicts with 'id', 'name', constraints, and metadata.
+        ``supports_temperature`` is ``False`` once a rejection was learned.
         """
         try:
-            # Fetch models from API
-            models_response = self.client.models.list(limit=100)
-
-            chat_models = []
-            for model in models_response.data:
-                constraints = self._get_model_constraints(model.id)
-                chat_models.append(
-                    {
-                        "id": model.id,
-                        "name": getattr(model, "display_name", model.id),
-                        "created": getattr(model, "created_at", None),
-                        "provider": self.provider_name,
-                        **constraints,
-                    }
-                )
-
-            # Sort by creation date (newest first) or by ID
-            chat_models.sort(
-                key=lambda m: m.get("created") or "",
-                reverse=True,
-            )
-            return chat_models
+            return list_anthropic_models(self.client, self._endpoint(), self.provider_name)
 
         except Exception as e:
             raise self._handle_error(e) from e

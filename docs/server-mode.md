@@ -48,7 +48,7 @@ curl -s -X POST http://127.0.0.1:8765/chat \
     "messages":[{"role":"user","content":"Say hi in German"}],
     "provider":"openai",
     "api_key":"'"$OPENAI_API_KEY"'",
-    "model":"gpt-4o-mini",
+    "model":"your-model-id",
     "max_tokens":20
   }' | jq
 
@@ -60,7 +60,7 @@ curl -N -X POST http://127.0.0.1:8765/chat/stream \
     "messages":[{"role":"user","content":"Count from 1 to 5"}],
     "provider":"openai",
     "api_key":"'"$OPENAI_API_KEY"'",
-    "model":"gpt-4o-mini",
+    "model":"your-model-id",
     "max_tokens":30
   }'
 ```
@@ -111,6 +111,8 @@ The environment variable `EQ_CHATBOT_AUTH_TOKEN` is honored as a fallback when n
 | `POST` | `/models` | bearer | List models for a given provider |
 | `POST` | `/chat` | bearer | Single-shot chat completion → `LLMResponse` JSON |
 | `POST` | `/chat/stream` | bearer | SSE stream of `StreamChunk` events |
+
+`/chat` and `/chat/stream` need a model: the request's `model` field, or `model` in `provider_extra`. Without one the server answers HTTP 400 with `detail.type == "ModelNotSpecifiedError"` — for streams before the event stream starts. LangDock's `agent` backend needs no model.
 
 OpenAPI/Swagger UI lives at `/docs` and `/redoc` (auth-free, useful for exploration).
 
@@ -163,7 +165,7 @@ curl -H "Authorization: Bearer $TOKEN" \
      -d '{
        "messages":[{"role":"user","content":"Hi in 5 words"}],
        "provider":"openai",
-       "model":"gpt-4o-mini",
+       "model":"your-model-id",
        "api_key":"sk-..."
      }' \
      http://127.0.0.1:$PORT/chat
@@ -174,7 +176,7 @@ curl -N -H "Authorization: Bearer $TOKEN" \
      -d '{
        "messages":[{"role":"user","content":"Explain streaming"}],
        "provider":"openai",
-       "model":"gpt-4o-mini",
+       "model":"your-model-id",
        "stream":true,
        "api_key":"sk-..."
      }' \
@@ -269,7 +271,7 @@ curl -s -X POST http://127.0.0.1:8765/chat \
     "messages":[{"role":"user","content":"Sag Hallo auf Deutsch"}],
     "provider":"openai",
     "api_key":"'"$OPENAI_API_KEY"'",
-    "model":"gpt-4o-mini",
+    "model":"your-model-id",
     "max_tokens":20
   }' | jq
 
@@ -281,7 +283,7 @@ curl -N -X POST http://127.0.0.1:8765/chat/stream \
     "messages":[{"role":"user","content":"Zähle von 1 bis 5"}],
     "provider":"openai",
     "api_key":"'"$OPENAI_API_KEY"'",
-    "model":"gpt-4o-mini",
+    "model":"your-model-id",
     "max_tokens":30
   }'
 ```
@@ -332,6 +334,8 @@ Die Umgebungsvariable `EQ_CHATBOT_AUTH_TOKEN` wird als Fallback akzeptiert wenn 
 | `POST` | `/models` | Bearer | Modell-Liste für einen Provider |
 | `POST` | `/chat` | Bearer | Single-Shot Chat-Completion → `LLMResponse` JSON |
 | `POST` | `/chat/stream` | Bearer | SSE-Stream von `StreamChunk`-Events |
+
+`/chat` und `/chat/stream` brauchen ein Modell: das Feld `model` der Anfrage oder `model` in `provider_extra`. Fehlt es, antwortet der Server mit HTTP 400 und `detail.type == "ModelNotSpecifiedError"` — bei Streams, bevor der Event-Stream beginnt. Das `agent`-Backend von LangDock braucht kein Modell.
 
 OpenAPI-/Swagger-UI ist unter `/docs` und `/redoc` erreichbar (auth-frei, gut zum Erkunden).
 
@@ -384,7 +388,7 @@ curl -H "Authorization: Bearer $TOKEN" \
      -d '{
        "messages":[{"role":"user","content":"Hi in 5 Worten"}],
        "provider":"openai",
-       "model":"gpt-4o-mini",
+       "model":"your-model-id",
        "api_key":"sk-..."
      }' \
      http://127.0.0.1:$PORT/chat
@@ -395,7 +399,7 @@ curl -N -H "Authorization: Bearer $TOKEN" \
      -d '{
        "messages":[{"role":"user","content":"Erkläre Streaming"}],
        "provider":"openai",
-       "model":"gpt-4o-mini",
+       "model":"your-model-id",
        "stream":true,
        "api_key":"sk-..."
      }' \

@@ -1,26 +1,19 @@
 """Model capability catalog.
 
 Resolves per-model *capabilities* (vision, audio, files, tools, reasoning) and
-context/output *limits* across all supported providers from a single, curated
-Equitania catalog.
+context/output *limits* across all supported providers from the curated,
+Equitania-hosted ``capability_catalog.json`` (Single Source of Truth, maintained
+centrally by the ``eq-model-catalog`` sync tool). The package ships no copy:
+:meth:`CapabilityCatalog.from_remote` fetches the live file, and when that fails
+the catalog is empty (``lookup()`` returns ``None``) and a WARNING is logged.
 
-Data source: the Equitania-hosted ``capability_catalog.json`` (Single Source of
-Truth, maintained centrally by the ``eq-model-catalog`` sync tool). A snapshot
-is bundled under ``data/capability_catalog.json`` as an offline fallback;
-:meth:`CapabilityCatalog.from_remote` fetches the live file and degrades
-gracefully to the snapshot on any network error.
-
-Unlike the runtime provider adapters (which guess capabilities from the model
-name), this catalog carries hand-verified flags.
 Each model entry lists ``aliases`` — the per-provider technical model ids — so a
 configured ``model_id`` maps back to the canonical entry regardless of provider.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import re
 from typing import Any, TypedDict
 
@@ -33,13 +26,11 @@ _logger = logging.getLogger(__name__)
 DEFAULT_CATALOG_URL = "https://data.ownerp.io/ai/capability_catalog.json"
 
 # What may follow a catalog key in the longest-prefix fallback: a snapshot of the
-# same model, never another model. Date (Anthropic "-20250219", Vertex "@20250219",
-# OpenAI "-2024-08-06") or "-latest", then an optional Bedrock "-v1:0" and an
-# optional OpenRouter variant (":beta", ":free"). Without this boundary
-# "claude-opus-4-8" resolved to "claude-opus-4" and inherited its 200K/32K limits.
+# same model, never another model. Date ("-YYYYMMDD", Vertex "@YYYYMMDD", OpenAI
+# "-YYYY-MM-DD") or "-latest", then an optional Bedrock "-v1:0" and an optional
+# OpenRouter variant (":beta", ":free"). Without this boundary a newer model whose id
+# starts with an older catalog key inherited that older model's limits.
 _SNAPSHOT_SUFFIX_RE = re.compile(r"(?:[-@]\d{8}|-\d{4}-\d{2}-\d{2}|-latest)?(?:-v\d+(?::\d+)?)?(?::[a-z0-9._-]+)?")
-
-_SNAPSHOT_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "capability_catalog.json"))
 
 # Capability keys the catalog tracks (order defines the canonical output shape).
 CAPABILITY_KEYS: tuple[str, ...] = (
@@ -106,14 +97,8 @@ class CapabilityCatalog:
     # ----- Constructors ---------------------------------------------------
 
     @classmethod
-    def from_snapshot(cls) -> CapabilityCatalog:
-        """Build the catalog from the bundled offline snapshot."""
-        with open(_SNAPSHOT_PATH, encoding="utf-8") as fh:
-            return cls(json.load(fh))
-
-    @classmethod
     def from_remote(cls, url: str | None = None, timeout: float = 10.0) -> CapabilityCatalog:
-        """Fetch the hosted Equitania catalog; fall back to the bundled snapshot."""
+        """Fetch the hosted Equitania catalog; on any failure return an empty catalog."""
         try:
             import httpx2
 
@@ -125,9 +110,9 @@ class CapabilityCatalog:
                 resp = client.get(url or DEFAULT_CATALOG_URL)
             resp.raise_for_status()
             return cls(resp.json())
-        except Exception as e:  # network/parse failure -> offline fallback
-            _logger.warning("Capability catalog remote fetch failed, using snapshot: %s", e)
-            return cls.from_snapshot()
+        except Exception as e:  # network/parse failure -> empty catalog
+            _logger.warning("Capability catalog remote fetch failed; catalog is empty: %s", e)
+            return cls({})
 
     # ----- Lookup ---------------------------------------------------------
 
@@ -151,7 +136,7 @@ class CapabilityCatalog:
                 return self._build(entry)
 
         # Longest-prefix fallback for snapshot suffixes only
-        # (e.g. "claude-3-7-sonnet-20250219" -> "claude-3-7-sonnet").
+        # (e.g. a dated snapshot id -> its undated alias).
         best_key = ""
         for key in self._entries:
             if (

@@ -261,26 +261,6 @@ class TestFactoryKwargs:
 class TestFactoryProviderProperties:
     """Test that created providers have correct properties."""
 
-    def test_openai_default_model(self):
-        """Test OpenAI provider has correct default model."""
-        provider = get_provider("openai", api_key="test")
-
-        assert provider.default_model is not None
-        assert "gpt" in provider.default_model.lower()
-
-    def test_anthropic_default_model(self):
-        """Test Anthropic provider has correct default model."""
-        provider = get_provider("anthropic", api_key="test")
-
-        assert provider.default_model is not None
-        assert "claude" in provider.default_model.lower()
-
-    def test_local_default_model(self):
-        """Test local provider has fallback default model."""
-        provider = get_provider("local", base_url="http://localhost:1234/v1")
-
-        assert provider.default_model == "local-model"
-
     def test_provider_names_correct(self):
         """Test that provider_name property is set correctly."""
         openai = get_provider("openai", api_key="test")
@@ -298,10 +278,3 @@ class TestFactoryProviderProperties:
         assert local.provider_name == "local"
         assert lm_studio.provider_name == "local"
         assert ollama.provider_name == "local"
-
-    def test_openrouter_default_model(self):
-        """Test OpenRouter provider has correct default model."""
-        provider = get_provider("openrouter", api_key="test")
-
-        assert provider.default_model is not None
-        assert provider.default_model == "openai/gpt-5.6-luna"

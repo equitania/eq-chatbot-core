@@ -25,6 +25,9 @@ from eq_chatbot_core.realtime.providers.openai import (  # noqa: E402
 
 pytestmark = pytest.mark.integration
 
+# Probe model: the library has no default realtime model any more.
+OPENAI_REALTIME_TEST_MODEL = os.getenv("OPENAI_REALTIME_TEST_MODEL", "gpt-realtime")
+
 
 @pytest.mark.skipif(
     not os.getenv("OPENAI_API_KEY"),
@@ -42,6 +45,7 @@ async def test_openai_realtime_session_ready_and_pcm_chunk() -> None:
     """
     config = OpenAIRealtimeConfig(
         api_key=os.environ["OPENAI_API_KEY"],
+        model=OPENAI_REALTIME_TEST_MODEL,
         include_turn_detection=False,  # manual turn control for predictable test flow
     )
     async with OpenAIRealtimeClient(config) as client:

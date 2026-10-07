@@ -4,45 +4,38 @@ LLM Provider adapters for OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Pri
 Supports cloud providers (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, IONOS, Melious, Privatemode, LiteLLM)
 and local LLM servers (LM Studio, Ollama) that expose OpenAI-compatible APIs.
 
+There is no default model. Pass ``model=`` per call or to ``get_provider``;
+otherwise calls raise ``ModelNotSpecifiedError``. ``list_models()`` shows the ids
+a provider offers.
+
 Usage:
     from eq_chatbot_core.providers import get_provider
 
-    # Cloud providers
+    # Model per call
     provider = get_provider("openai", api_key="sk-...")
+    response = provider.chat_completion(messages=[...], model="your-model-id")
+
+    # Model per provider instance
+    provider = get_provider("mammouth", api_key="mm-...", model="your-model-id")
     response = provider.chat_completion(messages=[...])
 
-    # OpenRouter (400+ models)
+    # OpenRouter ids carry a vendor prefix
     provider = get_provider("openrouter", api_key="sk-or-...")
-    response = provider.chat_completion(messages=[...], model="openai/gpt-4o")
+    response = provider.chat_completion(messages=[...], model="vendor/your-model-id")
 
-    # Mammouth AI (30+ models)
-    provider = get_provider("mammouth", api_key="mm-...")
-    response = provider.chat_completion(messages=[...], model="gpt-4o")
-
-    response = provider.chat_completion(messages=[...], model="gpt-4o")
-
-    response = provider.chat_completion(messages=[...], model="gemini-2.5-flash")
-
-    # Local providers (LM Studio or Ollama)
-    provider = get_provider("local", base_url="http://localhost:1234/v1")
-    response = provider.chat_completion(messages=[...])
+    # Local providers (LM Studio or Ollama): the id the server lists
+    provider = get_provider("local", base_url="http://localhost:1234/v1", model="your-local-model")
 
     # LiteLLM / any OpenAI-compatible gateway (base_url is REQUIRED, no default)
-    provider = get_provider("litellm", api_key="...", base_url="https://api.ccsio.ai/v1")
-    response = provider.chat_completion(messages=[...], model="qwen3.6-35b-a3b")
+    provider = get_provider("litellm", api_key="...", base_url="https://litellm.example.com/v1")
 
-    # IONOS AI Model Hub (EU-hosted, OpenAI-compatible; base_url has a default)
-    provider = get_provider("ionos", api_key="...")
-    response = provider.chat_completion(messages=[...], model="meta-llama/Llama-3.3-70B-Instruct")
-
-    # Melious.ai (sovereign EU-hosted, OpenAI-compatible; base_url has a default)
-    provider = get_provider("melious", api_key="sk-mel-...")
-    response = provider.chat_completion(messages=[...], model="minimax-428b-m3")
+    # IONOS AI Model Hub and Melious.ai (EU-hosted; base_url has a default)
+    provider = get_provider("ionos", api_key="...", model="your-model-id")
+    provider = get_provider("melious", api_key="sk-mel-...", model="your-model-id")
 
     # Privatemode (end-to-end encrypted, via the locally-run attesting proxy).
     # The proxy usually holds the API key, so none is passed here.
-    provider = get_provider("privatemode")  # defaults to http://localhost:8080/v1
-    response = provider.chat_completion(messages=[...], model="kimi-latest")
+    provider = get_provider("privatemode", model="your-model-id")  # http://localhost:8080/v1
 """
 
 from typing import TYPE_CHECKING, Any
@@ -187,6 +180,7 @@ from eq_chatbot_core.providers.base import (  # noqa: E402
     ImageResult,
     LLMResponse,
     ModelInfo,
+    ModelNotSpecifiedError,
     OverloadedError,
     ProviderError,
     RateLimitError,
@@ -209,6 +203,7 @@ __all__ = [
     "StreamChunk",
     "ModelInfo",
     "ProviderError",
+    "ModelNotSpecifiedError",
     "RateLimitError",
     "AuthenticationError",
     "ContextLengthError",

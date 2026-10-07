@@ -16,7 +16,6 @@ sys.modules["openai"] = mock_openai_module
 
 from eq_chatbot_core.providers.ionos_provider import (
     DEFAULT_BASE_URL,
-    DEFAULT_MODEL,
     IonosProvider,
 )
 
@@ -116,7 +115,7 @@ def _use_ionos_openai_mock():
 def _make_provider_with_client(mock_client) -> IonosProvider:
     """Build a provider whose openai client is the given mock."""
     mock_openai_module.OpenAI = MagicMock(return_value=mock_client)
-    provider = IonosProvider(api_key="test-key")
+    provider = IonosProvider(api_key="test-key", model="test-model")
     provider._client = None  # force lazy re-creation through the mocked OpenAI()
     return provider
 
@@ -186,10 +185,6 @@ class TestIonosProviderProperties:
         provider = IonosProvider(api_key="x")
         assert provider.provider_name == "ionos"
 
-    def test_default_model_fallback(self):
-        provider = IonosProvider(api_key="x")
-        assert provider.default_model == DEFAULT_MODEL
-
     def test_default_model_override(self):
         provider = IonosProvider(api_key="x", model="mistralai/Mistral-Small-24B-Instruct")
         assert provider.default_model == "mistralai/Mistral-Small-24B-Instruct"
@@ -214,14 +209,6 @@ class TestIonosChatCompletion:
         assert response.input_tokens == 11
         assert response.output_tokens == 7
         assert response.finish_reason == "stop"
-
-    def test_uses_default_model(self, mock_chat_response):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_chat_response
-        provider = _make_provider_with_client(mock_client)
-
-        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-        assert mock_client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_MODEL
 
     def test_explicit_model_and_max_tokens(self, mock_chat_response):
         mock_client = MagicMock()
@@ -327,11 +314,6 @@ class TestIonosListModels:
         assert "meta-llama/Llama-3.3-70B-Instruct" in ids
         assert "openGPT-X/Teuken-7B-instruct-commercial" in ids
         assert all(m["provider"] == "ionos" for m in models)
-
-
-# =============================================================================
-# Error handling
-# =============================================================================
 
 
 # =============================================================================

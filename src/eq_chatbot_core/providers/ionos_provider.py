@@ -7,9 +7,8 @@ SDK (already a core dependency); no extra package is required.
 
 Unlike the LiteLLM gateway provider, IONOS exposes a **fixed public endpoint**,
 so ``base_url`` defaults to the official IONOS URL and is optional. The API token
-is generated in the IONOS DCD Token Manager and sent as a Bearer token. The
-default model is a soft default (overridable per call or via the ``model``
-constructor argument).
+is generated in the IONOS DCD Token Manager and sent as a Bearer token.
+There is no default model: pass ``model=`` per call or to the constructor.
 
 The wire protocol is plain OpenAI Chat Completions, so all request/response
 handling is inherited from :class:`OpenAICompatibleProvider`.
@@ -37,12 +36,9 @@ class IonosProvider(OpenAICompatibleProvider):
     PROVIDER_NAME = "ionos"
     # Official IONOS AI Model Hub OpenAI-compatible endpoint (Berlin / de-txl, EU).
     DEFAULT_BASE_URL = "https://openai.inference.de-txl.ionos.com/v1"
-    # Soft default — overridable per call or via the ``model`` constructor argument.
-    DEFAULT_MODEL = "meta-llama/Llama-3.3-70B-Instruct"
     # Fixed public cloud endpoint: private/internal targets are never legitimate.
     ALLOW_PRIVATE_RANGES = False
 
 
 # Module-level aliases kept for backwards compatibility with existing importers.
 DEFAULT_BASE_URL = IonosProvider.DEFAULT_BASE_URL
-DEFAULT_MODEL = IonosProvider.DEFAULT_MODEL

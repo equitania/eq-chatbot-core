@@ -251,104 +251,6 @@ class TestLangDockBackendURLs:
 
 
 # =============================================================================
-# Reasoning Model Detection Tests
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestLangDockReasoningModels:
-    """Test reasoning model detection."""
-
-    def test_o1_is_reasoning_model(self):
-        """Test o1 is detected as reasoning model."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._is_reasoning_model("o1") is True
-            assert provider._is_reasoning_model("o1-preview") is True
-            assert provider._is_reasoning_model("o1-mini") is True
-
-    def test_o3_is_reasoning_model(self):
-        """Test o3 is detected as reasoning model."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._is_reasoning_model("o3") is True
-            assert provider._is_reasoning_model("o3-mini") is True
-
-    def test_o4_is_reasoning_model(self):
-        """Test o4 is detected as reasoning model."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._is_reasoning_model("o4-mini") is True
-
-    def test_gpt_not_reasoning_model(self):
-        """Test GPT models are not reasoning models."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._is_reasoning_model("gpt-4o") is False
-            assert provider._is_reasoning_model("gpt-4-turbo") is False
-
-    def test_claude_not_reasoning_model(self):
-        """Test Claude models are not reasoning models."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._is_reasoning_model("claude-sonnet-4") is False
-
-
-# =============================================================================
-# New Token API Detection Tests
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestLangDockTokenAPI:
-    """Test new token API detection for models."""
-
-    def test_gpt4o_uses_new_api(self):
-        """Test gpt-4o uses new token API."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._uses_new_token_api("gpt-4o") is True
-            assert provider._uses_new_token_api("gpt-4o-mini") is True
-
-    def test_gpt5_uses_new_api(self):
-        """Test gpt-5 and higher use new token API."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._uses_new_token_api("gpt-5") is True
-
-    def test_reasoning_models_use_new_api(self):
-        """Test reasoning models use new token API."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._uses_new_token_api("o1") is True
-            assert provider._uses_new_token_api("o3-mini") is True
-
-    def test_gpt4_turbo_uses_legacy_api(self):
-        """Test gpt-4-turbo uses legacy token API."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key")
-            assert provider._uses_new_token_api("gpt-4-turbo") is False
-
-
-# =============================================================================
 # OpenAI Backend Chat Completion Tests
 # =============================================================================
 
@@ -397,29 +299,6 @@ class TestLangDockOpenAIChatCompletion:
 
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert call_kwargs.get("temperature") == 0.7
-
-    def test_completion_without_temperature_for_reasoning(self, mock_openai_response):
-        """Test reasoning models don't receive temperature."""
-        mock_openai_module = MagicMock()
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_openai_response
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="openai")
-            provider._LangDockProvider__openai_client = mock_client
-
-            provider.chat_completion(
-                messages=[{"role": "user", "content": "Hello"}],
-                model="o1",
-                temperature=0.7,  # Should be ignored for o1
-            )
-
-            call_kwargs = mock_client.chat.completions.create.call_args.kwargs
-            # Temperature should not be in kwargs for reasoning models
-            assert "temperature" not in call_kwargs or call_kwargs.get("temperature") is None
 
     def test_completion_with_reasoning_effort(self, mock_openai_response):
         """Test completion with reasoning effort for o1/o3/o4 models."""
@@ -629,60 +508,6 @@ class TestLangDockStreamCompletion:
 
 
 # =============================================================================
-# Model Constraints Tests
-# =============================================================================
-
-
-@pytest.mark.unit
-class TestLangDockModelConstraints:
-    """Test model constraints and capabilities."""
-
-    def test_gpt4o_constraints(self):
-        """Test GPT-4o model constraints."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="openai")
-            constraints = provider._get_model_constraints("gpt-4o")
-
-            assert constraints is not None
-            assert constraints.get("max_tokens", 0) > 0 or constraints.get("max_output_tokens", 0) > 0
-
-    def test_o1_constraints(self):
-        """Test o1 model constraints include reasoning."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="openai")
-            constraints = provider._get_model_constraints("o1")
-
-            assert constraints is not None
-            # o1 models should have special constraints
-            assert constraints.get("supports_temperature", True) is False or "reasoning" in str(constraints).lower()
-
-    def test_claude_constraints(self):
-        """Test Claude model constraints."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="anthropic")
-            constraints = provider._get_model_constraints("claude-sonnet-4-20250514")
-
-            assert constraints is not None
-            assert constraints.get("max_tokens", 0) > 0 or constraints.get("max_output_tokens", 0) > 0
-
-    def test_gemini_constraints(self):
-        """Test Gemini model constraints."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="google")
-            constraints = provider._get_model_constraints("gemini-2.0-flash")
-
-            assert constraints is not None
-
-
-# =============================================================================
 # List Models Tests
 # =============================================================================
 
@@ -690,25 +515,6 @@ class TestLangDockModelConstraints:
 @pytest.mark.unit
 class TestLangDockListModels:
     """Test list models functionality."""
-
-    def test_list_models_filters_supported(self, mock_openai_models_list):
-        """Test list_models filters to supported models only."""
-        mock_openai_module = MagicMock()
-        mock_client = MagicMock()
-        mock_client.models.list.return_value = mock_openai_models_list
-        mock_openai_module.OpenAI.return_value = mock_client
-
-        with patch.dict("sys.modules", {"openai": mock_openai_module, "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="openai")
-            provider._LangDockProvider__openai_client = mock_client
-
-            models = provider.list_models()
-
-            # Should filter out embedding models
-            model_ids = [m.get("id", m.get("model_id", "")) for m in models]
-            assert "text-embedding-ada-002" not in model_ids
 
     def test_list_models_includes_metadata(self, mock_openai_models_list):
         """Test list_models includes model metadata."""
@@ -853,38 +659,6 @@ class TestLangDockProviderProperties:
 
             provider = LangDockProvider(api_key="test-key")
             assert provider.provider_name == "langdock"
-
-    def test_default_model_openai(self):
-        """Test default model for OpenAI backend."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="openai")
-            assert "gpt" in provider.default_model.lower()
-
-    def test_default_model_anthropic(self):
-        """Test default model for Anthropic backend."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="anthropic")
-            assert "claude" in provider.default_model.lower()
-
-    def test_default_model_google(self):
-        """Test default model for Google backend."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="google")
-            assert "gemini" in provider.default_model.lower()
-
-    def test_default_model_codestral(self):
-        """Test default model for Codestral backend."""
-        with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
-            from eq_chatbot_core.providers.langdock_provider import LangDockProvider
-
-            provider = LangDockProvider(api_key="test-key", backend="codestral")
-            assert "codestral" in provider.default_model.lower()
 
     def test_region_normalization(self):
         """Test region is normalized to lowercase."""
