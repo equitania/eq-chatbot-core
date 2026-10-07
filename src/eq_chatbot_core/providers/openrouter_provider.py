@@ -5,36 +5,17 @@ OpenRouter provides access to 400+ AI models through a unified API,
 including OpenAI, Anthropic, Google, Meta, Mistral, and many more.
 """
 
-import json
 import logging
-from collections.abc import Iterator
 from typing import Any
 
-import httpx2
-
-from eq_chatbot_core.providers.base import (
-    AuthenticationError,
-    BaseLLMProvider,
-    ContextLengthError,
-    ImageResult,
-    LLMResponse,
-    ProviderError,
-    RateLimitError,
-    StreamChunk,
-    ToolDefinition,
-    normalize_tools,
-)
-from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
-from eq_chatbot_core.providers.temperature_constraints import (
-    clamp_temperature,
-    strip_provider_prefix,
-)
-from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+from eq_chatbot_core.providers import param_learning
+from eq_chatbot_core.providers.base import ImageResult, ProviderError
+from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 _logger = logging.getLogger(__name__)
 
 
-class OpenRouterProvider(BaseLLMProvider):
+class OpenRouterProvider(OpenAICompatibleProvider):
     """
     OpenRouter API provider for 400+ AI models.
 
@@ -55,6 +36,10 @@ class OpenRouterProvider(BaseLLMProvider):
     """
 
     DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"
+    PROVIDER_NAME = "openrouter"
+    # Model IDs leave the source in stage 2.
+    DEFAULT_MODEL = "openai/gpt-5.6-luna"
+    _validate_default_url = False
 
     # Image generation is supported via chat/completions with image modality.
     supports_image_generation: bool = True
@@ -89,301 +74,53 @@ class OpenRouterProvider(BaseLLMProvider):
             site_url: Optional site URL for HTTP-Referer header (for rankings)
             site_name: Optional site name for X-Title header (for display)
         """
-        # SSRF guard: only a caller-supplied base_url is validated — the fixed
-        # public default needs no DNS round-trip. Imported lazily to avoid an
-        # import cycle.
-        if base_url:
-            from eq_chatbot_core.utils.url_validation import validate_url
-
-            validate_url(base_url, allow_private_ranges=False)
-
-        super().__init__(api_key, base_url or self.DEFAULT_BASE_URL, timeout, max_retries)
         self.site_url = site_url
         self.site_name = site_name
-        self._client: httpx2.Client | None = None
+        super().__init__(api_key, base_url, timeout, max_retries)
 
-    @property
-    def provider_name(self) -> str:
-        return "openrouter"
-
-    @property
-    def default_model(self) -> str:
-        # Verified live on 23.08.2026: the previous default had either been
-        # retired or belonged to a generation we no longer run. Policy is to
-        # default to the current one — see the live test that fails when this
-        # id stops being served.
-        return "openai/gpt-5.6-luna"
-
-    @property
-    def client(self) -> httpx2.Client:
-        """Lazy initialization of HTTP client."""
-        if self._client is None:
-            headers = {
-                "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-            }
-            if self.site_url:
-                headers["HTTP-Referer"] = self.site_url
-            if self.site_name:
-                headers["X-Title"] = self.site_name
-
-            # Pin the resolved addresses against DNS rebinding. Done here rather
-            # than in __init__ so the fixed public default still costs no DNS
-            # round-trip until the client is actually used.
-            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
-
-            # __init__ always passes `base_url or DEFAULT_BASE_URL` to super(),
-            # so this is never None despite the base attribute's wider type.
-            base_url = self.base_url or self.DEFAULT_BASE_URL
-            self._client = httpx2.Client(
-                base_url=base_url,
-                transport=build_pinned_transport_for_url(base_url),
-                headers=headers,
-                timeout=self.timeout,
-            )
-        return self._client
+    def _default_headers(self) -> dict[str, str]:
+        headers: dict[str, str] = {}
+        if self.site_url:
+            headers["HTTP-Referer"] = self.site_url
+        if self.site_name:
+            headers["X-Title"] = self.site_name
+        return headers
 
     def _is_reasoning_model(self, model: str) -> bool:
         """Check if model is a reasoning model (O1, O3, O4)."""
         model_lower = model.lower()
         return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
-    def chat_completion(
-        self,
-        messages: list[dict[str, Any]],
-        model: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int | None = None,
-        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
-        **kwargs: Any,
-    ) -> LLMResponse:
-        """Send a chat completion request to OpenRouter."""
-        model = model or self.default_model
-        # Accept ToolDefinition instances as the base class promises; the
-        # request payload below needs plain OpenAI-format dicts.
-        tools = normalize_tools(tools)
-
-        try:
-            # Build request payload (OpenAI-compatible format)
-            payload: dict[str, Any] = {
-                "model": model,
-                "messages": messages,
-            }
-
-            # Clamp temperature per model constraints (strip provider/ prefix first)
-            bare_model = strip_provider_prefix(model)
-            clamped = clamp_temperature(bare_model, temperature)
-            if clamped is not None:
-                payload["temperature"] = clamped
-
-            if max_tokens:
-                payload["max_tokens"] = max_tokens
-
-            if tools:
-                payload["tools"] = tools
-
-            # Add any additional kwargs
-            payload.update(kwargs)
-
-            response = self.client.post("/chat/completions", json=payload)
-            response.raise_for_status()
-            data = response.json()
-
-            choice = data["choices"][0]
-            message = choice["message"]
-
-            # Parse tool calls if present
-            tool_calls = []
-            if message.get("tool_calls"):
-                tool_calls = [
-                    {
-                        "id": tc["id"],
-                        "type": tc["type"],
-                        "function": {
-                            "name": tc["function"]["name"],
-                            "arguments": tc["function"]["arguments"],
-                        },
-                    }
-                    for tc in message["tool_calls"]
-                ]
-
-            usage = data.get("usage", {})
-
-            return LLMResponse(
-                content=message.get("content") or "",
-                model=data.get("model", model),
-                input_tokens=usage.get("prompt_tokens", 0),
-                output_tokens=usage.get("completion_tokens", 0),
-                finish_reason=choice.get("finish_reason"),
-                tool_calls=tool_calls,
-                raw_response=data,
-            )
-
-        except httpx2.HTTPStatusError as e:
-            raise self._handle_http_error(e) from e
-        except Exception as e:
-            raise self._handle_error(e) from e
-
-    def stream_completion(
-        self,
-        messages: list[dict[str, Any]],
-        model: str | None = None,
-        temperature: float = 0.7,
-        max_tokens: int | None = None,
-        tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
-        **kwargs: Any,
-    ) -> Iterator[StreamChunk]:
-        """Stream a chat completion response from OpenRouter."""
-        model = model or self.default_model
-        # Accept ToolDefinition instances as the base class promises; the
-        # request payload below needs plain OpenAI-format dicts.
-        tools = normalize_tools(tools)
-
-        try:
-            # Build request payload
-            payload: dict[str, Any] = {
-                "model": model,
-                "messages": messages,
-                "stream": True,
-            }
-
-            # Clamp temperature per model constraints (strip provider/ prefix first)
-            bare_model = strip_provider_prefix(model)
-            clamped = clamp_temperature(bare_model, temperature)
-            if clamped is not None:
-                payload["temperature"] = clamped
-
-            if max_tokens:
-                payload["max_tokens"] = max_tokens
-
-            if tools:
-                payload["tools"] = tools
-
-            payload.update(kwargs)
-
-            # Use streaming request
-            with self.client.stream("POST", "/chat/completions", json=payload) as response:
-                response.raise_for_status()
-
-                # Track usage for final chunk
-                final_input_tokens = 0
-                final_output_tokens = 0
-
-                # Accumulate tool calls from deltas
-                tool_calls_acc = ToolCallAccumulator()
-
-                for line in response.iter_lines():
-                    if not line:
-                        continue
-
-                    # SSE comment / keep-alive lines (OpenRouter sends
-                    # ": OPENROUTER PROCESSING" while the upstream model warms up) are
-                    # not data — ignore them per the SSE spec instead of failing to
-                    # JSON-parse and logging a warning for every ping.
-                    if line.startswith(":"):
-                        continue
-
-                    # Handle SSE format
-                    if line.startswith("data: "):
-                        line = line[6:]  # Remove "data: " prefix
-
-                    if line == "[DONE]":
-                        break
-
-                    try:
-                        chunk_data = json.loads(line)
-                    except json.JSONDecodeError:
-                        _logger.warning(f"Failed to parse SSE chunk: {line[:200]}")
-                        continue
-
-                    # Check for usage data
-                    if "usage" in chunk_data:
-                        usage = chunk_data["usage"]
-                        final_input_tokens = usage.get("prompt_tokens", 0)
-                        final_output_tokens = usage.get("completion_tokens", 0)
-
-                    if not chunk_data.get("choices"):
-                        continue
-
-                    choice = chunk_data["choices"][0]
-                    delta = choice.get("delta", {})
-
-                    content = delta.get("content") or ""
-                    is_final = choice.get("finish_reason") is not None
-
-                    # Handle tool call deltas
-                    tool_call_delta = None
-                    if delta.get("tool_calls"):
-                        for tc in delta["tool_calls"]:
-                            idx = tc.get("index", 0)
-                            func = tc.get("function", {})
-
-                            tool_call_delta = {
-                                "index": idx,
-                                "id": tc.get("id"),
-                                "function": {
-                                    "name": func.get("name"),
-                                    "arguments": func.get("arguments"),
-                                },
-                            }
-
-                        tool_calls_acc.add(delta["tool_calls"])
-
-                    # On final chunk, include accumulated tool calls
-                    complete_tool_calls = tool_calls_acc.result() if is_final else None
-
-                    yield StreamChunk(
-                        content=content,
-                        is_final=is_final,
-                        finish_reason=choice.get("finish_reason"),
-                        tool_call_delta=tool_call_delta,
-                        tool_calls=complete_tool_calls,
-                        input_tokens=final_input_tokens if is_final else 0,
-                        output_tokens=final_output_tokens if is_final else 0,
-                    )
-
-        except httpx2.HTTPStatusError as e:
-            raise self._handle_http_error(e) from e
-        except Exception as e:
-            raise self._handle_error(e) from e
-
     def list_models(self) -> list[dict[str, Any]]:
-        """
-        List available models from OpenRouter.
+        """List models; seeds parameter learning from `supported_parameters`.
 
-        Returns:
-            List of model dicts with 'id', 'name', constraints, and metadata.
+        Only "temperature is not supported" is seeded. A model list that claims
+        support never overrides what a rejected request taught us at runtime.
         """
         try:
-            response = self.client.get("/models")
-            response.raise_for_status()
-            data = response.json()
-
-            models = []
-            for model_data in data.get("data", []):
-                model_id = model_data.get("id", "")
-                constraints = self._get_model_constraints(model_data)
-
-                models.append(
-                    {
-                        "id": model_id,
-                        "name": model_data.get("name", model_id),
-                        "description": model_data.get("description", ""),
-                        "context_length": model_data.get("context_length"),
-                        "provider": self.provider_name,
-                        "created": model_data.get("created"),
-                        **constraints,
-                    }
-                )
-
-            # Sort by model ID for consistent ordering
-            models.sort(key=lambda m: m["id"])
-            return models
-
-        except httpx2.HTTPStatusError as e:
-            raise self._handle_http_error(e) from e
+            data = self.client.get("/models", cast_to=object)
         except Exception as e:
             raise self._handle_error(e) from e
+
+        models = []
+        for model_data in data.get("data", []) if isinstance(data, dict) else []:
+            model_id = model_data.get("id", "")
+            constraints = self._get_model_constraints(model_data)
+            if model_data.get("supported_parameters") and not constraints["supports_temperature"]:
+                param_learning.seed_temperature_support(self._effective_base_url, model_id, False)
+            models.append(
+                {
+                    "id": model_id,
+                    "name": model_data.get("name", model_id),
+                    "description": model_data.get("description", ""),
+                    "context_length": model_data.get("context_length"),
+                    "provider": self.provider_name,
+                    "created": model_data.get("created"),
+                    **constraints,
+                }
+            )
+        models.sort(key=lambda m: m["id"])
+        return models
 
     def generate_image(
         self,
@@ -424,9 +161,7 @@ class OpenRouterProvider(BaseLLMProvider):
             }
             payload.update(kwargs)
 
-            response = self.client.post("/chat/completions", json=payload)
-            response.raise_for_status()
-            data = response.json()
+            data = self.client.post("/chat/completions", body=payload, cast_to=object)
 
             # Image data is in choices[0].message.images as a list of image_url dicts.
             images = (data.get("choices") or [{}])[0].get("message", {}).get("images") or []
@@ -459,8 +194,6 @@ class OpenRouterProvider(BaseLLMProvider):
                 mime=mime,
             )
 
-        except httpx2.HTTPStatusError as e:
-            raise self._handle_http_error(e) from e
         except ProviderError:
             raise
         except Exception as e:
@@ -527,71 +260,3 @@ class OpenRouterProvider(BaseLLMProvider):
             "input_modalities": input_modalities,
             "output_modalities": output_modalities,
         }
-
-    def _handle_http_error(self, error: httpx2.HTTPStatusError) -> ProviderError:
-        """Convert HTTP errors to ProviderError types (secrets scrubbed)."""
-        status = error.response.status_code
-        try:
-            # A streaming response has not read its body yet, so .json() raises
-            # ResponseNotRead — which is not a ValueError and therefore escaped the
-            # handler below, replacing the real upstream failure (e.g. a 504) with a
-            # confusing httpx error. Pull the body in first, exactly as the Mammouth
-            # provider does.
-            if not error.response.is_stream_consumed:
-                try:
-                    error.response.read()
-                except Exception:  # noqa: BLE001 - body unavailable, fall back to str(error)
-                    pass
-            error_data = error.response.json()
-            message = error_data.get("error", {}).get("message", str(error))
-        except (ValueError, KeyError, httpx2.ResponseNotRead, httpx2.StreamError):
-            message = str(error)
-
-        # Gateway error bodies can echo request headers/credentials — mask before
-        # the message reaches a logger or an API caller.
-        message = scrub_secrets(message)
-
-        if status == 429:
-            return RateLimitError(
-                message=message,
-                provider=self.provider_name,
-                status_code=429,
-            )
-
-        if status == 401:
-            return AuthenticationError(
-                message=message,
-                provider=self.provider_name,
-                status_code=401,
-            )
-
-        if status == 400 and "context" in message.lower():
-            return ContextLengthError(
-                message=message,
-                provider=self.provider_name,
-            )
-
-        return ProviderError(
-            message=message,
-            provider=self.provider_name,
-            status_code=status,
-        )
-
-    def _handle_error(self, error: Exception) -> ProviderError:
-        """Convert general exceptions to ProviderError (secrets scrubbed)."""
-        return ProviderError(
-            message=scrub_secrets(str(error)),
-            provider=self.provider_name,
-        )
-
-    def close(self) -> None:
-        """Close the HTTP client."""
-        if self._client is not None:
-            self._client.close()
-            self._client = None
-
-    def __enter__(self) -> "OpenRouterProvider":
-        return self
-
-    def __exit__(self, *args: object) -> None:
-        self.close()

@@ -131,3 +131,29 @@ class TestOpenRouterLive:
         # OpenRouter echoes the routed model id (may be normalized but keeps the prefix)
         assert "/" in response.model, f"Expected provider/model format, got: {response.model}"
         assert response.model.startswith(model.split("/")[0])
+
+
+@pytest.mark.integration
+class TestOpenRouterOnBaseClass:
+    """Chat, stream and tool call through OpenAICompatibleProvider."""
+
+    @pytest.fixture
+    def provider(self, openrouter_api_key):
+        if not openrouter_api_key:
+            pytest.skip("OPENROUTER_API_KEY not set")
+        return get_provider("openrouter", api_key=openrouter_api_key)
+
+    def test_chat(self, provider, openrouter_resolved_model):
+        from tests.integration.live_checks import check_chat
+
+        check_chat(provider, openrouter_resolved_model)
+
+    def test_stream(self, provider, openrouter_resolved_model):
+        from tests.integration.live_checks import check_stream
+
+        check_stream(provider, openrouter_resolved_model)
+
+    def test_tool_call(self, provider, openrouter_resolved_model):
+        from tests.integration.live_checks import check_tool_call
+
+        check_tool_call(provider, openrouter_resolved_model)
