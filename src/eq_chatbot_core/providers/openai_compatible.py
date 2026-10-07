@@ -213,7 +213,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
     def _create(self, params: dict[str, Any]) -> Any:
         """``chat.completions.create`` that learns unsupported parameters.
 
-        A 400 naming ``temperature`` or ``max_tokens`` as unsupported is retried
+        A 400 naming ``temperature``, ``max_tokens`` or ``reasoning_effort`` as unsupported is retried
         with that parameter adjusted — at most once per parameter — and the fact
         is remembered for this endpoint and model (see ``param_learning``). For
         streaming the rejection arrives before the first chunk, so no output is
@@ -226,17 +226,16 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             try:
                 return self.client.chat.completions.create(**params)
             except Exception as error:
-                parameter = param_learning.rejected_parameter(error)
-                if parameter is None or parameter in adjusted or not param_learning.adjust(params, parameter):
-                    raise
-                adjusted.add(parameter)
-                param_learning.mark_unsupported(self._effective_base_url, model, parameter)
-                _logger.info(
-                    "%s: model %s rejected '%s'; retrying adjusted and remembering it for this endpoint",
-                    self.provider_name,
+                if not param_learning.learn_from_rejection(
+                    error,
+                    self._effective_base_url,
                     model,
-                    parameter,
-                )
+                    params,
+                    adjusted,
+                    provider=self.provider_name,
+                    logger=_logger,
+                ):
+                    raise
 
     def chat_completion(
         self,

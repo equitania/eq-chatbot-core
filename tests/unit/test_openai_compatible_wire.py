@@ -17,6 +17,7 @@ from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from tests.wire_server import (
     GATEWAY_TEMPERATURE_REJECTION_NO_PARAM,
     OPENAI_MAX_TOKENS_REJECTION,
+    OPENAI_REASONING_EFFORT_REJECTION,
     OPENAI_TEMPERATURE_REJECTION,
     Reply,
     chat_body,
@@ -265,3 +266,21 @@ def test_litellm_transcribe_failure_is_provider_error(wire_server):
     with pytest.raises(ProviderError) as caught:
         _litellm(wire_server).transcribe(("a.wav", b"RIFF0000", "audio/wav"), model="stt-model")
     assert caught.value.status_code == 500
+
+
+def test_reasoning_effort_rejection_learned(wire_server):
+    wire_server.expect(*CHAT, Reply(400, OPENAI_REASONING_EFFORT_REJECTION), Reply(body=chat_body()))
+    provider = _provider(wire_server)
+    provider.chat_completion(MSG, model="m", reasoning_effort="high")
+    provider.chat_completion(MSG, model="m", reasoning_effort="high")
+    first, second, third = _sent(wire_server)
+    assert first["reasoning_effort"] == "high"
+    assert "reasoning_effort" not in second and "reasoning_effort" not in third
+
+
+def test_learning_is_logged_on_the_provider_module_logger(wire_server, caplog):
+    """The live learning test listens on this logger name."""
+    wire_server.expect(*CHAT, Reply(400, OPENAI_TEMPERATURE_REJECTION), Reply(body=chat_body()))
+    with caplog.at_level("INFO", logger="eq_chatbot_core.providers.openai_compatible"):
+        _provider(wire_server).chat_completion(MSG, model="m", temperature=0.7)
+    assert "rejected 'temperature'" in caplog.text

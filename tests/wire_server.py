@@ -41,6 +41,27 @@ GATEWAY_TEMPERATURE_REJECTION_NO_PARAM: dict[str, Any] = {
     "error": {"message": "Upstream error: 'temperature' is not supported for this model", "code": 400}
 }
 
+# Same envelope as OPENAI_MAX_TOKENS_REJECTION; modelled on it, not recorded.
+OPENAI_REASONING_EFFORT_REJECTION: dict[str, Any] = {
+    "error": {
+        "message": "Unsupported parameter: 'reasoning_effort' is not supported with this model.",
+        "type": "invalid_request_error",
+        "param": "reasoning_effort",
+        "code": "unsupported_parameter",
+    }
+}
+# Anthropic Messages API, 07.10.2026: message text recorded live (temperature=0.7
+# via extra_body on a Claude 5 model); envelope as Anthropic documents its errors.
+ANTHROPIC_TEMPERATURE_DEPRECATED: dict[str, Any] = {
+    "type": "error",
+    "error": {"type": "invalid_request_error", "message": "`temperature` is deprecated for this model."},
+}
+# Anthropic, 07.10.2026 (temperature=1.5): out of range — must not be learned as unsupported.
+ANTHROPIC_TEMPERATURE_RANGE: dict[str, Any] = {
+    "type": "error",
+    "error": {"type": "invalid_request_error", "message": "temperature: range: 0..1"},
+}
+
 
 @dataclass
 class Reply:
