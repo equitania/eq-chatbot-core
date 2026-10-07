@@ -15,7 +15,7 @@ import pytest
 
 from eq_chatbot_core.providers import get_provider
 
-# The default CCSolutions model (qwen3.6-35b-a3b) is a reasoning model: it emits a
+# The gateway's default model (qwen3.6-35b-a3b) is a reasoning model: it emits a
 # long `reasoning_content` trace before the answer and can exhaust a small
 # max_tokens budget before any visible content. Disable thinking for the
 # content-asserting tests so they are deterministic and cheap. The provider stays

@@ -5,6 +5,12 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.1] - 2026-10-07
+
+### Fixed
+
+- The source distribution ships only `src/`, README, LICENSE, CHANGELOG, RELEASE_NOTES and `pyproject.toml`. Hatch ignores `MANIFEST.in`, so the 4.0.0 sdist packed the whole working tree (local tool settings, planning notes, test reports, uncommitted files). The wheel was not affected; 4.0.0 is yanked on PyPI.
+
 ## [4.0.0] - 2026-10-07
 
 ### Removed (breaking)

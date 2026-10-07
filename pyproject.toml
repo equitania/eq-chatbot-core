@@ -145,6 +145,19 @@ Changelog = "https://github.com/equitania/eq-chatbot-core/blob/main/CHANGELOG.md
 [tool.hatch.version]
 path = "src/eq_chatbot_core/version.py"
 
+[tool.hatch.build.targets.sdist]
+# Hatch ignores MANIFEST.in: without this list the sdist packs the whole working
+# tree (local tool settings, planning notes, test reports, uncommitted files).
+# Only what a source build needs ships.
+only-include = [
+    "src/eq_chatbot_core",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "pyproject.toml",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/eq_chatbot_core"]
 # Ship the CLI config template (used by `eq-chatbot config init`). The capability

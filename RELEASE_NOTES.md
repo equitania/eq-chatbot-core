@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 4.0.1 (07.10.2026)
+
+### [FIX]
+
+- **Quellpaket (sdist) enthält nur noch, was ein Build braucht** (`pyproject.toml`). Hatch
+  liest `MANIFEST.in` nicht; ohne eigene Liste packte das sdist von 4.0.0 das ganze
+  Arbeitsverzeichnis — lokale Werkzeugeinstellungen, Planungsnotizen, Testberichte und nicht
+  committete Dateien. Jetzt: `src/`, README, LICENSE, CHANGELOG, RELEASE_NOTES und
+  `pyproject.toml`. Das Wheel war nicht betroffen. 4.0.0 wurde auf PyPI zurückgezogen.
+- Ein Kundenname in einem Kommentar der LiteLLM-Live-Tests wurde neutral formuliert.
+
 ## Version 4.0.0 (07.10.2026)
 
 Inkompatibles Release: Die Bibliothek enthält keine Modell-IDs mehr. Modelle wechseln alle
