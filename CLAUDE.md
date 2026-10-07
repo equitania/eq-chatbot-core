@@ -82,6 +82,13 @@ provider = get_provider("ollama")      # defaults to localhost:11434
 provider = get_provider("local", base_url="http://custom:port/v1")
 ```
 
+There is no default model. Pass `model=` per call or to `get_provider(..., model=...)`
+(images: `image_model=`; LiteLLM audio: `tts_model=`, `tts_voice=`, `stt_model=`); otherwise
+calls raise `ModelNotSpecifiedError` (a `ProviderError`). LangDock's `agent` backend is the
+exception: the agent's model is configured in LangDock. Never add a model ID, family prefix
+or model-specific value to `src/` — `tests/unit/test_no_model_ids_in_source.py` fails on it.
+Tests take models from `tests/model_registry.py`.
+
 ### Provider Base Class
 
 All providers inherit from `BaseLLMProvider` and must implement:
@@ -89,19 +96,22 @@ All providers inherit from `BaseLLMProvider` and must implement:
 ```python
 class BaseLLMProvider(ABC):
     provider_name: str              # Property: "openai", "anthropic", etc.
-    default_model: str              # Property: Default model ID
+    default_model: str | None       # Property: the constructor's model, or None
 
     def chat_completion(messages, model, temperature, max_tokens, tools) -> LLMResponse
     def stream_completion(messages, model, ...) -> Iterator[StreamChunk]
     def list_models() -> list[dict]
+    def resolve_model(model) -> str          # call model > constructor model > ModelNotSpecifiedError
 ```
 
 Every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM,
 Privatemode, LangDock's `openai` backend) inherits `OpenAICompatibleProvider`. Do not add a
 provider with its own request/stream/error code — subclass and override a hook
 (`_build_params`, `_token_param`, `_default_headers`, `_client_kwargs`, `list_models`,
-`_error_from_message`). Whether a model accepts `temperature` or wants `max_completion_tokens`
-is learned at runtime (`providers/param_learning.py`); never add a model to a list to fix it.
+`_error_from_message`). Whether a model accepts `temperature`, wants `max_completion_tokens` or
+takes `reasoning_effort` is learned at runtime (`providers/param_learning.py`, for Anthropic via
+`providers/anthropic_shared.py`); never add a model to a list to fix it. `list_models()` reports
+what the provider says — unknown is `None`.
 
 ### Response Types
 
@@ -113,6 +123,7 @@ is learned at runtime (`providers/param_learning.py`); never add a model to a li
 
 ```
 ProviderError (base)
+├── ModelNotSpecifiedError # no model per call or per instance
 ├── RateLimitError     # 429 errors, has retry_after
 ├── AuthenticationError # 401/403 errors
 ├── ContextLengthError  # Token limit exceeded
@@ -126,7 +137,8 @@ src/eq_chatbot_core/
 ├── providers/              # LLM adapters
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
 │   ├── openai_compatible.py # OpenAICompatibleProvider: shared base for every OpenAI-wire provider
-│   ├── param_learning.py   # Learns per endpoint/model whether temperature / max_tokens are accepted
+│   ├── param_learning.py   # Learns per endpoint/model whether temperature / max_tokens / reasoning_effort are accepted
+│   ├── anthropic_shared.py # Temperature learning + model listing for Anthropic and LangDock-anthropic
 │   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
@@ -138,7 +150,7 @@ src/eq_chatbot_core/
 │   ├── privatemode_provider.py # Privatemode.ai (E2E-encrypted, via local attesting proxy)
 │   ├── local_provider.py   # LM Studio, Ollama (OpenAI-compatible)
 │   ├── stream_accumulator.py # Assembles streamed OpenAI-style tool-call deltas
-│   └── temperature_constraints.py # Per-model temperature clamping, apply_anthropic_temperature()
+│   └── temperature_constraints.py # Provider-level clamp, apply_anthropic_temperature(), strip_provider_prefix()
 ├── realtime/               # Realtime voice providers (requires [realtime])
 │   ├── abc.py, contracts.py # Adapter contract and event types (constants frozen, shared with GlassAgents)
 │   ├── factory.py          # get_realtime_provider()
@@ -157,7 +169,7 @@ src/eq_chatbot_core/
 │   └── file_validator.py   # MIME type validation (requires [security])
 ├── rag/
 │   ├── chunker.py          # Text chunking strategies
-│   ├── embedder.py         # Embedding generation (OpenAI, LangDock, Melious)
+│   ├── embedder.py         # Embedding generation (OpenAI, LangDock, Melious); model required, size discovered
 │   ├── retriever.py        # Qdrant vector retrieval (requires [rag])
 │   └── context_manager.py  # RAG context assembly
 ├── mcp/
@@ -174,7 +186,7 @@ src/eq_chatbot_core/
 │   ├── config.py           # ~/.config/eq-chatbot/config.toml loader
 │   ├── image.py            # Generated-image processing and saving
 │   └── pdf.py              # PDF to image (requires [pdf])
-├── data/                   # capability_catalog.json, capability_overrides.json, config.toml.example
+├── data/                   # config.toml.example (no bundled capability catalog)
 ├── cli.py                  # Click CLI: eq-chatbot
 └── version.py              # Version string
 ```
@@ -251,8 +263,9 @@ module, which is why one guard implementation covers a future SDK that diverges 
 
 That release also removed `temperature`, `top_p` and `top_k` from `messages.create()` and
 `messages.stream()`. Never write `params["temperature"]` for an Anthropic call — use
-`apply_anthropic_temperature()` from `providers/temperature_constraints.py`, which clamps and
-routes the value into `extra_body`.
+`apply_anthropic_temperature(params, temperature)` from `providers/temperature_constraints.py`,
+which clamps to 0–1 and routes the value into `extra_body`; whether a model takes it at all is
+learned (`providers/anthropic_shared.py`).
 
 ### Optional
 

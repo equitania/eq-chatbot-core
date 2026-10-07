@@ -158,14 +158,14 @@ produce very different outputs and cost profiles.
 ### Querying reasoning support in code
 
 Since **1.19.0** the question "does this model reason?" is answerable from code instead of from
-this page. `eq_chatbot_core.services.capability_catalog` ships a curated catalog
-(`data/capability_catalog.json`) that carries a per-model `capabilities.reasoning` boolean
+this page. `eq_chatbot_core.services.capability_catalog` reads a curated catalog
+hosted by Equitania that carries a per-model `capabilities.reasoning` boolean
 alongside the other modality flags, plus context/output limits:
 
 ```python
 from eq_chatbot_core.services.capability_catalog import CapabilityCatalog
 
-catalog = CapabilityCatalog.from_snapshot()   # or .from_remote() for the live catalog
+catalog = CapabilityCatalog.from_remote()   # empty catalog (lookup() -> None) when offline
 caps = catalog.lookup("anthropic/claude-sonnet-4")
 caps["reasoning"]   # True — the resolved bundle is flat, not nested
 ```
@@ -381,14 +381,14 @@ Bewusst wählen — die beiden erzeugen sehr unterschiedliche Ausgaben und Koste
 ### Reasoning-Fähigkeit im Code abfragen
 
 Seit **1.19.0** ist die Frage „Denkt dieses Modell?“ aus dem Code beantwortbar statt aus dieser
-Seite. `eq_chatbot_core.services.capability_catalog` liefert einen kuratierten Katalog
-(`data/capability_catalog.json`) mit einem `capabilities.reasoning`-Boolean je Modell — neben den
+Seite. `eq_chatbot_core.services.capability_catalog` liest einen von Equitania gehosteten,
+kuratierten Katalog mit einem `capabilities.reasoning`-Boolean je Modell — neben den
 übrigen Modalitäts-Flags sowie Limits und Preisen:
 
 ```python
 from eq_chatbot_core.services.capability_catalog import CapabilityCatalog
 
-catalog = CapabilityCatalog.from_snapshot()   # oder .from_remote() für den Live-Katalog
+catalog = CapabilityCatalog.from_remote()   # leerer Katalog (lookup() -> None), wenn offline
 caps = catalog.lookup("anthropic/claude-sonnet-4")
 caps["reasoning"]   # True — das aufgelöste Bündel ist flach, nicht verschachtelt
 ```

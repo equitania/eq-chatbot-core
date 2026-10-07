@@ -54,7 +54,7 @@ provider = get_provider("ollama")       # localhost:11434
 # Chat completion
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hello!"}],
-    model="gpt-4o",
+    model="your-model-id",
 )
 print(response.content)
 print(f"Tokens used: {response.total_tokens}")
@@ -62,7 +62,7 @@ print(f"Tokens used: {response.total_tokens}")
 # Streaming
 for chunk in provider.stream_completion(
     messages=[{"role": "user", "content": "Tell me a story"}],
-    model="gpt-4o",
+    model="your-model-id",
 ):
     print(chunk.content, end="", flush=True)
 
@@ -70,6 +70,21 @@ for chunk in provider.stream_completion(
 for m in provider.list_models():
     print(f"{m.id} - vision: {m.supports_vision}")
 ```
+
+### Choosing a model
+
+There is no default model. Pass `model=` per call, or once to `get_provider(..., model=...)`;
+without either, the call raises `ModelNotSpecifiedError` (a `ProviderError`) before anything
+is sent. Image generation takes `image_model=` (OpenAI, OpenRouter), LiteLLM's audio takes
+`tts_model=`, `tts_voice=` and `stt_model=`. LangDock's `agent` backend needs no model — the
+agent's model is configured in LangDock.
+
+`list_models()` returns every model the provider lists — nothing is filtered by name, so
+OpenAI's list includes embedding and audio models. Metadata the provider does not report is
+`None` (unknown), never a guess; Anthropic's capability fields and OpenRouter's context and
+modality data are passed through where the API reports them. Treat
+`supports_temperature is None` as "allowed — the library adapts"; it becomes `False` once a
+model rejected `temperature`.
 
 ### Response types
 
@@ -81,6 +96,7 @@ for m in provider.list_models():
 
 ```
 ProviderError                  # base for all provider errors
+├── ModelNotSpecifiedError     # no model per call or per provider instance
 ├── AuthenticationError        # 401/403 — invalid api_key
 ├── RateLimitError             # 429 — has retry_after attribute
 ├── ContextLengthError         # token budget exceeded
@@ -212,7 +228,7 @@ provider = get_provider("privatemode")          # base_url defaults to http://lo
 
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hallo!"}],
-    model="kimi-latest",                        # default; `-latest` survives model retirement
+    model="kimi-latest",                        # model for this call; `list_models()` shows the current ids
 )
 ```
 
@@ -246,32 +262,31 @@ the vendor retires concrete ids over time. At the time of writing: `kimi-latest`
 
 ### Parameter learning
 
-Every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode and LangDock's `openai` backend) shares one request, stream and error implementation. Whether a model accepts `temperature`, or wants `max_completion_tokens` instead of `max_tokens`, is not kept in a model list: the library learns it at runtime.
+Whether a model accepts `temperature`, wants `max_completion_tokens` instead of `max_tokens`, or takes `reasoning_effort` is not kept in a model list: the library learns it at runtime. This applies to every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode, LangDock's `openai` backend) and, for `temperature`, to Anthropic and LangDock's `anthropic` backend.
 
-- If the endpoint rejects `temperature` as unsupported, the request is repeated once without it.
-- If it rejects `max_tokens`, the request is repeated once with `max_completion_tokens`.
-- Each parameter is retried at most once. The answer is remembered per endpoint and model for the rest of the process, so the cost is a single extra request the first time a model is used; later calls send the right parameters at once.
-- On OpenRouter, `list_models()` pre-seeds the memory: models whose metadata does not offer `temperature` are marked "temperature unsupported" up front. The model list only ever seeds "temperature unsupported"; it never marks a parameter as supported.
+- If the endpoint rejects `temperature` as unsupported (Anthropic says "deprecated"), the request is repeated once without it.
+- If it rejects `max_tokens`, the request is repeated once with `max_completion_tokens`. OpenAI itself always gets `max_completion_tokens`.
+- If it rejects `reasoning_effort` (passed per call, or LangDock's constructor setting), the request is repeated once without it.
+- Each parameter is retried at most once. The answer is remembered per endpoint and model for the rest of the process, so the cost is one extra request the first time a model is used.
+- A range error ("temperature: range: 0..1") is not a rejection: it reaches the caller.
+- On OpenRouter, `list_models()` pre-seeds "temperature unsupported" for models whose metadata does not offer `temperature`; a learned rejection always wins over the list.
 
 Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError` (403 is new in this release), 503/529 `OverloadedError`, and 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`. For LangDock this mapping applies to the `openai` backend only; the anthropic, google and agent backends keep their previous mapping.
 
 ### Temperature clamping
 
-Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
+Only provider-level ranges are applied; there is no per-model table.
 
-| Model family | Range | Behavior |
-|--------------|-------|----------|
-| GPT-4.1 | 0–2 | Clamped to `[0, 2]` |
-| Claude (3, 3.5, 4 up to Opus 4.6 / Sonnet 4.6) | 0–1 | Clamped to `[0, 1]` |
-| Claude Opus 4.7 and later, Claude 5 family | — | Temperature parameter dropped (removed from the API) |
-| Gemini 2.x | 0–2 | Clamped to `[0, 2]` |
-| Reasoning (o1, o3, o4) | — | Temperature parameter dropped (not supported) |
+| Provider | Range | Behavior |
+|----------|-------|----------|
+| OpenAI-wire providers, LangDock `google` | 0–2 | Clamped to `[0, 2]` |
+| Anthropic, LangDock `anthropic` | 0–1 | Clamped to `[0, 1]`, sent in `extra_body` |
 
-This is automatic — pass `temperature=0.7` and the library passes through what the model accepts.
+A model that takes no temperature at all rejects it once; the library drops it and remembers that (see Parameter learning).
 
 ### Capability matrix
 
-| Provider | Vision | Streaming | Tool calls | Temperature clamping |
+| Provider | Vision | Streaming | Tool calls | Temperature range |
 |----------|:------:|:---------:|:----------:|:-------------------:|
 | OpenAI | ✓ | ✓ | ✓ | ✓ |
 | Anthropic | ✓ | ✓ | ✓ | ✓ |
@@ -347,7 +362,7 @@ provider = get_provider("ollama")       # localhost:11434
 # Chat-Completion
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hallo!"}],
-    model="gpt-4o",
+    model="your-model-id",
 )
 print(response.content)
 print(f"Tokens verwendet: {response.total_tokens}")
@@ -355,7 +370,7 @@ print(f"Tokens verwendet: {response.total_tokens}")
 # Streaming
 for chunk in provider.stream_completion(
     messages=[{"role": "user", "content": "Erzähle mir eine Geschichte"}],
-    model="gpt-4o",
+    model="your-model-id",
 ):
     print(chunk.content, end="", flush=True)
 
@@ -363,6 +378,12 @@ for chunk in provider.stream_completion(
 for m in provider.list_models():
     print(f"{m.id} - Vision: {m.supports_vision}")
 ```
+
+### Modell wählen
+
+Es gibt kein Standardmodell. `model=` wird pro Aufruf übergeben oder einmal an `get_provider(..., model=...)`; fehlt beides, wirft der Aufruf `ModelNotSpecifiedError` (ein `ProviderError`), bevor etwas gesendet wird. Bildgenerierung nimmt `image_model=` (OpenAI, OpenRouter), die Audio-Funktionen von LiteLLM nehmen `tts_model=`, `tts_voice=` und `stt_model=`. Das `agent`-Backend von LangDock braucht kein Modell — das Modell des Agenten ist in LangDock eingestellt.
+
+`list_models()` liefert jedes Modell, das der Provider auflistet — nichts wird nach Namen gefiltert, die Liste von OpenAI enthält also auch Embedding- und Audio-Modelle. Metadaten, die der Provider nicht meldet, sind `None` (unbekannt), nie geraten; die Fähigkeitsfelder von Anthropic und die Kontext- und Modalitätsdaten von OpenRouter werden durchgereicht, wo die API sie meldet. `supports_temperature is None` heißt „erlaubt — die Bibliothek passt sich an“; nach einer Ablehnung wird daraus `False`.
 
 ### Response-Typen
 
@@ -374,6 +395,7 @@ for m in provider.list_models():
 
 ```
 ProviderError                  # Basis für alle Provider-Fehler
+├── ModelNotSpecifiedError     # kein Modell pro Aufruf oder pro Provider-Instanz
 ├── AuthenticationError        # 401/403 — ungültiger api_key
 ├── RateLimitError             # 429 — hat retry_after-Attribut
 ├── ContextLengthError         # Token-Budget überschritten
@@ -507,7 +529,7 @@ provider = get_provider("privatemode")          # base_url default: http://local
 
 response = provider.chat_completion(
     messages=[{"role": "user", "content": "Hallo!"}],
-    model="kimi-latest",                        # Default; `-latest` überlebt Modell-Abkündigungen
+    model="kimi-latest",                        # Modell für diesen Aufruf; `list_models()` zeigt die aktuellen IDs
 )
 ```
 
@@ -542,32 +564,31 @@ Erstellung: `kimi-latest` / `kimi-k2.6` (256k Kontext, Vision) und `gpt-oss-120b
 
 ### Parameter-Lernen
 
-Alle OpenAI-kompatiblen Provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode und das `openai`-Backend von LangDock) teilen sich eine Implementierung für Request, Stream und Fehler. Ob ein Modell `temperature` akzeptiert oder `max_completion_tokens` statt `max_tokens` verlangt, steht in keiner Modellliste — die Library lernt es zur Laufzeit.
+Ob ein Modell `temperature` annimmt, statt `max_tokens` lieber `max_completion_tokens` will oder `reasoning_effort` versteht, steht in keiner Modellliste: Die Bibliothek lernt es zur Laufzeit. Das gilt für jeden Provider mit OpenAI-Protokoll (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode, LangDocks `openai`-Backend) und für `temperature` auch für Anthropic und LangDocks `anthropic`-Backend.
 
-- Lehnt der Endpunkt `temperature` als nicht unterstützt ab, wird die Anfrage einmal ohne den Parameter wiederholt.
-- Lehnt er `max_tokens` ab, wird einmal mit `max_completion_tokens` wiederholt.
-- Jeder Parameter wird höchstens einmal wiederholt. Die Antwort wird je Endpunkt und Modell für den Rest des Prozesses gemerkt; die Kosten sind also eine zusätzliche Anfrage bei der ersten Nutzung eines Modells.
-- Bei OpenRouter füllt `list_models()` den Speicher vor: Modelle, deren Metadaten `temperature` nicht anbieten, gelten sofort als „temperature nicht unterstützt“. Die Modellliste setzt nur „temperature nicht unterstützt“ vor; sie markiert nie einen Parameter als unterstützt.
+- Lehnt der Endpunkt `temperature` als nicht unterstützt ab (Anthropic schreibt „deprecated“), wird die Anfrage einmal ohne wiederholt.
+- Lehnt er `max_tokens` ab, wird sie einmal mit `max_completion_tokens` wiederholt. OpenAI selbst bekommt immer `max_completion_tokens`.
+- Lehnt er `reasoning_effort` ab (pro Aufruf oder als LangDock-Konstruktorwert), wird sie einmal ohne wiederholt.
+- Jeder Parameter wird höchstens einmal wiederholt. Das Ergebnis gilt je Endpunkt und Modell für den Rest des Prozesses — es kostet also eine zusätzliche Anfrage beim ersten Einsatz eines Modells.
+- Ein Bereichsfehler („temperature: range: 0..1“) ist keine Ablehnung: Er erreicht den Aufrufer.
+- Bei OpenRouter setzt `list_models()` „temperature nicht unterstützt“ vorab für Modelle, deren Metadaten `temperature` nicht anbieten; eine gelernte Ablehnung hat immer Vorrang vor der Liste.
 
 Fehler werden nach HTTP-Status abgebildet: 429 `RateLimitError` (mit `retry_after`), 401/403 `AuthenticationError` (403 neu in diesem Release), 503/529 `OverloadedError`, 400 mit Code `context_length_exceeded` oder einer Kontextlängen-Formulierung `ContextLengthError`. Bei LangDock gilt diese Abbildung nur für das `openai`-Backend; die Backends anthropic, google und agent behalten ihre bisherige Abbildung.
 
 ### Temperature-Clamping
 
-Modelle lehnen out-of-range-Temperaturen mit HTTP 400 ab. `eq-chatbot-core` clampt automatisch auf den akzeptierten Bereich pro Modell:
+Es gelten nur Bereiche auf Provider-Ebene; eine Tabelle je Modell gibt es nicht.
 
-| Modell-Familie | Range | Verhalten |
-|----------------|-------|-----------|
-| GPT-4.1 | 0–2 | Auf `[0, 2]` geclampt |
-| Claude (3, 3.5, 4 bis Opus 4.6 / Sonnet 4.6) | 0–1 | Auf `[0, 1]` geclampt |
-| Claude Opus 4.7 und neuer, Claude-5-Familie | — | Temperature-Parameter wird verworfen (aus der API entfernt) |
-| Gemini 2.x | 0–2 | Auf `[0, 2]` geclampt |
-| Reasoning (o1, o3, o4) | — | Temperature-Parameter wird verworfen (nicht unterstützt) |
+| Provider | Bereich | Verhalten |
+|----------|---------|-----------|
+| Provider mit OpenAI-Protokoll, LangDock `google` | 0–2 | Auf `[0, 2]` begrenzt |
+| Anthropic, LangDock `anthropic` | 0–1 | Auf `[0, 1]` begrenzt, in `extra_body` gesendet |
 
-Das geschieht automatisch — `temperature=0.7` übergeben, die Library reicht den vom Modell akzeptierten Wert weiter.
+Ein Modell, das gar keine Temperatur annimmt, lehnt sie einmal ab; die Bibliothek lässt sie dann weg und merkt sich das (siehe Parameter-Lernen).
 
 ### Capability-Matrix
 
-| Provider | Vision | Streaming | Tool-Calls | Temperature-Clamping |
+| Provider | Vision | Streaming | Tool-Calls | Temperaturbereich |
 |----------|:------:|:---------:|:----------:|:--------------------:|
 | OpenAI | ✓ | ✓ | ✓ | ✓ |
 | Anthropic | ✓ | ✓ | ✓ | ✓ |
