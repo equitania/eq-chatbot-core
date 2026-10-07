@@ -481,7 +481,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
 
     def close(self) -> None:
         """Close the underlying HTTP client, if initialized."""
-        if self._client is not None:
+        if getattr(self, "_client", None) is not None:
             self._client.close()
             self._client = None
 
