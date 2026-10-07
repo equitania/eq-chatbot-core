@@ -73,6 +73,8 @@ class ContextWindowManager:
             raise ValueError("history_ratio and rag_ratio must be non-negative")
 
         self.model = model
+        if context_length is not None and context_length <= 0:
+            raise ValueError(f"context_length must be a positive token count, got {context_length}")
         if context_length is None:
             _logger.warning(
                 "No context_length given for model %r; assuming %d tokens. "

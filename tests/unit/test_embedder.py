@@ -19,7 +19,7 @@ from eq_chatbot_core.rag.embedder import (
 
 
 class TestOpenAIEmbedder:
-    """OpenAI embedder validates against its static catalog."""
+    """OpenAI embedder: the model is the caller's; there is no model table."""
 
     @pytest.mark.xfail(reason="stage 2: no embedding model table", strict=False)
     def test_unknown_model_raises(self):
@@ -81,7 +81,7 @@ class TestMeliousEmbedder:
         assert emb.dimensions == 1024
 
     def test_skips_static_model_validation(self):
-        """A dynamic (non-catalog) model id must be accepted."""
+        """Any model id is accepted; nothing is checked against a list."""
         emb = MeliousEmbedder(api_key="k", model="some-dynamic-model")
         assert emb.model == "some-dynamic-model"
 

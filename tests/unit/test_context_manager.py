@@ -70,10 +70,10 @@ class TestContextWindowManagerInit:
         assert mgr.max_tokens == 8192
 
     def test_unknown_model_falls_back_to_128000(self):
-        """Unknown model name falls back to 128000 default."""
+        """Without context_length the fallback window is used, whatever the model name."""
         mgr = ContextWindowManager(model="totally-unknown-model-xyz")
 
-        assert mgr.max_tokens == 128000
+        assert mgr.max_tokens == ContextWindowManager.DEFAULT_CONTEXT_LENGTH
 
     def test_custom_ratios_are_stored(self):
         """Custom history_ratio and rag_ratio are stored."""

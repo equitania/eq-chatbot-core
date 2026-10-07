@@ -26,6 +26,15 @@ def test_context_length_is_passed_not_looked_up():
     assert not hasattr(ContextWindowManager, "MODEL_LIMITS")
 
 
+@pytest.mark.parametrize("bad", [0, -1])
+def test_context_length_must_be_positive(bad):
+    """A zero or negative window must not silently become the 128000 fallback."""
+    from eq_chatbot_core.rag.context_manager import ContextWindowManager
+
+    with pytest.raises(ValueError, match="context_length"):
+        ContextWindowManager(model="any", context_length=bad)
+
+
 def test_context_length_fallback_is_logged(caplog):
     """Without context_length the 128000 fallback is used, and said so — never silently."""
     from eq_chatbot_core.rag.context_manager import ContextWindowManager

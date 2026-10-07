@@ -173,6 +173,10 @@ class HybridRetriever:
 
         Returns:
             Collection name
+
+        Raises:
+            ValueError: If the collection must be created and the vector size is
+                unknown (no ``vector_size``, and the embedder has not learned it yet).
         """
         try:
             from qdrant_client.models import Distance, VectorParams
