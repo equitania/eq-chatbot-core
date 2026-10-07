@@ -129,3 +129,29 @@ class TestMammouthLive:
                 max_tokens=20,
             )
             assert response.content
+
+
+@pytest.mark.integration
+class TestMammouthOnBaseClass:
+    """Chat, stream and tool call through OpenAICompatibleProvider."""
+
+    @pytest.fixture
+    def provider(self, mammouth_api_key):
+        if not mammouth_api_key:
+            pytest.skip("MAMMOUTH_API_KEY not set")
+        return get_provider("mammouth", api_key=mammouth_api_key)
+
+    def test_chat(self, provider, mammouth_resolved_model):
+        from tests.integration.live_checks import check_chat
+
+        check_chat(provider, mammouth_resolved_model)
+
+    def test_stream(self, provider, mammouth_resolved_model):
+        from tests.integration.live_checks import check_stream
+
+        check_stream(provider, mammouth_resolved_model)
+
+    def test_tool_call(self, provider, mammouth_resolved_model):
+        from tests.integration.live_checks import check_tool_call
+
+        check_tool_call(provider, mammouth_resolved_model)
