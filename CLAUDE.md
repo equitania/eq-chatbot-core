@@ -126,6 +126,7 @@ src/eq_chatbot_core/
 ├── providers/              # LLM adapters
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
 │   ├── openai_compatible.py # OpenAICompatibleProvider: shared base for every OpenAI-wire provider
+│   ├── param_learning.py   # Learns per endpoint/model whether temperature / max_tokens are accepted
 │   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
