@@ -1691,3 +1691,13 @@ def wire_server(monkeypatch):
     server = WireServer().start()
     yield server
     server.stop()
+
+
+@pytest.fixture
+def clean_param_memory():
+    """Forget learned parameter support before and after a test."""
+    from eq_chatbot_core.providers import param_learning
+
+    param_learning.clear()
+    yield
+    param_learning.clear()
