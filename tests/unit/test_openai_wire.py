@@ -5,7 +5,7 @@ import base64
 import pytest
 
 from eq_chatbot_core.providers.openai_provider import OpenAIProvider
-from tests.wire_server import Reply, chat_body, models_body
+from tests.wire_server import Reply, chat_body
 
 pytestmark = [pytest.mark.unit, pytest.mark.usefixtures("clean_param_memory")]
 MSG = [{"role": "user", "content": "x"}]
@@ -26,16 +26,6 @@ def test_organization_header(wire_server):
     _provider(wire_server, organization="org-test").chat_completion(MSG, model="gpt-4.1")
     headers = {k.lower(): v for k, v in wire_server.requests[0].headers.items()}
     assert headers.get("openai-organization") == "org-test"
-
-
-@pytest.mark.xfail(
-    reason="stage 2: list_models() no longer filters by model name; ported to test_list_models_wire.py::test_openai_lists_everything_unfiltered_with_unknown_metadata",
-    strict=False,
-)
-def test_list_models_filters_and_annotates(wire_server):
-    wire_server.expect("GET", "/v1/models", Reply(body=models_body(["gpt-4.1", "whisper-1", "o3"])))
-    ids = [m["id"] for m in _provider(wire_server).list_models()]
-    assert ids == ["gpt-4.1", "o3"]
 
 
 def test_generate_image(wire_server):

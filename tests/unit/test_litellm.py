@@ -181,11 +181,6 @@ class TestLiteLLMProviderProperties:
         provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL)
         assert provider.provider_name == "litellm"
 
-    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
-    def test_default_model_fallback(self):
-        provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL)
-        assert provider.default_model == DEFAULT_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
-
     def test_default_model_override(self):
         provider = LiteLLMProvider(api_key="x", base_url=TEST_BASE_URL, model="custom-1")
         assert provider.default_model == "custom-1"
@@ -210,15 +205,6 @@ class TestLiteLLMChatCompletion:
         assert response.input_tokens == 12
         assert response.output_tokens == 8
         assert response.finish_reason == "stop"
-
-    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
-    def test_uses_default_model(self, mock_chat_response):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_chat_response
-        provider = _make_provider_with_client(mock_client)
-
-        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-        assert mock_client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
 
     def test_explicit_model_and_max_tokens(self, mock_chat_response):
         mock_client = MagicMock()
@@ -328,33 +314,12 @@ class TestLiteLLMListModels:
 
 
 # =============================================================================
-# Error handling
-# =============================================================================
-
-
-# =============================================================================
 # Audio: TTS + STT
 # =============================================================================
 
 
 @pytest.mark.unit
 class TestLiteLLMAudio:
-    @pytest.mark.xfail(
-        reason="stage 2: no default TTS/STT model or voice; ported to test_model_required_wire.py::test_tts_and_stt_use_constructor_settings",
-        strict=False,
-    )
-    def test_text_to_speech_returns_bytes(self):
-        mock_client = MagicMock()
-        mock_client.audio.speech.create.return_value.read.return_value = b"RIFFfake-wav-bytes"
-        provider = _make_provider_with_client(mock_client)
-
-        audio = provider.text_to_speech("Hello from ccsolutions.")
-        assert audio == b"RIFFfake-wav-bytes"
-        kwargs = mock_client.audio.speech.create.call_args.kwargs
-        assert kwargs["model"] == DEFAULT_TTS_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
-        assert kwargs["voice"] == DEFAULT_TTS_VOICE  # noqa: F821 - removed default; test is xfailed (stage 2)
-        assert kwargs["input"] == "Hello from ccsolutions."
-
     def test_text_to_speech_custom_voice_and_model(self):
         mock_client = MagicMock()
         mock_client.audio.speech.create.return_value.read.return_value = b"data"
@@ -365,21 +330,6 @@ class TestLiteLLMAudio:
         assert kwargs["model"] == "kokoro-tts-2"
         assert kwargs["voice"] == "af_nova"
         assert kwargs["response_format"] == "mp3"
-
-    @pytest.mark.xfail(
-        reason="stage 2: no default TTS/STT model or voice; ported to test_model_required_wire.py::test_tts_and_stt_use_constructor_settings",
-        strict=False,
-    )
-    def test_transcribe_returns_text(self):
-        mock_client = MagicMock()
-        mock_client.audio.transcriptions.create.return_value.text = "Hello from ccsolutions."
-        provider = _make_provider_with_client(mock_client)
-
-        text = provider.transcribe(b"fake-audio-bytes")
-        assert text == "Hello from ccsolutions."
-        kwargs = mock_client.audio.transcriptions.create.call_args.kwargs
-        assert kwargs["model"] == DEFAULT_STT_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
-        assert kwargs["file"] == b"fake-audio-bytes"
 
 
 # =============================================================================

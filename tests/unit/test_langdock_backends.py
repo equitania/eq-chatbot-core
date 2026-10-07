@@ -121,20 +121,6 @@ class TestBackendDispatch:
         with pytest.raises(ValueError, match="agent_id is required"):
             _provider(backend="agent")
 
-    @pytest.mark.xfail(reason="stage 2: no built-in default model per backend", strict=False)
-    def test_default_model_per_backend(self):
-        """These are perishable fallbacks tied to the workspace's enabled models.
-
-        Three of the four were dead simultaneously on 23.08.2026. The live test
-        TestLangDockDefaultsAreLive is what catches that; this one only pins the
-        per-backend wiring.
-        """
-        assert _provider(backend="openai").default_model == "gpt-5.6-luna"
-        assert _provider(backend="google").default_model == "gemini-3.7-flash"
-        assert _provider(backend="codestral").default_model == "codestral-2501"
-        assert _provider(backend="anthropic").default_model.startswith("claude-")
-        assert _provider(backend="agent", agent_id="ag-1").default_model is None
-
 
 # =============================================================================
 # Agent message conversion
@@ -533,77 +519,6 @@ class TestCodestralCompletion:
 # =============================================================================
 
 
-class TestModelConstraints:
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_reasoning_model_reports_no_temperature_support(self):
-        provider = _provider()
-
-        c = provider._get_model_constraints("o3-mini")
-
-        assert c["supports_temperature"] is False
-        assert c["supports_reasoning"] is True
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_gpt4o_supports_vision_and_temperature(self):
-        provider = _provider()
-
-        c = provider._get_model_constraints("gpt-4o")
-
-        assert c["supports_vision"] is True
-        assert c["supports_temperature"] is True
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_gemini_supports_vision(self):
-        provider = _provider()
-
-        assert provider._get_model_constraints("gemini-2.5-pro")["supports_vision"] is True
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_claude_sonnet_supports_vision(self):
-        provider = _provider()
-
-        assert provider._get_model_constraints("claude-sonnet-4-20250514")["supports_vision"] is True
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_context_length_from_table(self):
-        provider = _provider()
-
-        assert provider._get_model_constraints("gemini-3.7-flash")["context_length"] == 1000000
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_unknown_model_gets_a_fallback_context_length(self):
-        provider = _provider()
-
-        assert provider._get_model_constraints("some-unknown-model")["context_length"] == 128000
-
-    @pytest.mark.xfail(
-        reason="stage 2: list metadata is reported by the provider or None, not derived from the model name",
-        strict=False,
-    )
-    def test_codestral_output_ceiling(self):
-        provider = _provider()
-
-        assert provider._get_model_constraints("codestral-latest")["max_output_tokens"] == 16384
-
-
 class TestErrorMapping:
     @pytest.mark.parametrize(
         "message,expected",
@@ -714,34 +629,6 @@ class TestListModels:
 
         assert [m["id"] for m in models] == ["gpt-4o"]
         assert all(m["backend"] == "agent" for m in models)
-
-    @pytest.mark.xfail(
-        reason="stage 2: listing failures raise instead of degrading — replaced by test_list_models_wire.py::test_unusable_listing_raises_provider_error[langdock-agent-500]",
-        strict=False,
-    )
-    def test_agent_listing_failure_degrades_to_empty_list(self):
-        provider = _provider(backend="agent", agent_id="ag-1")
-        client = MagicMock()
-        client.get.side_effect = ConnectionError("gateway unreachable")
-        provider._http_client = client
-
-        assert provider.list_models() == []
-
-    @pytest.mark.xfail(
-        reason="stage 2: no hardcoded fallback model list; a failed listing raises ProviderError — replaced by test_list_models_wire.py::test_unusable_listing_raises_provider_error[langdock-anthropic-non-dict]",
-        strict=False,
-    )
-    def test_anthropic_listing_falls_back_to_known_models(self):
-        """The gateway does not always support listing; the fallback must fill in."""
-        provider = _provider(backend="anthropic")
-        client = MagicMock()
-        client.models.list.side_effect = AttributeError("no listing endpoint")
-        provider._anthropic_client = client
-
-        models = provider.list_models()
-
-        assert models
-        assert all("claude" in m["id"] for m in models)
 
     def test_models_carry_capability_constraints(self):
         provider = _provider(backend="google")

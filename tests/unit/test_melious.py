@@ -185,11 +185,6 @@ class TestMeliousProviderProperties:
         provider = MeliousProvider(api_key="x")
         assert provider.provider_name == "melious"
 
-    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
-    def test_default_model_fallback(self):
-        provider = MeliousProvider(api_key="x")
-        assert provider.default_model == DEFAULT_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
-
     def test_default_model_override(self):
         provider = MeliousProvider(api_key="x", model="deepseek-v3.1")
         assert provider.default_model == "deepseek-v3.1"
@@ -214,15 +209,6 @@ class TestMeliousChatCompletion:
         assert response.input_tokens == 11
         assert response.output_tokens == 7
         assert response.finish_reason == "stop"
-
-    @pytest.mark.xfail(reason="stage 2: no built-in default model", strict=False)
-    def test_uses_default_model(self, mock_chat_response):
-        mock_client = MagicMock()
-        mock_client.chat.completions.create.return_value = mock_chat_response
-        provider = _make_provider_with_client(mock_client)
-
-        provider.chat_completion(messages=[{"role": "user", "content": "Hi"}])
-        assert mock_client.chat.completions.create.call_args.kwargs["model"] == DEFAULT_MODEL  # noqa: F821 - removed default; test is xfailed (stage 2)
 
     def test_explicit_model_and_max_tokens(self, mock_chat_response):
         mock_client = MagicMock()
@@ -340,11 +326,6 @@ class TestMeliousListModels:
         assert "minimax-428b-m3" in ids
         assert "gpt-oss-120b" in ids
         assert all(m["provider"] == "melious" for m in models)
-
-
-# =============================================================================
-# Error handling
-# =============================================================================
 
 
 # =============================================================================

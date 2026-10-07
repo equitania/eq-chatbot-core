@@ -48,26 +48,6 @@ def test_context_overflow_as_stream_event(wire_server):
         list(_provider(wire_server).stream_completion(MSG, model="qwen"))
 
 
-@pytest.mark.xfail(
-    reason="stage 2: supports_tools/supports_vision are no longer guessed; ported to test_list_models_wire.py::test_local_does_not_guess_tools_or_vision",
-    strict=False,
-)
-def test_list_models_format(wire_server):
-    wire_server.expect("GET", "/v1/models", Reply(body=models_body(["qwen"])))
-    (model,) = _provider(wire_server).list_models()
-    assert model == {
-        "id": "qwen",
-        "name": "qwen",
-        "provider": "local",
-        "context_length": None,
-        "supports_streaming": True,
-        "supports_tools": False,
-        "supports_vision": False,
-        "owned_by": "test",
-        "created": 0,
-    }
-
-
 def test_server_availability(wire_server):
     wire_server.expect("GET", "/v1/models", Reply(body=models_body([])))
     assert _provider(wire_server).is_server_available()

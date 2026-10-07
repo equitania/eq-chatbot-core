@@ -54,12 +54,6 @@ class TestOpenAIRealtimeConfig:
         with pytest.raises((dataclasses.FrozenInstanceError, AttributeError)):
             config.api_key = "new-value"
 
-    @pytest.mark.xfail(reason="stage 2: no default realtime model", strict=False)
-    def test_default_model_is_gpt_realtime(self) -> None:
-        """Exact string 'gpt-realtime' — PROV-04 model default assertion."""
-        config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)
-        assert config.model == "gpt-realtime"
-
     def test_default_voice_is_ash(self) -> None:
         """Default voice must be exact string 'ash'."""
         config = OpenAIRealtimeConfig(model="test-model", api_key=_FAKE_KEY)

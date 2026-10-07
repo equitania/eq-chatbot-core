@@ -105,24 +105,3 @@ class TestMetadataExposed:
     def test_meta_and_providers_available(self, catalog):
         assert "image_input" in catalog.capability_meta
         assert "openai" in catalog.providers
-
-
-class TestSnapshotAndRemote:
-    @pytest.mark.xfail(reason="stage 2: the snapshot left the package", strict=False)
-    def test_from_snapshot_loads_known_model(self):
-        cat = CapabilityCatalog.from_snapshot()
-        assert cat.lookup("gpt-4o") is not None
-
-    @pytest.mark.xfail(
-        reason="stage 2: the snapshot left the package; ported to test_no_model_tables.py::test_catalog_is_empty_when_the_remote_fetch_fails",
-        strict=False,
-    )
-    def test_from_remote_falls_back_to_snapshot(self, monkeypatch):
-        import httpx2
-
-        def boom(*args, **kwargs):
-            raise httpx2.ConnectError("offline")
-
-        monkeypatch.setattr(httpx2, "get", boom)
-        cat = CapabilityCatalog.from_remote(timeout=0.1)
-        assert cat.lookup("gpt-4o") is not None

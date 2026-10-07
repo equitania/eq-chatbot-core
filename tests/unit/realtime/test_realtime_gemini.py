@@ -91,21 +91,6 @@ class TestGeminiLiveConfig:
         assert "mode" in fields
 
     @pytest.mark.unit
-    @pytest.mark.xfail(reason="stage 2: no default realtime model", strict=False)
-    def test_default_model_contains_gemini(self) -> None:
-        """Default model must contain 'gemini' and NOT contain '2.0-flash' (CRITICAL ALIAS)."""
-        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
-        assert "gemini" in config.model
-        assert "2.0-flash" not in config.model
-
-    @pytest.mark.unit
-    @pytest.mark.xfail(reason="stage 2: no default realtime model", strict=False)
-    def test_default_model_is_verified_alias(self) -> None:
-        """Default model must be exactly 'gemini-3.1-flash-live-preview' (verified 2026-05-25)."""
-        config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)
-        assert config.model == "gemini-3.1-flash-live-preview"
-
-    @pytest.mark.unit
     def test_default_mode_is_developer(self) -> None:
         """mode defaults to 'developer'."""
         config = GeminiLiveConfig(model="test-model", api_key=_FAKE_KEY)

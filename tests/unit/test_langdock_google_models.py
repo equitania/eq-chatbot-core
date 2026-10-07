@@ -78,16 +78,8 @@ class TestGoogleModelListing:
 
         assert provider.list_models() == []
 
-    @pytest.mark.xfail(reason="stage 2: no built-in default model per backend", strict=False)
-    def test_default_model_is_one_langdock_actually_serves(self):
-        assert _provider(backend="google").default_model == "gemini-3.7-flash"
-
 
 class TestCodestralDefaults:
-    @pytest.mark.xfail(reason="stage 2: no built-in default model per backend", strict=False)
-    def test_default_model_is_the_served_id(self):
-        assert _provider(backend="codestral").default_model == "codestral-2501"
-
     def test_chat_listing_stays_empty_on_purpose(self):
         """Codestral only does FIM; offering it in a chat model picker is wrong."""
         provider = _provider(backend="codestral")
