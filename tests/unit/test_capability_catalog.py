@@ -42,6 +42,14 @@ RAW = {
             "capabilities": {"image_input": True, "tools": True, "reasoning": True},
             "limits": {"context_length": 200000, "max_output_tokens": 64000},
         },
+        {
+            "id": "anthropic/claude-sonnet-4",
+            "display_name": "Claude Sonnet 4",
+            "providers": ["anthropic"],
+            "aliases": ["claude-sonnet-4"],
+            "capabilities": {"image_input": True, "tools": True, "reasoning": True},
+            "limits": {"context_length": 200000, "max_output_tokens": 64000},
+        },
     ],
 }
 
@@ -82,6 +90,34 @@ class TestMatching:
         c = catalog.lookup("claude-3-7-sonnet-20250219")
         assert c is not None
         assert c["reasoning"] is True
+
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "claude-sonnet-4-20250514",  # Anthropic date snapshot
+            "claude-3-7-sonnet@20250219",  # Vertex AI date separator
+            "claude-3-7-sonnet-latest",
+            "gpt-4o-2024-08-06",  # OpenAI dashed date
+            "anthropic/claude-3.7-sonnet:beta",  # OpenRouter variant suffix
+            "claude-3-7-sonnet-20250219-v1:0",  # Bedrock version suffix
+        ],
+    )
+    def test_prefix_match_accepts_snapshot_suffixes(self, catalog, model_id):
+        assert catalog.lookup(model_id) is not None
+
+    @pytest.mark.parametrize(
+        "model_id",
+        [
+            "claude-sonnet-4-5",  # a different model, not a Sonnet 4 snapshot
+            "claude-sonnet-4-6-20260101",
+            "gpt-4o-mini",
+        ],
+    )
+    def test_prefix_match_rejects_other_models(self, catalog, model_id):
+        # The prefix fallback is for snapshot suffixes only. A longer id that names
+        # another model must stay unknown instead of inheriting the shorter
+        # model's limits (Opus 4.8 used to resolve to Opus 4 with 200K/32K).
+        assert catalog.lookup(model_id) is None
 
     def test_alias_match(self, catalog):
         assert catalog.lookup("gpt-4o-2024-11-20")["tools"] is True

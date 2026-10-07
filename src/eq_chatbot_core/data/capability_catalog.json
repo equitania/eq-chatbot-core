@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "generated_at": "2026-07-10T00:00:00Z",
   "generator": "manual-seed",
-  "source_notes": "Curated Equitania seed (2026-07-10). Values are a best-effort snapshot and will be superseded by the eq-model-catalog sync tool (OpenRouter /models + provider APIs + overrides). Prices are USD per 1,000 tokens.",
+  "source_notes": "Curated Equitania seed (2026-07-10). Values are a best-effort snapshot and will be superseded by the eq-model-catalog sync tool (OpenRouter /models + provider APIs + overrides). Prices are USD per 1,000 tokens. Anthropic 5.x generation and Haiku 4.5 added by hand on 2026-10-07 from the Anthropic model reference (cached 2026-09-25); providers list only anthropic until OpenRouter/LangDock availability is verified.",
   "capability_defaults": {
     "text_input": true,
     "text_output": true,
@@ -399,8 +399,6 @@
       "aliases": [
         "claude-sonnet-4",
         "claude-sonnet-4-20250514",
-        "claude-sonnet-4-5",
-        "claude-sonnet-4-5-20250929",
         "anthropic/claude-sonnet-4"
       ],
       "capabilities": {
@@ -444,6 +442,136 @@
       "limits": {
         "context_length": 200000,
         "max_output_tokens": 32000
+      },
+      "status": "active"
+    },
+    {
+      "id": "anthropic/claude-fable-5.1",
+      "display_name": "Claude Fable 5.1",
+      "family": "claude-5-fable",
+      "providers": [
+        "anthropic"
+      ],
+      "aliases": [
+        "claude-fable-5-1",
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-fable-5.1"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1000000,
+        "max_output_tokens": 128000
+      },
+      "status": "active"
+    },
+    {
+      "id": "anthropic/claude-opus-5.5",
+      "display_name": "Claude Opus 5.5",
+      "family": "claude-5-opus",
+      "providers": [
+        "anthropic"
+      ],
+      "aliases": [
+        "claude-opus-5-5",
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-opus-5.5"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1000000,
+        "max_output_tokens": 128000
+      },
+      "status": "active"
+    },
+    {
+      "id": "anthropic/claude-sonnet-5.5",
+      "display_name": "Claude Sonnet 5.5",
+      "family": "claude-5-sonnet",
+      "providers": [
+        "anthropic"
+      ],
+      "aliases": [
+        "claude-sonnet-5-5",
+        "anthropic/claude-sonnet-5-5",
+        "anthropic/claude-sonnet-5.5"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1000000,
+        "max_output_tokens": 128000
+      },
+      "status": "active"
+    },
+    {
+      "id": "anthropic/claude-sonnet-5",
+      "display_name": "Claude Sonnet 5",
+      "family": "claude-5-sonnet",
+      "providers": [
+        "anthropic"
+      ],
+      "aliases": [
+        "claude-sonnet-5",
+        "anthropic/claude-sonnet-5"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 1000000,
+        "max_output_tokens": 128000
+      },
+      "status": "active"
+    },
+    {
+      "id": "anthropic/claude-haiku-4.5",
+      "display_name": "Claude Haiku 4.5",
+      "family": "claude-4-haiku",
+      "providers": [
+        "anthropic"
+      ],
+      "aliases": [
+        "claude-haiku-4-5",
+        "claude-haiku-4-5-20251001",
+        "anthropic/claude-haiku-4-5",
+        "anthropic/claude-haiku-4.5"
+      ],
+      "capabilities": {
+        "image_input": true,
+        "audio_input": false,
+        "audio_output": false,
+        "file_input": true,
+        "tools": true,
+        "reasoning": true
+      },
+      "limits": {
+        "context_length": 200000,
+        "max_output_tokens": 64000
       },
       "status": "active"
     },

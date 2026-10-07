@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from typing import Any, TypedDict
 
 from eq_chatbot_core.providers.temperature_constraints import strip_provider_prefix
@@ -30,6 +31,13 @@ _logger = logging.getLogger(__name__)
 # Default hosting location. Overridable per deployment (e.g. via an Odoo
 # ``ir.config_parameter``) by passing an explicit URL to ``from_remote``.
 DEFAULT_CATALOG_URL = "https://data.ownerp.io/ai/capability_catalog.json"
+
+# What may follow a catalog key in the longest-prefix fallback: a snapshot of the
+# same model, never another model. Date (Anthropic "-20250219", Vertex "@20250219",
+# OpenAI "-2024-08-06") or "-latest", then an optional Bedrock "-v1:0" and an
+# optional OpenRouter variant (":beta", ":free"). Without this boundary
+# "claude-opus-4-8" resolved to "claude-opus-4" and inherited its 200K/32K limits.
+_SNAPSHOT_SUFFIX_RE = re.compile(r"(?:[-@]\d{8}|-\d{4}-\d{2}-\d{2}|-latest)?(?:-v\d+(?::\d+)?)?(?::[a-z0-9._-]+)?")
 
 _SNAPSHOT_PATH = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "data", "capability_catalog.json"))
 
@@ -142,10 +150,16 @@ class CapabilityCatalog:
             if entry is not None:
                 return self._build(entry)
 
-        # Longest-prefix fallback (e.g. "claude-3-7-sonnet-20250219" -> "claude-3-7-sonnet").
+        # Longest-prefix fallback for snapshot suffixes only
+        # (e.g. "claude-3-7-sonnet-20250219" -> "claude-3-7-sonnet").
         best_key = ""
         for key in self._entries:
-            if len(key) > 2 and norm.startswith(key) and len(key) > len(best_key):
+            if (
+                len(key) > 2
+                and norm.startswith(key)
+                and len(key) > len(best_key)
+                and _SNAPSHOT_SUFFIX_RE.fullmatch(norm[len(key) :])
+            ):
                 best_key = key
         if best_key:
             entry = self._match_key(best_key, provider)

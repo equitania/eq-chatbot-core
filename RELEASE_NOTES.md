@@ -1,5 +1,37 @@
 # Release Notes
 
+## Version 3.3.1 (07.10.2026)
+
+### [FIX]
+
+- **Fähigkeitskatalog: Präfix-Rückfall nur noch für Snapshot-Anhänge**
+  (`services/capability_catalog.py`). Fand `lookup()` keinen exakten Namen, nahm es den Eintrag
+  mit dem längsten passenden Anfang — auch wenn der Rest ein anderes Modell bezeichnete.
+  `claude-opus-4-8`, `-4-7` und `-4-6` erbten so die Grenzwerte von Claude Opus 4 (200K Kontext,
+  32K Ausgabe statt 1M/128K), `claude-sonnet-4-6` die von Sonnet 4 (200K statt 1M), und
+  `gpt-4o-mini` wäre ohne eigenen Eintrag bei GPT-4o gelandet. Jetzt darf nach dem passenden
+  Anfang nur noch ein Datum (`-20250219`, Vertex `@20250219`, OpenAI `-2024-08-06`) oder
+  `-latest` folgen, optional `-v1:0` (Bedrock) und eine OpenRouter-Variante (`:beta`, `:free`).
+  Ein anderes Modell bleibt unbekannt und bekommt die Standardwerte statt fremder Grenzwerte.
+  Tests decken beide Seiten ab.
+
+### [ADD]
+
+- **Aktuelle Anthropic-Modelle im mitgelieferten Katalog** (`data/capability_catalog.json`):
+  Claude Fable 5.1, Opus 5.5, Sonnet 5.5 und Sonnet 5 (je 1M Kontext, 128K Ausgabe) sowie
+  Haiku 4.5 (200K/64K) — bisher fehlten sie ganz und fielen auf die Standardwerte zurück. Werte
+  aus der Anthropic-Modellreferenz; als Provider steht vorerst nur `anthropic`, bis die
+  Verfügbarkeit über OpenRouter und LangDock geprüft ist. Die gehostete Katalogdatei, die
+  `from_remote()` lädt, braucht denselben Nachtrag; dieses Release ändert nur den
+  Offline-Snapshot.
+
+### [CHG]
+
+- **Sonnet-4.5-Aliase entfernt.** `claude-sonnet-4-5` und `claude-sonnet-4-5-20250929` standen
+  als Aliase unter „Claude Sonnet 4“, also beim falschen Modell. Sonnet 4.5 ist abgekündigt
+  (anthropic-SDK 1.11.0) und wird nicht mehr eingesetzt; mit dem begrenzten Präfix-Rückfall
+  ist es jetzt unbekannt.
+
 ## Version 3.3.0 (08.09.2026)
 
 ### [ADD]
