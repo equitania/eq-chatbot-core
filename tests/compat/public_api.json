@@ -1,11 +1,31 @@
 {
+  "AnthropicProvider": {
+    "constants": {
+      "DEFAULT_BASE_URL": "'https://api.anthropic.com'",
+      "OVERLOAD_BASE_DELAY": "2.0",
+      "OVERLOAD_MAX_DELAY": "30.0",
+      "OVERLOAD_MAX_RETRIES": "3"
+    },
+    "members": {
+      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
+      "api_key": "property",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "client": "property",
+      "default_model": "property",
+      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
+      "list_models": "(self) -> list[dict[str, typing.Any]]",
+      "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+    }
+  },
   "IonosProvider": {
     "constants": {
       "ALLOW_PRIVATE_RANGES": "False",
       "DEFAULT_BASE_URL": "'https://openai.inference.de-txl.ionos.com/v1'",
-      "DEFAULT_MODEL": "'meta-llama/Llama-3.3-70B-Instruct'",
       "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
-      "PROVIDER_NAME": "'ionos'"
+      "PROVIDER_NAME": "'ionos'",
+      "STREAM_INCLUDE_USAGE": "True"
     },
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
@@ -17,6 +37,7 @@
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
     }
   },
@@ -27,7 +48,7 @@
     "members": {
       "__init__": "(self, api_key: str, timeout: float = 60.0)",
       "client": "property",
-      "create_agent": "(self, name: str, instruction: str, model: str = 'gpt-4o', knowledge_folder_ids: list[str] | None = None, **kwargs: Any) -> dict[str, typing.Any]",
+      "create_agent": "(self, name: str, instruction: str, model: str, knowledge_folder_ids: list[str] | None = None, **kwargs: Any) -> dict[str, typing.Any]",
       "get_agent": "(self, agent_id: str) -> dict[str, typing.Any]",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "update_agent": "(self, agent_id: str, **kwargs: Any) -> dict[str, typing.Any]",
@@ -50,12 +71,10 @@
   "LangDockProvider": {
     "constants": {
       "BACKENDS": "{'openai': '/openai/{region}/v1', 'anthropic': '/anthropic/{region}', 'google': '/google/{region}/v1beta', 'codestral': '/mistral/{region}/v1', 'agent': '/agent/v1'}",
-      "BASE_URL": "'https://api.langdock.com'",
-      "MODEL_CONTEXT_LENGTHS": "{'gpt-4-turbo': 128000, 'gpt-4o': 128000, 'gpt-4o-mini': 128000, 'gpt-5': 200000, 'o1': 200000, 'o1-mini': 128000, 'o1-preview': 128000, 'o3': 200000, 'o3-mini': 200000, 'o4-mini': 200000, 'claude-3-5-sonnet': 200000, 'claude-3-5-haiku': 200000, 'claude-sonnet-4': 200000, 'claude-opus-4': 200000, 'gemini-3.7-flash': 1000000, 'gemini-3.5-flash': 1000000, 'gemini-2.5-pro': 1000000, 'codestral': 32000}",
-      "REASONING_MODELS": "('o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4', 'o4-mini')"
+      "BASE_URL": "'https://api.langdock.com'"
     },
     "members": {
-      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, region: str = 'eu', backend: str = 'openai', reasoning_effort: str | None = None, agent_id: str | None = None)",
+      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, region: str = 'eu', backend: str = 'openai', reasoning_effort: str | None = None, agent_id: str | None = None, model: str | None = None)",
       "anthropic_client": "property",
       "api_key": "property",
       "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
@@ -65,6 +84,7 @@
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "openai_client": "property",
       "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
       "upload_attachment": "(self, file_data: bytes, filename: str, mimetype: str) -> dict[str, typing.Any]"
     }
@@ -73,9 +93,60 @@
     "constants": {
       "ALLOW_PRIVATE_RANGES": "True",
       "DEFAULT_BASE_URL": "None",
-      "DEFAULT_MODEL": "'qwen3.6-35b-a3b'",
       "MISSING_BASE_URL_MESSAGE": "\"LiteLLMProvider requires an explicit base_url (e.g. 'https://litellm.example.com/v1'). There is no default endpoint.\"",
-      "PROVIDER_NAME": "'litellm'"
+      "PROVIDER_NAME": "'litellm'",
+      "STREAM_INCLUDE_USAGE": "True"
+    },
+    "members": {
+      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None, *, tts_model: str | None = None, tts_voice: str | None = None, stt_model: str | None = None)",
+      "api_key": "property",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "client": "property",
+      "close": "(self) -> None",
+      "default_model": "property",
+      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
+      "list_models": "(self) -> list[dict[str, typing.Any]]",
+      "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "text_to_speech": "(self, text: str, *, model: str | None = None, voice: str | None = None, response_format: str = 'wav', **kwargs: Any) -> bytes",
+      "transcribe": "(self, audio: Any, *, model: str | None = None, **kwargs: Any) -> str"
+    }
+  },
+  "LocalLLMProvider": {
+    "constants": {
+      "ALLOW_PRIVATE_RANGES": "True",
+      "DEFAULT_BASE_URL": "'http://localhost:1234/v1'",
+      "DEFAULT_TIMEOUT": "120.0",
+      "LM_STUDIO_URL": "'http://localhost:1234/v1'",
+      "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
+      "OLLAMA_URL": "'http://localhost:11434/v1'",
+      "PROVIDER_NAME": "'local'",
+      "STREAM_INCLUDE_USAGE": "False"
+    },
+    "members": {
+      "__init__": "(self, api_key: str = 'not-used', base_url: str | None = None, timeout: float | None = None, max_retries: int = 2, model: str | None = None)",
+      "api_key": "property",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "client": "property",
+      "close": "(self) -> None",
+      "default_model": "property",
+      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
+      "is_server_available": "(self) -> bool",
+      "list_models": "(self) -> list[dict[str, typing.Any]]",
+      "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+    }
+  },
+  "MammouthProvider": {
+    "constants": {
+      "ALLOW_PRIVATE_RANGES": "False",
+      "DEFAULT_BASE_URL": "'https://api.mammouth.ai/v1'",
+      "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
+      "MODELS_URL": "'https://api.mammouth.ai/public/models'",
+      "PROVIDER_NAME": "'mammouth'",
+      "STREAM_INCLUDE_USAGE": "True"
     },
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
@@ -87,46 +158,7 @@
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "provider_name": "property",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
-      "text_to_speech": "(self, text: str, *, model: str = 'kokoro-tts-1', voice: str = 'af_bella', response_format: str = 'wav', **kwargs: Any) -> bytes",
-      "transcribe": "(self, audio: Any, *, model: str = 'whisper-large-v3', **kwargs: Any) -> str"
-    }
-  },
-  "LocalLLMProvider": {
-    "constants": {
-      "DEFAULT_TIMEOUT": "120.0",
-      "LM_STUDIO_URL": "'http://localhost:1234/v1'",
-      "OLLAMA_URL": "'http://localhost:11434/v1'"
-    },
-    "members": {
-      "__init__": "(self, api_key: str = 'not-used', base_url: str | None = None, timeout: float | None = None, max_retries: int = 2)",
-      "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "client": "property",
-      "default_model": "property",
-      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
-      "is_server_available": "(self) -> bool",
-      "list_models": "(self) -> list[dict[str, typing.Any]]",
-      "provider_name": "property",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
-    }
-  },
-  "MammouthProvider": {
-    "constants": {
-      "DEFAULT_BASE_URL": "'https://api.mammouth.ai/v1'",
-      "MODELS_URL": "'https://api.mammouth.ai/public/models'",
-      "REASONING_MODEL_PREFIXES": "('o1', 'o3', 'o4')"
-    },
-    "members": {
-      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2)",
-      "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "client": "property",
-      "close": "(self) -> None",
-      "default_model": "property",
-      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
-      "list_models": "(self) -> list[dict[str, typing.Any]]",
-      "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
     }
   },
@@ -134,9 +166,9 @@
     "constants": {
       "ALLOW_PRIVATE_RANGES": "False",
       "DEFAULT_BASE_URL": "'https://api.melious.ai/v1'",
-      "DEFAULT_MODEL": "'nemotron-3-nano-30b-a3b'",
       "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
-      "PROVIDER_NAME": "'melious'"
+      "PROVIDER_NAME": "'melious'",
+      "STREAM_INCLUDE_USAGE": "True"
     },
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
@@ -148,37 +180,20 @@
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
     }
   },
   "OpenAIProvider": {
     "constants": {
-      "CHAT_MODEL_PREFIXES": "('gpt-3.5', 'gpt-4', 'gpt-5', 'o1', 'o3', 'o4', 'chatgpt')",
+      "ALLOW_PRIVATE_RANGES": "False",
       "DEFAULT_BASE_URL": "'https://api.openai.com/v1'",
-      "DEFAULT_IMAGE_MODEL": "'gpt-image-1'",
-      "MODEL_CONTEXT_LENGTHS": "{'gpt-4-turbo': 128000, 'gpt-4o': 128000, 'gpt-4o-mini': 128000, 'gpt-4': 8192, 'gpt-3.5-turbo': 16385, 'o1': 200000, 'o1-mini': 128000, 'o1-preview': 128000, 'o3': 200000, 'o3-mini': 200000, 'o4-mini': 200000, 'gpt-5': 200000}",
-      "NEW_API_MODELS": "('gpt-4o', 'gpt-4o-mini', 'gpt-5', 'gpt-5.1', 'gpt-5.2', 'o1', 'o1-mini', 'o1-preview', 'o3', 'o3-mini', 'o4', 'o4-mini')"
+      "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
+      "PROVIDER_NAME": "'openai'",
+      "STREAM_INCLUDE_USAGE": "True"
     },
     "members": {
-      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, organization: str | None = None)",
-      "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "client": "property",
-      "default_model": "property",
-      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> eq_chatbot_core.providers.base.ImageResult",
-      "list_models": "(self) -> list[dict[str, typing.Any]]",
-      "provider_name": "property",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
-    }
-  },
-  "OpenRouterProvider": {
-    "constants": {
-      "DEFAULT_BASE_URL": "'https://openrouter.ai/api/v1'",
-      "DEFAULT_IMAGE_MODEL": "'google/gemini-2.5-flash-image'",
-      "REASONING_MODEL_PREFIXES": "('openai/o1', 'openai/o3', 'openai/o4')"
-    },
-    "members": {
-      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, site_url: str | None = None, site_name: str | None = None)",
+      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, organization: str | None = None, model: str | None = None, image_model: str | None = None)",
       "api_key": "property",
       "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
       "client": "property",
@@ -187,6 +202,29 @@
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> eq_chatbot_core.providers.base.ImageResult",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+    }
+  },
+  "OpenRouterProvider": {
+    "constants": {
+      "ALLOW_PRIVATE_RANGES": "False",
+      "DEFAULT_BASE_URL": "'https://openrouter.ai/api/v1'",
+      "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
+      "PROVIDER_NAME": "'openrouter'",
+      "STREAM_INCLUDE_USAGE": "True"
+    },
+    "members": {
+      "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, site_url: str | None = None, site_name: str | None = None, model: str | None = None, image_model: str | None = None)",
+      "api_key": "property",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "client": "property",
+      "close": "(self) -> None",
+      "default_model": "property",
+      "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> eq_chatbot_core.providers.base.ImageResult",
+      "list_models": "(self) -> list[dict[str, typing.Any]]",
+      "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
     }
   },
@@ -194,10 +232,10 @@
     "constants": {
       "ALLOW_PRIVATE_RANGES": "True",
       "DEFAULT_BASE_URL": "'http://localhost:8080/v1'",
-      "DEFAULT_MODEL": "'kimi-latest'",
       "EXTRA_BODY_KEYS": "frozenset({'cache_salt', 'chat_template_kwargs'})",
       "MISSING_BASE_URL_MESSAGE": "'This provider requires an explicit base_url; there is no default endpoint.'",
-      "PROVIDER_NAME": "'privatemode'"
+      "PROVIDER_NAME": "'privatemode'",
+      "STREAM_INCLUDE_USAGE": "True"
     },
     "members": {
       "__init__": "(self, api_key: str | None = None, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None, *, allow_insecure_transport: bool = False)",
@@ -209,6 +247,7 @@
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
       "list_models": "(self) -> list[dict[str, typing.Any]]",
       "provider_name": "property",
+      "resolve_model": "(self, model: str | None = None) -> str",
       "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
     }
   },
@@ -226,6 +265,7 @@
     "MammouthProvider",
     "MeliousProvider",
     "ModelInfo",
+    "ModelNotSpecifiedError",
     "OpenRouterProvider",
     "OverloadedError",
     "PrivatemodeProvider",

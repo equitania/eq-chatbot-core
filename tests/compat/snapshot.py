@@ -15,6 +15,7 @@ SNAPSHOT_PATH = Path(__file__).with_name("public_api.json")
 
 CLASSES = [
     ("eq_chatbot_core.providers.openai_provider", "OpenAIProvider"),
+    ("eq_chatbot_core.providers.anthropic_provider", "AnthropicProvider"),
     ("eq_chatbot_core.providers.mammouth_provider", "MammouthProvider"),
     ("eq_chatbot_core.providers.openrouter_provider", "OpenRouterProvider"),
     ("eq_chatbot_core.providers.local_provider", "LocalLLMProvider"),
