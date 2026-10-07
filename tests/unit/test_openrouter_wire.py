@@ -247,3 +247,104 @@ def test_factory_returns_openrouter():
     from eq_chatbot_core.providers import get_provider
 
     assert isinstance(get_provider("openrouter", api_key="k"), OpenRouterProvider)
+
+
+# --- Fix round 1: non-JSON errors, SSE comments, streaming errors, constraints ---
+
+HTML_504 = "<html><body>504 Gateway Timeout</body></html>"
+
+
+def test_html_error_body_non_streaming(wire_server):
+    wire_server.expect("POST", "/v1/chat/completions", Reply(504, raw=HTML_504))
+    with pytest.raises(ProviderError) as excinfo:
+        _provider(wire_server).chat_completion(MSG, model="a/b")
+    assert excinfo.value.status_code == 504
+    assert str(excinfo.value).strip()
+
+
+def test_html_error_body_streaming(wire_server):
+    wire_server.expect("POST", "/v1/chat/completions", Reply(504, raw=HTML_504))
+    with pytest.raises(ProviderError) as excinfo:
+        list(_provider(wire_server).stream_completion(MSG, model="a/b"))
+    assert excinfo.value.status_code == 504
+    assert str(excinfo.value).strip()
+
+
+def test_streaming_http_error_maps_to_rate_limit(wire_server):
+    wire_server.expect("POST", "/v1/chat/completions", Reply(429, {"error": {"message": "slow down"}}))
+    with pytest.raises(ProviderError) as excinfo:
+        list(_provider(wire_server).stream_completion(MSG, model="a/b"))
+    assert type(excinfo.value).__name__ == "RateLimitError"
+    assert "slow down" in str(excinfo.value) and excinfo.value.status_code == 429
+
+
+def test_stream_skips_sse_comment_lines(wire_server):
+    events = stream_events(["Hel", "lo"], model="a/b")
+    mixed = [": OPENROUTER PROCESSING", events[0], ": OPENROUTER PROCESSING", *events[1:]]
+    wire_server.expect("POST", "/v1/chat/completions", Reply(sse=mixed))
+    chunks = list(_provider(wire_server).stream_completion(MSG, model="a/b"))
+    assert "".join(c.content for c in chunks if c.content) == "Hello"
+    assert any(c.is_final for c in chunks)
+
+
+@pytest.mark.parametrize("finish", ["stop", "length"])
+def test_stream_final_chunk_carries_finish_reason(wire_server, finish):
+    events = stream_events(["x"], model="a/b")
+    events[-2]["choices"][0]["finish_reason"] = finish
+    wire_server.expect("POST", "/v1/chat/completions", Reply(sse=events))
+    chunks = list(_provider(wire_server).stream_completion(MSG, model="a/b"))
+    assert chunks[-1].is_final and chunks[-1].finish_reason == finish
+
+
+def test_generate_image_jpeg_data_url(wire_server):
+    jpeg = b"\xff\xd8\xff\xe0jpegdata"
+    url = "data:image/jpeg;base64," + base64.b64encode(jpeg).decode()
+    body = chat_body("")
+    body["choices"][0]["message"]["images"] = [{"type": "image_url", "image_url": {"url": url}}]
+    wire_server.expect("POST", "/v1/chat/completions", Reply(body=body))
+    result = _provider(wire_server).generate_image("a cat")
+    assert result.mime == "image/jpeg" and result.data == jpeg
+
+
+def test_model_constraints_regular_reasoning_and_null_parameters(wire_server):
+    wire_server.expect(
+        "GET",
+        "/v1/models",
+        Reply(
+            body={
+                "data": [
+                    {
+                        "id": "openai/gpt-4o",
+                        "supported_parameters": ["temperature", "max_tokens"],
+                        "input_modalities": ["text", "image"],
+                    },
+                    {"id": "openai/o3", "supported_parameters": ["max_tokens"], "input_modalities": ["text"]},
+                    {"id": "x/null-params", "supported_parameters": None},
+                ]
+            }
+        ),
+    )
+    models = {m["id"]: m for m in _provider(wire_server).list_models()}
+    regular, reasoning = models["openai/gpt-4o"], models["openai/o3"]
+    assert regular["supports_temperature"] is True and regular["supports_vision"] is True
+    assert (regular["min_temperature"], regular["max_temperature"]) == (0.0, 2.0)
+    assert regular["supports_reasoning"] is False
+    assert reasoning["supports_temperature"] is False and reasoning["supports_reasoning"] is True
+    assert (reasoning["min_temperature"], reasoning["max_temperature"]) == (1.0, 1.0)
+    assert reasoning["default_temperature"] == 1.0
+    assert regular["default_temperature"] is not None
+    null = models["x/null-params"]
+    assert "supports_temperature" in null and "supports_tools" in null
+
+
+def test_chat_response_fields_and_max_tokens(wire_server):
+    wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body("Test response", model="openai/gpt-4o")))
+    response = _provider(wire_server).chat_completion(MSG, model="openai/gpt-4o", max_tokens=100)
+    assert response.content == "Test response" and response.model == "openai/gpt-4o"
+    assert (response.input_tokens, response.output_tokens) == (5, 2)
+    assert wire_server.requests[0].json["max_tokens"] == 100
+
+
+def test_init_stores_key_and_timeout():
+    provider = OpenRouterProvider(api_key="sk-or-test", timeout=120.0)
+    assert provider.api_key == "sk-or-test" and provider.timeout == 120.0

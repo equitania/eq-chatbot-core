@@ -46,7 +46,10 @@ GATEWAY_TEMPERATURE_REJECTION_NO_PARAM: dict[str, Any] = {
 class Reply:
     status: int = 200
     body: dict[str, Any] | list[Any] | None = None
-    sse: list[dict[str, Any]] | None = None  # data payloads; "[DONE]" is appended
+    # data payloads (dict -> "data: <json>"); a str is written verbatim, e.g. an SSE comment.
+    # "[DONE]" is appended.
+    sse: list[dict[str, Any] | str] | None = None
+    raw: str | bytes | None = None  # sent verbatim; Content-Type from headers, default text/html
     headers: dict[str, str] = field(default_factory=dict)
     delay: float = 0.0  # seconds to wait before answering (timeout tests)
 
@@ -150,11 +153,17 @@ class WireServer:
                     self.send_header("Content-Type", "text/event-stream")
                     self.end_headers()
                     for event in reply.sse:
-                        self.wfile.write(f"data: {json.dumps(event)}\n\n".encode())
+                        line = event if isinstance(event, str) else f"data: {json.dumps(event)}"
+                        self.wfile.write(f"{line}\n\n".encode())
                     self.wfile.write(b"data: [DONE]\n\n")
                     return
-                payload = json.dumps(reply.body if reply.body is not None else {}).encode()
-                self.send_header("Content-Type", "application/json")
+                if reply.raw is not None:
+                    payload = reply.raw.encode() if isinstance(reply.raw, str) else reply.raw
+                    if not any(n.lower() == "content-type" for n in reply.headers):
+                        self.send_header("Content-Type", "text/html")
+                else:
+                    payload = json.dumps(reply.body if reply.body is not None else {}).encode()
+                    self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(payload)))
                 self.end_headers()
                 self.wfile.write(payload)
