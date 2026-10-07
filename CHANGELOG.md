@@ -5,6 +5,33 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Mammouth, Local, OpenAI, OpenRouter and LangDock's `openai` backend now run on the shared `OpenAICompatibleProvider` base class (new module `providers/param_learning.py`; hooks `_build_params`, `_token_param`, `_default_headers`, `_client_kwargs`, `list_models`, `_error_from_message`; class switches `_validate_default_url`, `STREAM_INCLUDE_USAGE`). Provider modules shrank: mammouth 467 -> 110 lines, local 520 -> 164, openai 496 -> 243, openrouter 597 -> 262, langdock 2188 -> 2073.
+- `temperature` / `max_tokens` rejections are retried once per parameter (temperature dropped; `max_tokens` becomes `max_completion_tokens`) and learned per endpoint and model for the whole process. OpenRouter's `list_models()` pre-seeds only "temperature unsupported" and never re-enables a parameter.
+- Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError` (403 is new), 503/529 `OverloadedError`, 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`. The bare word "token" no longer means context length (Local keeps its own body-error rule).
+
+### Behaviour notes
+
+- Mammouth, OpenRouter and Local now use the OpenAI SDK: automatic retries on 429/5xx up to `max_retries`, and different error message wording.
+- `client` returns an `openai.OpenAI` for Mammouth, OpenRouter and Local.
+- `OpenAIProvider().base_url` is the effective URL instead of `None`.
+- Local's private `_handle_error` lost its `response=` parameter.
+- A 200 response that carries an `error` body raises a typed `ProviderError`.
+
+### Tests
+
+- Wire tests run against a real local server (`tests/wire_server.py`). More than 130 obsolete mocked tests are marked xfail as deletion candidates, pending approval; none were deleted.
+
+### Known
+
+- OpenRouter live tests are unverified: the configured key returns 401 on chat.
+- Local live tests are unverified: no LM Studio / Ollama was running.
+- LangDock's `openai` default model `gpt-5.6-luna` is no longer offered (to be handled in stage 2).
+- OpenAI rejects function tools on `gpt-5.6-*` with HTTP 400 unless `reasoning_effort="none"` (API restriction, independent of this change).
+
 ## [3.3.0] - 2026-09-08
 
 ### Added

@@ -244,6 +244,17 @@ the vendor retires concrete ids over time. At the time of writing: `kimi-latest`
 > **GDPR:** Confidential computing means the operator itself cannot access the plaintext. Hosted in
 > the EU (Scaleway); suitable for the strictest EU-regulated workloads.
 
+### Parameter learning
+
+Every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode and LangDock's `openai` backend) shares one request, stream and error implementation. Whether a model accepts `temperature`, or wants `max_completion_tokens` instead of `max_tokens`, is not kept in a model list: the library learns it at runtime.
+
+- If the endpoint rejects `temperature` as unsupported, the request is repeated once without it.
+- If it rejects `max_tokens`, the request is repeated once with `max_completion_tokens`.
+- Each parameter is retried at most once. The answer is remembered per endpoint and model for the rest of the process, so the cost is a single extra request the first time a model is used; later calls send the right parameters at once.
+- On OpenRouter, `list_models()` pre-seeds the memory: models whose metadata does not offer `temperature` are marked "temperature unsupported" up front. It never re-enables a parameter that was learned as rejected.
+
+Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError`, 503/529 `OverloadedError`, and 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`.
+
 ### Temperature clamping
 
 Models reject out-of-range temperatures with HTTP 400. `eq-chatbot-core` clamps automatically to each model's accepted range:
@@ -528,6 +539,17 @@ Erstellung: `kimi-latest` / `kimi-k2.6` (256k Kontext, Vision) und `gpt-oss-120b
 
 > **DSGVO:** Confidential Computing bedeutet, dass selbst der Betreiber nicht an den Klartext kommt.
 > Hosting in der EU (Scaleway); geeignet für die strengsten EU-regulierten Workloads.
+
+### Parameter-Lernen
+
+Alle OpenAI-kompatiblen Provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM, Privatemode und das `openai`-Backend von LangDock) teilen sich eine Implementierung für Request, Stream und Fehler. Ob ein Modell `temperature` akzeptiert oder `max_completion_tokens` statt `max_tokens` verlangt, steht in keiner Modellliste — die Library lernt es zur Laufzeit.
+
+- Lehnt der Endpunkt `temperature` als nicht unterstützt ab, wird die Anfrage einmal ohne den Parameter wiederholt.
+- Lehnt er `max_tokens` ab, wird einmal mit `max_completion_tokens` wiederholt.
+- Jeder Parameter wird höchstens einmal wiederholt. Die Antwort wird je Endpunkt und Modell für den Rest des Prozesses gemerkt; die Kosten sind also eine zusätzliche Anfrage bei der ersten Nutzung eines Modells.
+- Bei OpenRouter füllt `list_models()` den Speicher vor: Modelle, deren Metadaten `temperature` nicht anbieten, gelten sofort als „temperature nicht unterstützt“. Ein als abgelehnt gelernter Parameter wird dadurch nie wieder freigeschaltet.
+
+Fehler werden nach HTTP-Status abgebildet: 429 `RateLimitError` (mit `retry_after`), 401/403 `AuthenticationError`, 503/529 `OverloadedError`, 400 mit Code `context_length_exceeded` oder einer Kontextlängen-Formulierung `ContextLengthError`.
 
 ### Temperature-Clamping
 

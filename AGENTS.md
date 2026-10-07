@@ -96,6 +96,13 @@ class BaseLLMProvider(ABC):
     def list_models() -> list[dict]
 ```
 
+Every OpenAI-wire provider (OpenAI, Mammouth, OpenRouter, Local, IONOS, Melious, LiteLLM,
+Privatemode, LangDock's `openai` backend) inherits `OpenAICompatibleProvider`. Do not add a
+provider with its own request/stream/error code — subclass and override a hook
+(`_build_params`, `_token_param`, `_default_headers`, `_client_kwargs`, `list_models`,
+`_error_from_message`). Whether a model accepts `temperature` or wants `max_completion_tokens`
+is learned at runtime (`providers/param_learning.py`); never add a model to a list to fix it.
+
 ### Response Types
 
 - `LLMResponse`: Complete response with content, token counts, tool_calls
@@ -118,7 +125,7 @@ ProviderError (base)
 src/eq_chatbot_core/
 ├── providers/              # LLM adapters
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
-│   ├── openai_compatible.py # OpenAICompatibleProvider: shared base for ionos/litellm/melious/privatemode
+│   ├── openai_compatible.py # OpenAICompatibleProvider: shared base for every OpenAI-wire provider
 │   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
