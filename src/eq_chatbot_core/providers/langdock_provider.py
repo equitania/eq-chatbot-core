@@ -29,7 +29,7 @@ from eq_chatbot_core.providers.base import (
     ToolDefinition,
     normalize_tools,
 )
-from eq_chatbot_core.providers.stream_accumulator import ToolCallAccumulator
+from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     apply_anthropic_temperature,
     clamp_temperature,
@@ -135,6 +135,38 @@ def _agent_error_message(status_code: int, detail: str) -> str:
     return f"{base}: {hint} ({detail})" if hint else f"{base}: {detail}"
 
 
+class _LangDockOpenAIBackend(OpenAICompatibleProvider):
+    """LangDock's `/openai/{region}/v1` backend, driven by the shared base class.
+
+    LangDockProvider serves five different APIs; only this one is OpenAI wire,
+    so it is delegated rather than inherited.
+    """
+
+    PROVIDER_NAME = "langdock"
+
+    def __init__(self, owner: "LangDockProvider"):
+        self._owner = owner
+        super().__init__(owner.api_key, owner._get_backend_url(), owner.timeout, owner.max_retries)
+
+    def _token_param(self, model: str) -> str:
+        return "max_completion_tokens" if self._owner._uses_new_token_api(model) else "max_tokens"
+
+    def _build_params(
+        self,
+        messages: list[dict[str, Any]],
+        model: str,
+        temperature: float,
+        max_tokens: int | None,
+        tools: list[dict[str, Any]] | None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        effort = kwargs.pop("reasoning_effort", None) or self._owner.reasoning_effort
+        params = super()._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
+        if effort and self._owner._is_reasoning_model(model):
+            params["reasoning_effort"] = effort
+        return params
+
+
 class LangDockProvider(BaseLLMProvider):
     """
     LangDock unified API gateway provider.
@@ -224,7 +256,7 @@ class LangDockProvider(BaseLLMProvider):
         # Initialize clients BEFORE validation to ensure __del__ works even when
         # the SSRF guard below rejects the URL.
         self._http_client: httpx2.Client | None = None
-        self._openai_client: Any = None
+        self._openai_backend: _LangDockOpenAIBackend | None = None
         self._anthropic_client: Any = None
 
         # SSRF guard: only a caller-supplied base_url is validated — the fixed
@@ -309,32 +341,15 @@ class LangDockProvider(BaseLLMProvider):
             )
         return self._http_client
 
+    def _get_openai_backend(self) -> _LangDockOpenAIBackend:
+        if self._openai_backend is None:
+            self._openai_backend = _LangDockOpenAIBackend(self)
+        return self._openai_backend
+
     @property
     def openai_client(self) -> Any:
-        """Get or create OpenAI client for OpenAI-compatible backends."""
-        if self._openai_client is None:
-            try:
-                from openai import OpenAI
-            except ImportError as e:
-                raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
-
-            # These SDK clients were never routed through the pinned transport —
-            # only the raw httpx client was. base_url is caller-supplied, so the
-            # same DNS-rebinding exposure applied here.
-            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
-
-            backend_url = self._get_backend_url()
-            self._openai_client = OpenAI(
-                api_key=self.api_key,
-                base_url=backend_url,
-                timeout=self.timeout,
-                max_retries=self.max_retries,
-                http_client=httpx2.Client(
-                    transport=build_pinned_transport_for_url(backend_url),
-                    timeout=self.timeout,
-                ),
-            )
-        return self._openai_client
+        """OpenAI SDK client for the openai backend (pinned transport, shared base class)."""
+        return self._get_openai_backend().client
 
     @property
     def anthropic_client(self) -> Any:
@@ -432,70 +447,12 @@ class LangDockProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> LLMResponse:
         """OpenAI-compatible chat completion."""
-        try:
-            params: dict[str, Any] = {
-                "messages": messages,
-                "model": model,
-            }
-
-            # Clamp temperature per model constraints (skip for reasoning models)
-            clamped = clamp_temperature(model, temperature)
-            if clamped is not None:
-                params["temperature"] = clamped
-
-            # Handle max_tokens
-            if max_tokens:
-                # New API models use max_completion_tokens
-                if self._uses_new_token_api(model):
-                    params["max_completion_tokens"] = max_tokens
-                else:
-                    params["max_tokens"] = max_tokens
-
-            if tools:
-                params["tools"] = tools
-
-            # Add reasoning_effort for compatible models
-            effort = reasoning_effort or self.reasoning_effort
-            if effort and self._is_reasoning_model(model):
-                params["reasoning_effort"] = effort
-
-            params.update(kwargs)
-
-            response = self.openai_client.chat.completions.create(**params)
-
-            choice = response.choices[0]
-            tool_calls = []
-
-            if choice.message.tool_calls:
-                tool_calls = [
-                    {
-                        "id": tc.id,
-                        "type": tc.type,
-                        "function": {
-                            "name": tc.function.name,
-                            "arguments": tc.function.arguments,
-                        },
-                    }
-                    for tc in choice.message.tool_calls
-                ]
-
-            return LLMResponse(
-                content=choice.message.content or "",
-                model=response.model,
-                input_tokens=response.usage.prompt_tokens if response.usage else 0,
-                output_tokens=response.usage.completion_tokens if response.usage else 0,
-                finish_reason=choice.finish_reason,
-                tool_calls=tool_calls,
-                raw_response=response.model_dump() if hasattr(response, "model_dump") else None,
-            )
-
-        except ProviderError:
-            # Already a typed error carrying status/context. Routing it through
-            # _handle_error() again would flatten it to a bare ProviderError and
-            # drop the status code the caller needs.
-            raise
-        except Exception as e:
-            raise self._handle_error(e) from e
+        extra = dict(kwargs)
+        if reasoning_effort:
+            extra["reasoning_effort"] = reasoning_effort
+        return self._get_openai_backend().chat_completion(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, tools=tools, **extra
+        )
 
     def _uses_new_token_api(self, model: str) -> bool:
         """Check if model uses max_completion_tokens instead of max_tokens."""
@@ -1005,90 +962,12 @@ class LangDockProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """OpenAI-compatible streaming."""
-        try:
-            params: dict[str, Any] = {
-                "messages": messages,
-                "model": model,
-                "stream": True,
-                "stream_options": {"include_usage": True},
-            }
-
-            # Clamp temperature per model constraints (skip for reasoning models)
-            clamped = clamp_temperature(model, temperature)
-            if clamped is not None:
-                params["temperature"] = clamped
-
-            if max_tokens:
-                if self._uses_new_token_api(model):
-                    params["max_completion_tokens"] = max_tokens
-                else:
-                    params["max_tokens"] = max_tokens
-
-            if tools:
-                params["tools"] = tools
-
-            effort = reasoning_effort or self.reasoning_effort
-            if effort and self._is_reasoning_model(model):
-                params["reasoning_effort"] = effort
-
-            params.update(kwargs)
-
-            stream = self.openai_client.chat.completions.create(**params)
-
-            final_input_tokens = 0
-            final_output_tokens = 0
-
-            # Accumulate tool calls from deltas
-            # Key: tool call index, Value: accumulated tool call data
-            tool_calls_acc = ToolCallAccumulator()
-
-            for chunk in stream:
-                if hasattr(chunk, "usage") and chunk.usage:
-                    final_input_tokens = chunk.usage.prompt_tokens or 0
-                    final_output_tokens = chunk.usage.completion_tokens or 0
-
-                if not chunk.choices:
-                    continue
-
-                choice = chunk.choices[0]
-                delta = choice.delta
-
-                content = delta.content or ""
-                is_final = choice.finish_reason is not None
-
-                tool_call_delta = None
-                if delta.tool_calls:
-                    for tc in delta.tool_calls:
-                        tool_call_delta = {
-                            "index": tc.index,
-                            "id": tc.id,
-                            "function": {
-                                "name": tc.function.name if tc.function else None,
-                                "arguments": tc.function.arguments if tc.function else None,
-                            },
-                        }
-                    tool_calls_acc.add(delta.tool_calls)
-
-                # On the final chunk, expose the fully accumulated tool calls.
-                complete_tool_calls = tool_calls_acc.result() if is_final else None
-
-                yield StreamChunk(
-                    content=content,
-                    is_final=is_final,
-                    finish_reason=choice.finish_reason,
-                    tool_call_delta=tool_call_delta,
-                    tool_calls=complete_tool_calls,
-                    input_tokens=final_input_tokens if is_final else 0,
-                    output_tokens=final_output_tokens if is_final else 0,
-                )
-
-        except ProviderError:
-            # Already a typed error carrying status/context. Routing it through
-            # _handle_error() again would flatten it to a bare ProviderError and
-            # drop the status code the caller needs.
-            raise
-        except Exception as e:
-            raise self._handle_error(e) from e
+        extra = dict(kwargs)
+        if reasoning_effort:
+            extra["reasoning_effort"] = reasoning_effort
+        yield from self._get_openai_backend().stream_completion(
+            messages, model=model, temperature=temperature, max_tokens=max_tokens, tools=tools, **extra
+        )
 
     def _agent_stream_completion(
         self,
@@ -1832,6 +1711,12 @@ class LangDockProvider(BaseLLMProvider):
         if self._http_client is not None:
             try:
                 self._http_client.close()
+            except (OSError, RuntimeError):
+                pass  # Ignore cleanup errors during interpreter shutdown
+        backend = getattr(self, "_openai_backend", None)
+        if backend is not None:
+            try:
+                backend.close()
             except (OSError, RuntimeError):
                 pass  # Ignore cleanup errors during interpreter shutdown
 
