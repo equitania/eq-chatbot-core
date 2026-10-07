@@ -1673,20 +1673,23 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 
 @pytest.fixture
-def wire_server(monkeypatch):
+def real_openai(monkeypatch):
+    """Make ``sys.modules["openai"]`` the real SDK for the duration of a test.
+
+    Older unit modules install a MagicMock as ``openai`` at import time, which
+    breaks ``isinstance`` checks against ``openai.APIError`` in ``_handle_error``.
+    This fixture runs after those mocks are in place and restores the real SDK.
+    """
+    monkeypatch.setitem(sys.modules, "openai", _REAL_OPENAI)
+
+
+@pytest.fixture
+def wire_server(real_openai):
     """A local OpenAI-wire HTTP server; see tests/wire_server.py.
 
-    Wire tests always run the real openai SDK, even if an older test module
-    replaced it with a mock. monkeypatch restores the real SDK for the duration
-    of the test.
+    Depends on ``real_openai``: wire tests always run the real openai SDK.
     """
     from tests.wire_server import WireServer
-
-    # Restore the real openai SDK: older test modules mock sys.modules["openai"]
-    # at import time, so wire-server tests would get a MagicMock instead of the
-    # real client. This fixture runs after those mocks are in place and restores
-    # the real SDK for the test.
-    monkeypatch.setitem(sys.modules, "openai", _REAL_OPENAI)
 
     server = WireServer().start()
     yield server

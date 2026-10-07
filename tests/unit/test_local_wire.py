@@ -70,7 +70,7 @@ def test_server_availability(wire_server):
     assert not LocalLLMProvider(base_url="http://127.0.0.1:9/v1", max_retries=0).is_server_available()
 
 
-def test_connection_refused_message(wire_server):
+def test_connection_refused_message(real_openai):
     with pytest.raises(ProviderError, match="Cannot connect to local LLM server"):
         LocalLLMProvider(base_url="http://127.0.0.1:9/v1", max_retries=0).chat_completion(MSG, model="qwen")
 
@@ -100,7 +100,7 @@ def test_tool_calls_parsed(wire_server):
     assert response.tool_calls and response.tool_calls[0]["function"]["name"] == "f"
 
 
-def test_stream_content_and_usage(wire_server):
+def test_stream_content_and_final_chunk(wire_server):
     wire_server.expect("POST", "/v1/chat/completions", Reply(sse=stream_events(["a", "b"])))
     chunks = list(_provider(wire_server).stream_completion(MSG, model="qwen"))
     assert "".join(c.content or "" for c in chunks) == "ab"
@@ -119,9 +119,11 @@ def test_errors_by_status(wire_server, status, exc_name):
         _provider(wire_server).chat_completion(MSG, model="qwen")
     assert type(info.value) is getattr(base, exc_name)
     assert info.value.provider == "local"
+    if status == 401:
+        assert "Authentication failed (local server may require API key)" in str(info.value)
 
 
-def test_connection_error_scrubs_token_in_base_url(wire_server):
+def test_connection_error_scrubs_token_in_base_url(real_openai):
     p = LocalLLMProvider(base_url="http://127.0.0.1:9/v1?api_key=sk-leak-abcdef123456", max_retries=0)
     with pytest.raises(ProviderError) as info:
         p.chat_completion(MSG, model="qwen")
@@ -133,6 +135,25 @@ def test_list_models_empty(wire_server):
     assert _provider(wire_server).list_models() == []
 
 
-def test_list_models_connection_error(wire_server):
+def test_list_models_connection_error(real_openai):
     with pytest.raises(ProviderError, match="Cannot connect to local LLM server"):
         LocalLLMProvider(base_url="http://127.0.0.1:9/v1", max_retries=0).list_models()
+
+
+def test_timeout_message(wire_server):
+    wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body(), delay=1.5))
+    provider = LocalLLMProvider(base_url=wire_server.base_url, timeout=0.2, max_retries=0)
+    with pytest.raises(ProviderError, match="Request timed out after"):
+        provider.chat_completion(MSG, model="qwen")
+
+
+def test_server_unavailable_on_http_500(wire_server):
+    wire_server.expect("GET", "/v1/models", Reply(500, {"error": {"message": "boom"}}))
+    assert not _provider(wire_server).is_server_available()
+
+
+def test_list_models_passes_context_length(wire_server):
+    body = {"data": [{"id": "qwen", "context_length": 32768, "owned_by": "test", "created": 0}]}
+    wire_server.expect("GET", "/v1/models", Reply(body=body))
+    (model,) = _provider(wire_server).list_models()
+    assert model["context_length"] == 32768

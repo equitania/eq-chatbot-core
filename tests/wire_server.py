@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import threading
+import time
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -47,6 +48,7 @@ class Reply:
     body: dict[str, Any] | list[Any] | None = None
     sse: list[dict[str, Any]] | None = None  # data payloads; "[DONE]" is appended
     headers: dict[str, str] = field(default_factory=dict)
+    delay: float = 0.0  # seconds to wait before answering (timeout tests)
 
 
 @dataclass
@@ -133,6 +135,14 @@ class WireServer:
                     reply = queue.pop(0) if len(queue) > 1 else (queue[0] if queue else None)
                 if reply is None:
                     reply = Reply(404, {"error": {"message": f"no reply queued for {method} {path}"}})
+                if reply.delay:
+                    time.sleep(reply.delay)
+                try:
+                    self._respond(reply)
+                except (BrokenPipeError, ConnectionResetError):  # client timed out and left
+                    pass
+
+            def _respond(self, reply: Reply) -> None:
                 self.send_response(reply.status)
                 for name, value in reply.headers.items():
                     self.send_header(name, value)
