@@ -23,6 +23,10 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
+# Capture the real openai SDK before any test module can replace it with a mock.
+# This is needed because conftest is imported before test modules, and wire-server tests
+# always need the real SDK, not mocks from older test files.
+import openai as _REAL_OPENAI
 import pytest
 
 from tests.model_registry import MODELS, ModelChain
@@ -1669,9 +1673,20 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 
 
 @pytest.fixture
-def wire_server():
-    """A local OpenAI-wire HTTP server; see tests/wire_server.py."""
+def wire_server(monkeypatch):
+    """A local OpenAI-wire HTTP server; see tests/wire_server.py.
+
+    Wire tests always run the real openai SDK, even if an older test module
+    replaced it with a mock. monkeypatch restores the real SDK for the duration
+    of the test.
+    """
     from tests.wire_server import WireServer
+
+    # Restore the real openai SDK: older test modules mock sys.modules["openai"]
+    # at import time, so wire-server tests would get a MagicMock instead of the
+    # real client. This fixture runs after those mocks are in place and restores
+    # the real SDK for the test.
+    monkeypatch.setitem(sys.modules, "openai", _REAL_OPENAI)
 
     server = WireServer().start()
     yield server
