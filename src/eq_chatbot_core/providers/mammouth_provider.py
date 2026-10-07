@@ -1,9 +1,8 @@
 """
 Mammouth AI provider implementation.
 
-Mammouth AI (https://mammouth.ai) provides access to 30+ AI models through a
-unified OpenAI-compatible API, including OpenAI, Anthropic, Google, Mistral,
-xAI, DeepSeek, Meta, and more. The wire protocol is handled by
+Mammouth AI (https://mammouth.ai) provides access to models from many vendors
+through one OpenAI-compatible API. The wire protocol is handled by
 OpenAICompatibleProvider; only the model listing is Mammouth-specific.
 """
 
@@ -19,10 +18,10 @@ _logger = logging.getLogger(__name__)
 
 class MammouthProvider(OpenAICompatibleProvider):
     """
-    Mammouth AI API provider for 30+ AI models.
+    Mammouth AI API provider.
 
-    Model IDs use simple names without provider prefix (e.g. "gpt-4o",
-    "claude-sonnet-4-5") unlike OpenRouter which uses "provider/model" format.
+    Model ids carry no vendor prefix (unlike OpenRouter's ``vendor/model``);
+    ``list_models()`` returns them.
     """
 
     PROVIDER_NAME = "mammouth"

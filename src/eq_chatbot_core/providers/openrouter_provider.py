@@ -17,22 +17,10 @@ _logger = logging.getLogger(__name__)
 
 class OpenRouterProvider(OpenAICompatibleProvider):
     """
-    OpenRouter API provider for 400+ AI models.
+    OpenRouter API provider for 400+ models from many vendors.
 
-    Supports models from multiple providers through a unified API:
-    - OpenAI (GPT-4, GPT-4o, O1, O3, O4)
-    - Anthropic (Claude 3, Claude 3.5, Claude 4)
-    - Google (Gemini Pro, Gemini Ultra)
-    - Meta (Llama 3, Llama 4)
-    - Mistral (Mistral Large, Mixtral)
-    - And many more...
-
-    Model IDs follow the format: provider/model-name
-    Examples:
-    - openai/gpt-4o
-    - anthropic/claude-3.5-sonnet
-    - google/gemini-pro-1.5
-    - meta-llama/llama-3.1-70b-instruct
+    Model ids follow the format ``vendor/model-name``; ``list_models()`` returns
+    them with the metadata OpenRouter reports.
     """
 
     DEFAULT_BASE_URL = "https://openrouter.ai/api/v1"

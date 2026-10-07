@@ -1,12 +1,12 @@
 """
 LangDock provider implementation.
 
-LangDock is a unified API gateway supporting multiple LLM providers:
-- OpenAI (GPT-4, GPT-5, O1-O4 series)
-- Anthropic (Claude models)
-- Google (Gemini models via Vertex AI)
-- Codestral (Mistral code generation)
-- Agents (LangDock custom agents with knowledge)
+LangDock is a unified API gateway with several backends:
+- openai: OpenAI-compatible chat completions
+- anthropic: Anthropic Messages API
+- google: Google Generative Language API (via Vertex AI)
+- codestral: fill-in-the-middle code completion
+- agent: LangDock custom agents with knowledge
 
 Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 """
@@ -173,10 +173,10 @@ class LangDockProvider(BaseLLMProvider):
     LangDock provides access to multiple LLM providers through a single API:
 
     Backends:
-    - openai: GPT-4 Turbo, GPT-4o, GPT-5, O1/O3/O4 series
-    - anthropic: Claude 3.5, Claude 4 models
-    - google: Gemini models via Vertex AI
-    - codestral: Mistral Codestral for code generation (FIM)
+    - openai: OpenAI-compatible chat completions
+    - anthropic: Anthropic Messages API
+    - google: Google Generative Language API (via Vertex AI)
+    - codestral: fill-in-the-middle code completion (FIM)
     - agent: LangDock custom agents with knowledge folders
 
     Features:
@@ -1387,17 +1387,11 @@ class LangDockProvider(BaseLLMProvider):
             ) from e
 
     def _list_google_models(self) -> list[dict[str, Any]]:
-        """List Google Gemini models by asking LangDock, not from a hardcoded list.
+        """List the Google models LangDock offers this workspace, live.
 
-        This used to return a hand-maintained ("gemini-2.5-flash", "gemini-2.5-pro")
-        pair. LangDock retired 2.5-flash, so both the catalogue and the backend
-        default pointed at a model that answers
-        ``400 Invalid model, available models are: …`` — every default-model call
-        to this backend failed. The endpoint below is the same one that error
-        message is generated from, so it cannot go stale.
-
-        Gemini reports ids as ``models/<id>``; the prefix is stripped because
-        sending it back is itself a 400.
+        The endpoint is the one LangDock's "Invalid model, available models are: …"
+        error is generated from, so the list cannot go stale. Ids come back as
+        ``models/<id>``; the prefix is stripped because sending it back is a 400.
         """
         response = self.http_client.get("/models")
         response.raise_for_status()

@@ -1,5 +1,5 @@
 """
-Anthropic Claude provider implementation.
+Anthropic provider implementation.
 """
 
 import json
@@ -29,14 +29,10 @@ logger = logging.getLogger(__name__)
 
 class AnthropicProvider(BaseLLMProvider):
     """
-    Anthropic API provider for Claude models.
+    Anthropic Messages API provider.
 
-    Supports:
-    - Claude 4.5 Opus (claude-opus-4-5-20251101) - newest, most capable
-    - Claude 4 Sonnet (claude-sonnet-4-20250514)
-    - Claude 3.5 Sonnet (claude-3-5-sonnet-20241022)
-    - Claude 3.5 Haiku (claude-3-5-haiku-20241022)
-    - Claude 3 Opus (claude-3-opus-20240229)
+    Pass the model per call or as ``model=`` to the constructor; ``list_models()``
+    returns the ids the account can use.
     """
 
     DEFAULT_BASE_URL = "https://api.anthropic.com"

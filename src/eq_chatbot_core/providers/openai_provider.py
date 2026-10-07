@@ -11,14 +11,10 @@ from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 class OpenAIProvider(OpenAICompatibleProvider):
     """
-    OpenAI API provider for GPT models.
+    OpenAI API provider: chat completions and image generation.
 
-    Supports:
-    - GPT-4 Turbo (gpt-4-turbo)
-    - GPT-4o (gpt-4o, gpt-4o-mini)
-    - GPT-5 series (gpt-5, gpt-5.2)
-    - O1/O3 series (o1, o1-mini, o1-preview, o3)
-    - Image generation via gpt-image-1 (DALL-E 3 / DALL-E 2 also supported)
+    Pass the chat model per call or as ``model=``, the image model per call or as
+    ``image_model=``; ``list_models()`` returns every id the account can use.
     """
 
     DEFAULT_BASE_URL = "https://api.openai.com/v1"
