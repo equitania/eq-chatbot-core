@@ -34,10 +34,17 @@ def test_anthropic_temperature_clamped_into_extra_body():
     assert params == {"model": "m", "extra_body": {"temperature": 1.0}}
 
 
+def test_anthropic_temperature_merges_into_existing_extra_body():
+    params = {"extra_body": {"foo": "bar"}}
+    apply_anthropic_temperature(params, 0.3)
+    assert params["extra_body"] == {"foo": "bar", "temperature": 0.3}
+
+
+@pytest.mark.parametrize("provider_cls", [MammouthProvider, OpenAIProvider, OpenRouterProvider])
 @pytest.mark.parametrize("model", ["o3", "gpt-5", "deepseek-reasoner", "anything-new"])
-def test_temperature_is_sent_whatever_the_model_name(wire_server, model):
+def test_temperature_is_sent_whatever_the_model_name(wire_server, provider_cls, model):
     wire_server.expect(*CHAT, Reply(body=chat_body()))
-    MammouthProvider(api_key="k", base_url=wire_server.base_url, max_retries=0).chat_completion(
+    provider_cls(api_key="k", base_url=wire_server.base_url, max_retries=0).chat_completion(
         MSG, model=model, temperature=0.3
     )
     assert wire_server.requests[0].json["temperature"] == 0.3
