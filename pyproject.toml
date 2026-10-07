@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "eq-chatbot-core"
 dynamic = ["version"]
-description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, Azure, Vertex AI, LiteLLM, IONOS, Local)"
+description = "Core library for LLM chatbot integration with multi-provider support (OpenAI, Anthropic, LangDock, OpenRouter, Mammouth, LiteLLM, IONOS, Melious, Privatemode, Local)"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
@@ -13,8 +13,8 @@ authors = [
     { name = "Equitania Software GmbH", email = "info@equitania.de" },
 ]
 keywords = [
-    "chatbot", "llm", "openai", "anthropic", "langdock", "openrouter", "mammouth", "azure",
-    "vertex", "gemini", "litellm", "ionos", "ollama", "rag", "mcp", "odoo", "ai", "nlp",
+    "chatbot", "llm", "openai", "anthropic", "langdock", "openrouter", "mammouth", "melious",
+    "privatemode", "gemini", "litellm", "ionos", "ollama", "rag", "mcp", "odoo", "ai", "nlp",
     "embedding", "encryption"
 ]
 classifiers = [
@@ -33,26 +33,26 @@ dependencies = [
     # 3.x is the release that moved to httpx2; the pinned DNS-rebinding transport
     # is built against whichever client library each SDK expects, so the floor and
     # the httpx2 dependency below move together.
-    "openai>=3.3.1,<4.0.0",
+    "openai>=3.26.0,<4.0.0",
     # Floor 1.0.0: the SDK moved to httpx2 in that release and now REJECTS an
     # httpx client ("Expected an instance of httpx2.Client"). Allowing <1.0.0
     # alongside it would let an upgrade silently break anthropic_provider.
-    "anthropic>=1.0.0,<2.0.0",
+    "anthropic>=1.11.0,<2.0.0",
     "tiktoken>=0.14.0,<1.0.0",
     # Floor 50.0.0 excludes PYSEC-2026-3552 (Bleichenbacher oracle in PKCS#7
     # decryption) as well as the earlier CVE-2026-26007 / CVE-2026-39892 /
     # CVE-2026-34073 (wildcard SAN name-constraint bypass). This library only
     # uses Fernet, but pinning below the fix keeps `pip-audit --strict` red and
     # holds shared environments on a vulnerable range.
-    "cryptography>=50.0.0,<51.0.0",
+    "cryptography>=50.0.2,<51.0.0",
     # One HTTP library again since anthropic 1.0.0: httpx2 is Pydantic's
     # maintained continuation of httpx and now carries our own networking, the
     # OpenAI SDK and the Anthropic SDK alike. The separate httpx<1 dependency
     # existed solely because the Anthropic SDK rejected an httpx2 client.
-    "httpx2>=2.12.0,<3.0.0",
-    "pydantic>=2.13.4,<3.0.0",
+    "httpx2>=2.13.1,<3.0.0",
+    "pydantic>=2.13.5,<3.0.0",
     # Floor 8.3.3 excludes CVE-2026-7246 (command injection in click.edit()).
-    "click>=8.4.2,<9.0.0",
+    "click>=8.5.0,<9.0.0",
 ]
 
 [project.optional-dependencies]
@@ -61,12 +61,12 @@ dev = [
     "pytest-cov>=7.1.0,<8.0.0",
     "pytest-asyncio>=1.4.0,<2.0.0",
     # Floor 1.2.2 excludes PYSEC-2026-2270.
-    "python-dotenv>=1.2.3,<2.0.0",  # .env loading for consumers; the test suite reads config.toml
-    "ruff>=0.16.4,<1.0.0",
+    "python-dotenv>=1.2.4,<2.0.0",  # .env loading for consumers; the test suite reads config.toml
+    "ruff>=0.16.10,<1.0.0",
     # Floors track the current release on purpose (policy: always run the
     # newest version — an old floor is an open CVE waiting for a fresh install).
-    # mypy --strict src/ is clean on 2.3.
-    "mypy>=2.3.1,<3.0.0",
+    # mypy --strict src/ is clean on 2.4.
+    "mypy>=2.4.0,<3.0.0",
     # Floor 7.0.0: hatchling now emits Metadata-Version 2.5, which twine 6.x
     # rejects as invalid — `twine check dist/*` fails on every build otherwise.
     "twine>=7.0.0,<8.0.0",
@@ -79,10 +79,10 @@ rag = [
     # retriever takes an already-constructed client and imports qdrant_client
     # .models inside its methods. Callers that never touch RAG should not pay
     # for it.
-    "qdrant-client>=1.19.0,<2.0.0",
+    "qdrant-client>=1.19.1,<2.0.0",
 ]
 local = [
-    "sentence-transformers>=6.0.0,<7.0.0",  # For local embeddings
+    "sentence-transformers>=6.1.0,<7.0.0",  # For local embeddings
 ]
 security = [
     # Pure Python MIME type verification (no libmagic dependency).
@@ -101,7 +101,7 @@ pdf = [
 ]
 docs = [
     # Document-to-Markdown extraction for knowledge ingestion (services/document_extractor.py)
-    "markitdown[docx,pdf,pptx,xlsx]>=0.1.7,<0.2.0",
+    "markitdown[docx,pdf,pptx,xlsx]>=0.1.8,<0.2.0",
     "pymupdf>=1.28.2,<2.0.0",  # Embedded-image extraction from PDFs
     # Stated here because nothing else states it. markitdown's [xlsx] extra asks for
     # a bare "openpyxl" and a bare "pandas"; the floor openpyxl>=3.1.5 lives only in
@@ -117,20 +117,20 @@ image = [
     "Pillow>=12.3.0,<13.0",
 ]
 realtime = [
-    # Floor 17.0.1: websockets 14 replaced the boolean `closed` attribute with a
+    # Floor 17.2: websockets 14 replaced the boolean `closed` attribute with a
     # `state` enum, which silently killed the whole realtime layer until v3.1.0.
     # Nothing below the current release should be reachable by a fresh install.
-    "websockets>=17.0.1,<18.0",
+    "websockets>=17.2,<18.0",
 ]
 server = [
     # Localhost HTTP gateway for cross-language integrations (e.g. fr-designer
     # Avalonia desktop app spawning eq-chatbot as a sidecar).
-    "fastapi>=0.141.1,<1.0.0",
-    "uvicorn>=0.52.4,<1.0.0",
+    "fastapi>=0.142.2,<1.0.0",
+    "uvicorn>=0.54.0,<1.0.0",
     # 3.x verified: the only API used is EventSourceResponse(<async generator of
     # {"event": ..., "data": ...} dicts>), exercised end-to-end by the server
     # streaming tests.
-    "sse-starlette>=3.4.8,<4.0.0",
+    "sse-starlette>=3.5.0,<4.0.0",
 ]
 
 [project.scripts]

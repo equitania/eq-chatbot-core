@@ -116,15 +116,30 @@ ProviderError (base)
 src/eq_chatbot_core/
 ├── providers/              # LLM adapters
 │   ├── base.py             # BaseLLMProvider, response types, exceptions
+│   ├── openai_compatible.py # OpenAICompatibleProvider: shared base for ionos/litellm/melious/privatemode
 │   ├── openai_provider.py  # OpenAI
 │   ├── anthropic_provider.py
 │   ├── langdock_provider.py # LangDock gateway (EU/US regions)
 │   ├── openrouter_provider.py # OpenRouter (400+ models)
+│   ├── mammouth_provider.py # Mammouth AI
 │   ├── litellm_provider.py  # LiteLLM / any OpenAI-compatible gateway
 │   ├── ionos_provider.py    # IONOS AI Model Hub (EU-hosted, OpenAI-compatible)
 │   ├── melious_provider.py  # Melious.ai (sovereign EU-hosted, OpenAI-compatible)
 │   ├── privatemode_provider.py # Privatemode.ai (E2E-encrypted, via local attesting proxy)
-│   └── local_provider.py   # LM Studio, Ollama (OpenAI-compatible)
+│   ├── local_provider.py   # LM Studio, Ollama (OpenAI-compatible)
+│   ├── stream_accumulator.py # Assembles streamed OpenAI-style tool-call deltas
+│   └── temperature_constraints.py # Per-model temperature clamping, apply_anthropic_temperature()
+├── realtime/               # Realtime voice providers (requires [realtime])
+│   ├── abc.py, contracts.py # Adapter contract and event types (constants frozen, shared with GlassAgents)
+│   ├── factory.py          # get_realtime_provider()
+│   ├── websocket_client.py # WebSocket lifecycle base class
+│   ├── mock.py             # In-process queue-backed provider for consumer tests
+│   └── providers/          # openai, gemini_live, elevenlabs
+├── server/                 # `eq-chatbot serve`: localhost HTTP/SSE sidecar (requires [server])
+│   ├── app.py, models.py   # FastAPI app factory, Pydantic schemas
+│   ├── auth.py             # Bearer-token middleware
+│   ├── lifecycle.py        # Ephemeral-port binding, parent-PID watchdog
+│   └── streaming.py        # StreamChunk -> Server-Sent Events
 ├── security/
 │   ├── encryption.py       # FernetEncryption for API key storage
 │   ├── injection.py        # Prompt injection detection
@@ -132,18 +147,24 @@ src/eq_chatbot_core/
 │   └── file_validator.py   # MIME type validation (requires [security])
 ├── rag/
 │   ├── chunker.py          # Text chunking strategies
-│   ├── embedder.py         # Embedding generation
-│   ├── retriever.py        # Qdrant vector retrieval
+│   ├── embedder.py         # Embedding generation (OpenAI, LangDock, Melious)
+│   ├── retriever.py        # Qdrant vector retrieval (requires [rag])
 │   └── context_manager.py  # RAG context assembly
 ├── mcp/
 │   ├── client.py           # MCP client (legacy HTTP/SSE and stdio transports)
 │   └── streamable_http.py  # MCP client (Streamable HTTP, the current remote transport)
 ├── services/
 │   ├── error_handler.py    # Centralized error handling
-│   └── knowledge_service.py # Knowledge export for vector DBs
+│   ├── knowledge_service.py # Knowledge export for vector DBs
+│   ├── capability_catalog.py # Per-model capabilities (vision, tools, reasoning, ...)
+│   └── document_extractor.py # Office/PDF -> Markdown for knowledge ingestion (requires [docs])
 ├── utils/
-│   ├── url_validation.py   # SSRF / DNS-rebinding guard (shared by all providers)
+│   ├── url_validation.py   # SSRF / DNS-rebinding guard (shared by providers, embedders, MCP)
+│   ├── secret_scrub.py     # Strips secrets from logs and error surfaces
+│   ├── config.py           # ~/.config/eq-chatbot/config.toml loader
+│   ├── image.py            # Generated-image processing and saving
 │   └── pdf.py              # PDF to image (requires [pdf])
+├── data/                   # capability_catalog.json, capability_overrides.json, config.toml.example
 ├── cli.py                  # Click CLI: eq-chatbot
 └── version.py              # Version string
 ```
@@ -202,12 +223,19 @@ it lived inside the repository, so the keys were one `git add -f` from publicati
 
 ### Core (always installed)
 
-openai (>=3), anthropic (>=1), httpx2, pydantic, cryptography, tiktoken, qdrant-client, click
+openai (>=3), anthropic (>=1), httpx2, pydantic, cryptography, tiktoken, click
+
+Floors track the current release (`uv lock --upgrade`, then raise every floor to the locked
+version); ceilings stay at the next major. qdrant-client is not core — it lives in `[rag]`.
+
+Every outbound HTTP client — providers, embedders, MCP — goes through `utils/url_validation.py`:
+pass `http_client=httpx2.Client(transport=build_pinned_transport_for_url(url))` instead of letting
+an SDK build its own client, which follows redirects and re-resolves DNS unchecked.
 
 One HTTP client library: `httpx2` (Pydantic's maintained continuation of httpx) carries this
 library's own requests, the OpenAI SDK and — since anthropic 1.0.0 — the Anthropic SDK too.
 The separate `httpx<1` dependency is gone; anthropic 1.0.0 rejects an httpx client with
-`TypeError: Expected an instance of httpx2.Client`, so the floor is `>=1.0.0`.
+`TypeError: Expected an instance of httpx2.Client`, so the floor must never drop below 1.0.0.
 `build_pinned_transport_for_url()` still takes an `http=` argument and works against either
 module, which is why one guard implementation covers a future SDK that diverges again.
 
@@ -218,8 +246,15 @@ routes the value into `extra_body`.
 
 ### Optional
 
-- `[dev]` - pytest, ruff, mypy, twine, pytest-cov, pytest-asyncio
+- `[dev]` - pytest, ruff, mypy, twine, pytest-cov, pytest-asyncio, pre-commit, pip-audit, python-dotenv
 - `[security]` - puremagic (MIME validation)
 - `[pdf]` - pymupdf (PDF to image conversion)
+- `[docs]` - markitdown, pymupdf, openpyxl (document extraction)
+- `[image]` - Pillow
 - `[rag]` - qdrant-client (Qdrant vector retrieval; optional since v3.0.0)
 - `[local]` - sentence-transformers (local embeddings)
+- `[realtime]` - websockets
+- `[server]` - fastapi, uvicorn, sse-starlette
+
+The mypy floor in `pyproject.toml` and the `rev:` of the mypy hook in `.pre-commit-config.yaml`
+move together. CI type-checks `src/` only.

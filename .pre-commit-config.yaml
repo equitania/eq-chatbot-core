@@ -18,7 +18,7 @@ repos:
   # Keep in step with the mypy range in pyproject.toml — the hook and CI must
   # judge the code by the same rules.
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v2.3.1
+    rev: v2.4.0
     hooks:
       - id: mypy
         additional_dependencies:
