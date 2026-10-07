@@ -29,6 +29,7 @@ from eq_chatbot_core.providers import (
     LOCAL_PROVIDERS,
     AuthenticationError,
     ContextLengthError,
+    ModelNotSpecifiedError,
     OverloadedError,
     ProviderError,
     RateLimitError,
@@ -131,6 +132,12 @@ def create_app(auth_token: str) -> FastAPI:
         except ProviderError as exc:
             raise _provider_error_to_http(exc) from exc
 
+        # Resolve now: a generator would only raise after the 200 stream started.
+        try:
+            provider_inst.resolve_model(req.model)
+        except ModelNotSpecifiedError as exc:
+            raise _model_missing_to_http(exc) from exc
+
         extras = req.extra or {}
         message_dicts = [m.model_dump(exclude_none=True) for m in req.messages]
 
@@ -177,8 +184,24 @@ def _model_to_dict(model: Any) -> dict[str, Any]:
     return {"id": str(model)}
 
 
+def _model_missing_to_http(exc: ModelNotSpecifiedError) -> HTTPException:
+    """A request without a model is the caller's error: 400, with where to put it."""
+    return HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={
+            "error": f'No model given for provider "{exc.provider}". Set the request\'s "model" field, '
+            'or "model" in "provider_extra".',
+            "type": "ModelNotSpecifiedError",
+            "provider": exc.provider,
+            "retry_after": None,
+        },
+    )
+
+
 def _provider_error_to_http(exc: ProviderError) -> HTTPException:
     """Map :class:`ProviderError` subclasses to appropriate HTTP status codes."""
+    if isinstance(exc, ModelNotSpecifiedError):
+        return _model_missing_to_http(exc)
     if isinstance(exc, AuthenticationError):
         code = status.HTTP_401_UNAUTHORIZED
     elif isinstance(exc, RateLimitError):

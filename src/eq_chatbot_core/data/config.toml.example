@@ -15,7 +15,7 @@
 # Value precedence the CLI applies (highest first):
 #   api_key   : --api-key  >  <PROVIDER>_API_KEY env  >  LLM_API_KEY env  >  this file
 #   base_url  : --base-url  >  this file  >  provider built-in default
-#   model     : --model     >  this file  >  provider default model
+#   model     : --model     >  this file  >  error (no built-in default)
 #   provider  : --provider  >  default_provider below
 # Remove or comment out anything you do not need — every field is optional.
 
@@ -31,49 +31,49 @@
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-provider settings. For each provider: api_key (required for cloud providers),
-# optional base_url (override the built-in endpoint), optional model (default model).
+# optional base_url (override the built-in endpoint), model (used when --model is not given — there is no built-in default).
 # ─────────────────────────────────────────────────────────────────────────────
 
 [providers.openai]
 # api_key  = "sk-..."
-# model    = "gpt-4o"
+# model    = "your-model-id"
 # base_url = "https://api.openai.com/v1"
 
 [providers.anthropic]
 # api_key  = "sk-ant-..."
-# model    = "claude-sonnet-4-20250514"
+# model    = "your-model-id"
 # base_url = "https://api.anthropic.com"
 
 [providers.langdock]
 # api_key  = "..."
-# model    = "gpt-4o"
+# model    = "your-model-id"
 # base_url = "https://api.langdock.com"
 
 [providers.openrouter]
 # api_key  = "sk-or-..."
-# model    = "openai/gpt-4o"
+# model    = "your-model-id"
 # base_url = "https://openrouter.ai/api/v1"
 
 [providers.mammouth]
 # api_key  = "mm-..."
-# model    = "gpt-4o"
+# model    = "your-model-id"
 # base_url = "https://api.mammouth.ai/v1"
 
 [providers.litellm]
 # api_key  = "..."
-# model    = "qwen3.6-35b-a3b"
+# model    = "your-model-id"
 # base_url = "https://your-gateway/v1"   # required for LiteLLM
 
 [providers.ionos]
 # IONOS AI Model Hub (EU-hosted).
 # api_key  = "..."
-# model    = "meta-llama/Llama-3.3-70B-Instruct"
+# model    = "your-model-id"
 # base_url = "https://openai.inference.de-txl.ionos.com/v1"
 
 [providers.melious]
 # Melious.ai (sovereign EU-hosted).
 # api_key  = "sk-mel-..."
-# model    = "minimax-428b-m3"
+# model    = "your-model-id"
 # base_url = "https://api.melious.ai/v1"
 
 [providers.privatemode]
@@ -82,14 +82,14 @@
 #   docker run -p 8080:8080 ghcr.io/edgelesssys/privatemode/privatemode-proxy:latest --apiKey <key>
 # api_key is only needed when the proxy was started WITHOUT --apiKey.
 # api_key  = "..."
-# model    = "kimi-latest"
+# model    = "your-model-id"
 # base_url = "http://localhost:8080/v1"
 
 # Local providers need no api_key; set base_url only if you changed the default port.
 [providers.lm_studio]
-# model    = "local-model"
+# model    = "your-model-id"
 # base_url = "http://localhost:1234/v1"
 
 [providers.ollama]
-# model    = "local-model"
+# model    = "your-model-id"
 # base_url = "http://localhost:11434/v1"

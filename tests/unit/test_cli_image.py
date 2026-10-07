@@ -48,6 +48,8 @@ class TestImageCommand:
                 main,
                 [
                     "image",
+                    "-m",
+                    "test-model",
                     "-p",
                     "openai",
                     "-k",
@@ -74,7 +76,7 @@ class TestImageCommand:
 
             result = runner.invoke(
                 main,
-                ["image", "-p", "openai", "-k", "sk-test", "--prompt", "Test", "-o", out_file],
+                ["image", "-m", "test-model", "-p", "openai", "-k", "sk-test", "--prompt", "Test", "-o", out_file],
             )
 
         assert result.exit_code == 0
@@ -93,21 +95,21 @@ class TestImageCommand:
 
             result = runner.invoke(
                 main,
-                ["image", "-p", "openai", "-k", "sk-test", "--prompt", "Test", "-o", out_file],
+                ["image", "-m", "test-model", "-p", "openai", "-k", "sk-test", "--prompt", "Test", "-o", out_file],
             )
 
         assert result.exit_code != 0
 
     def test_missing_prompt_exits_nonzero(self, runner):
         """Missing both --prompt and --prompt-file causes non-zero exit."""
-        result = runner.invoke(main, ["image", "-p", "openai", "-k", "sk-test"])
+        result = runner.invoke(main, ["image", "-m", "test-model", "-p", "openai", "-k", "sk-test"])
         assert result.exit_code != 0
 
     def test_missing_api_key_exits_nonzero(self, runner, monkeypatch):
         """Missing API key causes non-zero exit."""
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         monkeypatch.delenv("LLM_API_KEY", raising=False)
-        result = runner.invoke(main, ["image", "-p", "openai", "--prompt", "Test"])
+        result = runner.invoke(main, ["image", "-m", "test-model", "-p", "openai", "--prompt", "Test"])
         assert result.exit_code != 0
 
     def test_prompt_file(self, runner, mock_image_result, tmp_path):
@@ -125,6 +127,8 @@ class TestImageCommand:
                 main,
                 [
                     "image",
+                    "-m",
+                    "test-model",
                     "-p",
                     "openai",
                     "-k",
@@ -182,7 +186,19 @@ class TestImageCommand:
 
             result = runner.invoke(
                 main,
-                ["image", "-p", "openrouter", "-k", "sk-or-test", "--prompt", "Test", "-o", out_file],
+                [
+                    "image",
+                    "-m",
+                    "test-model",
+                    "-p",
+                    "openrouter",
+                    "-k",
+                    "sk-or-test",
+                    "--prompt",
+                    "Test",
+                    "-o",
+                    out_file,
+                ],
             )
 
         assert result.exit_code == 0
@@ -210,6 +226,8 @@ class TestImageCommand:
                 main,
                 [
                     "image",
+                    "-m",
+                    "test-model",
                     "-p",
                     "openai",
                     "-k",

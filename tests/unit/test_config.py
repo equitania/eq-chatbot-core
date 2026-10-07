@@ -245,7 +245,9 @@ class TestConfigIntegration:
     def test_test_provider_uses_config_key(self, runner, write_config, monkeypatch):
         from unittest.mock import MagicMock, patch
 
-        write_config('default_provider = "openrouter"\n[providers.openrouter]\napi_key = "sk-or-from-config"\n')
+        write_config(
+            'default_provider = "openrouter"\n[providers.openrouter]\napi_key = "sk-or-from-config"\nmodel = "test-model"\n'
+        )
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
         monkeypatch.delenv("LLM_API_KEY", raising=False)
 
