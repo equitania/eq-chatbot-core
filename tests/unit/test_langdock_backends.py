@@ -715,6 +715,10 @@ class TestListModels:
         assert [m["id"] for m in models] == ["gpt-4o"]
         assert all(m["backend"] == "agent" for m in models)
 
+    @pytest.mark.xfail(
+        reason="stage 2: listing failures raise instead of degrading — replaced by test_list_models_wire.py::test_unusable_listing_raises_provider_error[langdock-agent-500]",
+        strict=False,
+    )
     def test_agent_listing_failure_degrades_to_empty_list(self):
         provider = _provider(backend="agent", agent_id="ag-1")
         client = MagicMock()
@@ -723,7 +727,10 @@ class TestListModels:
 
         assert provider.list_models() == []
 
-    @pytest.mark.xfail(reason="stage 2: no hardcoded fallback model list; an unknown list is empty", strict=False)
+    @pytest.mark.xfail(
+        reason="stage 2: no hardcoded fallback model list; a failed listing raises ProviderError — replaced by test_list_models_wire.py::test_unusable_listing_raises_provider_error[langdock-anthropic-non-dict]",
+        strict=False,
+    )
     def test_anthropic_listing_falls_back_to_known_models(self):
         """The gateway does not always support listing; the fallback must fill in."""
         provider = _provider(backend="anthropic")

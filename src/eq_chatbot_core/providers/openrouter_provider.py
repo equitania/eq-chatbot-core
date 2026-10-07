@@ -104,8 +104,11 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         except Exception as e:
             raise self._handle_error(e) from e
 
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise ProviderError("OpenRouter model listing returned an unusable response", provider=self.provider_name)
+
         models = []
-        for model_data in data.get("data", []) if isinstance(data, dict) else []:
+        for model_data in data["data"]:
             model_id = model_data.get("id", "")
             constraints = self._get_model_constraints(model_data)
             if constraints["supports_temperature"] is False:

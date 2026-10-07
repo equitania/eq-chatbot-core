@@ -4,6 +4,7 @@ import pytest
 
 from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.anthropic_provider import AnthropicProvider
+from eq_chatbot_core.providers.base import ProviderError
 from eq_chatbot_core.providers.langdock_provider import LangDockProvider
 from eq_chatbot_core.providers.local_provider import LocalLLMProvider
 from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
@@ -207,3 +208,65 @@ def test_local_does_not_guess_tools_or_vision(wire_server):
         "owned_by": "test",
         "created": 0,
     }
+
+
+def test_google_name_is_display_name_or_the_id(wire_server):
+    body = {"models": [{"name": "models/g-1", "displayName": "Gee One"}, {"name": "models/g-2"}]}
+    wire_server.expect("GET", "/google/eu/v1beta/models", Reply(body=body))
+    provider = LangDockProvider(api_key="k", base_url=wire_server.root_url, max_retries=0, backend="google")
+    assert {m["id"]: m["name"] for m in provider.list_models()} == {"g-1": "Gee One", "g-2": "g-2"}
+
+
+# --- an unreachable or malformed listing raises a typed error, never [] ---
+
+
+def _langdock(wire_server, backend, **kw):
+    return LangDockProvider(api_key="k", base_url=wire_server.root_url, max_retries=0, backend=backend, **kw)
+
+
+def _openai(ws):
+    return OpenAIProvider(api_key="k", base_url=ws.base_url, max_retries=0)
+
+
+@pytest.mark.parametrize(
+    ("make", "path", "reply"),
+    [
+        (_openai, "/v1/models", Reply(500, {"error": {"message": "boom"}})),
+        (_openai, "/v1/models", Reply(body=["not", "a", "dict"])),
+        (lambda ws: _langdock(ws, "anthropic"), "/anthropic/eu/v1/models", Reply(500, {"error": "boom"})),
+        (lambda ws: _langdock(ws, "anthropic"), "/anthropic/eu/v1/models", Reply(body=["x"])),
+        (lambda ws: _langdock(ws, "google"), "/google/eu/v1beta/models", Reply(500, {"error": "boom"})),
+        (lambda ws: _langdock(ws, "agent", agent_id="ag-1"), "/agent/v1/models", Reply(500, {"error": "boom"})),
+        (lambda ws: _langdock(ws, "agent", agent_id="ag-1"), "/agent/v1/models", Reply(body=["x"])),
+        (_mammouth, "/public/models", Reply(raw='"oops"', headers={"Content-Type": "application/json"})),
+        (lambda ws: LocalLLMProvider(base_url=ws.base_url, max_retries=0), "/v1/models", Reply(body=["x"])),
+        (
+            lambda ws: OpenRouterProvider(api_key="k", base_url=ws.base_url, max_retries=0),
+            "/v1/models",
+            Reply(body=["x"]),
+        ),
+    ],
+    ids=[
+        "openai-500",
+        "openai-non-dict",
+        "langdock-anthropic-500",
+        "langdock-anthropic-non-dict",
+        "langdock-google-500",
+        "langdock-agent-500",
+        "langdock-agent-non-dict",
+        "mammouth-bad-body",
+        "local-non-dict",
+        "openrouter-non-dict",
+    ],
+)
+def test_unusable_listing_raises_provider_error(wire_server, make, path, reply):
+    wire_server.expect("GET", path, reply)
+    with pytest.raises(ProviderError):
+        make(wire_server).list_models()
+
+
+def test_langdock_unknown_backend_raises(wire_server):
+    provider = _langdock(wire_server, "openai")
+    provider.backend = "nonsense"
+    with pytest.raises(ProviderError, match="unknown LangDock backend"):
+        provider.list_models()

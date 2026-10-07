@@ -1367,7 +1367,9 @@ class LangDockProvider(BaseLLMProvider):
             elif self.backend == "agent":
                 return self._list_agent_models()
             else:
-                return []
+                raise ProviderError(
+                    f"Cannot list models: unknown LangDock backend {self.backend!r}", provider=self.provider_name
+                )
 
         except ProviderError:
             # Already a typed error carrying status/context. Routing it through
@@ -1408,9 +1410,11 @@ class LangDockProvider(BaseLLMProvider):
                 region=self.region,
             )
         except (AttributeError, KeyError, TypeError) as e:
-            # No static fallback list: an unknown model list is an empty one.
-            _logger.warning("Anthropic model listing not supported by this endpoint: %s", e)
-            return []
+            # No static fallback list and no silent []: an unusable listing is an error.
+            raise ProviderError(
+                f"LangDock Anthropic model listing returned an unusable response: {_safe_detail(str(e))}",
+                provider=self.provider_name,
+            ) from e
 
     def _list_google_models(self) -> list[dict[str, Any]]:
         """List Google Gemini models by asking LangDock, not from a hardcoded list.
@@ -1438,7 +1442,7 @@ class LangDockProvider(BaseLLMProvider):
             result.append(
                 {
                     "id": model_id,
-                    "name": model_id.replace("-", " ").title(),
+                    "name": model.get("displayName") or model_id,
                     "provider": self.provider_name,
                     "backend": self.backend,
                     "region": self.region,
@@ -1466,27 +1470,27 @@ class LangDockProvider(BaseLLMProvider):
 
     def _list_agent_models(self) -> list[dict[str, Any]]:
         """List models available for LangDock agents."""
-        try:
-            response = self.http_client.get("/models")
-            response.raise_for_status()
-            data = response.json()
+        response = self.http_client.get("/models")
+        response.raise_for_status()
+        data = response.json()
+        if not isinstance(data, dict) or not isinstance(data.get("data"), list):
+            raise ProviderError(
+                "LangDock agent model listing returned an unusable response", provider=self.provider_name
+            )
 
-            result = []
-            for model in data.get("data", []):
-                model_id = model.get("id", "")
-                result.append(
-                    {
-                        "id": model_id,
-                        "name": model.get("name", model_id),
-                        "provider": self.provider_name,
-                        "backend": self.backend,
-                        **param_learning.model_metadata(self._get_backend_url(), model_id),
-                    }
-                )
-            return result
-        except (AttributeError, KeyError, TypeError, ConnectionError) as e:
-            _logger.warning("Agent model listing failed, returning empty list: %s", e)
-            return []
+        result = []
+        for model in data["data"]:
+            model_id = model.get("id", "")
+            result.append(
+                {
+                    "id": model_id,
+                    "name": model.get("name", model_id),
+                    "provider": self.provider_name,
+                    "backend": self.backend,
+                    **param_learning.model_metadata(self._get_backend_url(), model_id),
+                }
+            )
+        return result
 
     def _raise_http_error(self, response: Any, label: str) -> None:
         """Raise a typed error that carries the upstream body, not just the status.

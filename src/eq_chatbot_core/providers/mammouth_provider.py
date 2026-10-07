@@ -11,6 +11,7 @@ import logging
 from typing import Any
 
 from eq_chatbot_core.providers import param_learning
+from eq_chatbot_core.providers.base import ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.providers.temperature_constraints import (
     clamp_temperature as _shared_clamp_temperature,
@@ -84,7 +85,11 @@ class MammouthProvider(OpenAICompatibleProvider):
             raise self._handle_error(e) from e
 
         # Mammouth returns a list directly or wrapped in "data"/"models"
-        model_list = data if isinstance(data, list) else data.get("data", data.get("models", []))
+        model_list = (
+            data if isinstance(data, list) else data.get("data", data.get("models")) if isinstance(data, dict) else None
+        )
+        if not isinstance(model_list, list):
+            raise ProviderError("Mammouth model listing returned an unusable response", provider=self.provider_name)
 
         models = []
         for model_data in model_list:
