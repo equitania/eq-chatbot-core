@@ -108,7 +108,7 @@ This subcommand was added in v1.5.0 and is used by external tools like the sysRe
 
 #### `eq-chatbot image`
 
-Generate a single image from a text prompt and save it to a file (added in v1.14.0). Supported providers: `openai` and `openrouter`. The image model comes from `--model` or the config file; there is no default.
+Generate a single image from a text prompt and save it to a file (added in v1.14.0). Supported providers: `openai` and `openrouter`. The image model comes from `--model` or `image_model` in the config file (never from the chat `model`); there is no default.
 
 ```bash
 # Prompt inline, write to output.png
@@ -249,6 +249,7 @@ Resolution (highest priority first):
 | api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > config |
 | base_url | `--base-url` > config > provider default |
 | model | `--model` > config > error (no default) |
+| image_model (`image`, `listing-assets`) | `--model` > recipe `defaults.model` > config `image_model` > error |
 | provider | `--provider` > config `default_provider` |
 | temperature / max_tokens | flag > config `[defaults]` > built-in (0.7 / 4096) |
 
@@ -370,7 +371,7 @@ Dieser Subcommand wurde in v1.5.0 hinzugefügt und wird z.B. vom sysReporter-Rus
 
 #### `eq-chatbot image`
 
-Generiert ein einzelnes Bild aus einem Text-Prompt und speichert es in eine Datei (hinzugefügt in v1.14.0). Unterstützte Provider: `openai` und `openrouter`. Das Bildmodell kommt aus `--model` oder der Konfigurationsdatei; einen Default gibt es nicht.
+Generiert ein einzelnes Bild aus einem Text-Prompt und speichert es in eine Datei (hinzugefügt in v1.14.0). Unterstützte Provider: `openai` und `openrouter`. Das Bildmodell kommt aus `--model` oder `image_model` in der Konfigurationsdatei (nie aus dem Chat-`model`); einen Default gibt es nicht.
 
 ```bash
 # Prompt inline, Ausgabe nach output.png
@@ -511,6 +512,7 @@ Auflösung (höchste Priorität zuerst):
 | api_key | `--api-key` > `<PROVIDER>_API_KEY` env > `LLM_API_KEY` env > Config |
 | base_url | `--base-url` > Config > Provider-Default |
 | model | `--model` > Config > Fehler (kein Default) |
+| image_model (`image`, `listing-assets`) | `--model` > Recipe `defaults.model` > Config `image_model` > Fehler |
 | provider | `--provider` > Config `default_provider` |
 | temperature / max_tokens | Flag > Config `[defaults]` > eingebaut (0.7 / 4096) |
 

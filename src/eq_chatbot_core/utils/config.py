@@ -116,6 +116,15 @@ def config_model(provider: str | None) -> str | None:
     return _str_field(_provider_section(provider), "model")
 
 
+def config_image_model(provider: str | None) -> str | None:
+    """Return the configured image model for a provider, or None.
+
+    Kept apart from ``model``: a chat model sent to the images endpoint fails, and
+    an image model set as ``model`` would break chat.
+    """
+    return _str_field(_provider_section(provider), "image_model")
+
+
 def config_default_provider() -> str | None:
     """Return the configured default provider, or None."""
     value = load_config().get("default_provider")

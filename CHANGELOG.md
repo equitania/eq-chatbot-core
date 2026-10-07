@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `estimate_tokens(text, model=None)` always uses `cl100k_base`; the `model` argument is ignored and defaults to `None`.
 - `ContextWindowManager(..., context_length=None)`: without it 128000 is assumed and a WARNING is logged; zero or negative values raise.
 - `CapabilityCatalog.from_remote()` returns an empty catalog (WARNING logged) when the fetch fails.
-- CLI: model from `--model`, else the config file, else a message and exit code 1. Server mode: the request's `model` (or `provider_extra`), else HTTP 400 (streams too, before the stream starts).
+- CLI: model from `--model`, else the config file, else a message and exit code 1. `image` and `listing-assets` read the new config key `image_model` instead of the chat `model`. Server mode: the request's `model` (or `provider_extra`), else HTTP 400 (streams too, before the stream starts).
 - `tests/unit/test_no_model_ids_in_source.py` fails on any model ID under `src/`.
 
 ### Upgrading from 3.x

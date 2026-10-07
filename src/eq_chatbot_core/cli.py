@@ -20,6 +20,7 @@ from eq_chatbot_core.utils.config import (
     config_api_key,
     config_base_url,
     config_default_provider,
+    config_image_model,
     config_max_tokens,
     config_model,
     config_temperature,
@@ -79,13 +80,13 @@ def resolve_model(provider: str | None, explicit_model: str | None) -> str | Non
     return config_model(provider)
 
 
-def model_required_message(provider: str) -> str:
+def model_required_message(provider: str, *, key: str = "model", what: str = "model") -> str:
     """Explain where a model comes from; there is no built-in default."""
     from eq_chatbot_core.utils.config import config_path
 
     return (
-        f"No model given for provider '{provider}'. Pass --model/-m, or set "
-        f'model = "..." under [providers.{provider}] in {config_path()}.'
+        f"No {what} given for provider '{provider}'. Pass --model/-m, or set "
+        f'{key} = "..." under [providers.{provider}] in {config_path()}.'
     )
 
 
@@ -759,7 +760,8 @@ def image(
     """Generate an image from a text prompt.
 
     Saves the generated image to a file (PNG by default).
-    Supported providers: openai, openrouter. The image model comes from --model or the config file.
+    Supported providers: openai, openrouter. The image model comes from --model or image_model
+    in the config file (never from the chat model).
 
     Examples:
 
@@ -784,7 +786,7 @@ def image(
 
     api_key = resolve_api_key(provider, api_key)
     base_url = resolve_base_url(provider, base_url)
-    model = resolve_model(provider, model)
+    model = model or config_image_model(provider)
     if not api_key:
         click.echo(
             click.style("Error: ", fg="red")
@@ -793,7 +795,10 @@ def image(
         )
         sys.exit(1)
     if not model:
-        click.echo(click.style("Error: ", fg="red") + model_required_message(provider), err=True)
+        click.echo(
+            click.style("Error: ", fg="red") + model_required_message(provider, key="image_model", what="image model"),
+            err=True,
+        )
         sys.exit(1)
 
     if prompt_file:
@@ -1008,9 +1013,10 @@ def listing_assets(
     recipe = _load_recipe(recipe_file)
     defaults = recipe.get("defaults", {})
 
-    # Resolve provider and model: CLI > recipe defaults > config file. The provider falls back to openai; the model has no default.
+    # Resolve provider and model: CLI > recipe defaults > config file (image_model). The provider
+    # falls back to openai; the model has no default.
     resolved_provider = provider or defaults.get("provider") or config_default_provider() or "openai"
-    resolved_model = model or defaults.get("model") or config_model(resolved_provider) or None
+    resolved_model = model or defaults.get("model") or config_image_model(resolved_provider) or None
 
     # Resolve destination directory
     recipe_dir = pathlib.Path(recipe_file).parent
@@ -1045,7 +1051,7 @@ def listing_assets(
             "API key required. Use --api-key, <PROVIDER>_API_KEY, LLM_API_KEY or the config file."
         )
     if not resolved_model:
-        raise click.ClickException(model_required_message(resolved_provider))
+        raise click.ClickException(model_required_message(resolved_provider, key="image_model", what="image model"))
 
     from eq_chatbot_core.providers import get_provider
     from eq_chatbot_core.utils.image import fit_to, parse_size, save_png

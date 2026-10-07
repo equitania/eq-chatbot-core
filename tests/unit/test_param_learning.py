@@ -183,3 +183,41 @@ def test_temperature_support_and_model_metadata():
     assert param_learning.temperature_support("http://a/v1", "m") is False
     reported_true = param_learning.model_metadata("http://a/v1", "m", supports_temperature=True)
     assert reported_true["supports_temperature"] is False  # learned beats reported
+
+
+# One *value* of reasoning_effort refused (e.g. "none" on a model that only offers
+# low/medium/high): the parameter as such is supported, so nothing is learned and
+# the 400 reaches the caller, who can pick another value.
+REASONING_EFFORT_VALUE_REJECTION = {
+    "error": {
+        "message": "Unsupported value: 'reasoning_effort' does not support 'none' with this model.",
+        "type": "invalid_request_error",
+        "param": "reasoning_effort",
+        "code": "unsupported_value",
+    }
+}
+
+
+def test_reasoning_effort_value_rejection_is_not_learned(wire_server):
+    error = _error_for(wire_server, 400, REASONING_EFFORT_VALUE_REJECTION)
+    assert param_learning.rejected_parameter(error) is None
+
+
+def test_reasoning_effort_value_rejection_reaches_caller_and_is_not_remembered(wire_server):
+    from eq_chatbot_core.providers.base import ProviderError
+    from eq_chatbot_core.providers.mammouth_provider import MammouthProvider
+    from tests.wire_server import chat_body
+
+    wire_server.expect(
+        "POST",
+        "/v1/chat/completions",
+        Reply(400, REASONING_EFFORT_VALUE_REJECTION),
+        Reply(body=chat_body()),
+    )
+    provider = MammouthProvider(api_key="k", base_url=wire_server.base_url, max_retries=0)
+    msg = [{"role": "user", "content": "x"}]
+    with pytest.raises(ProviderError):
+        provider.chat_completion(msg, model="m", reasoning_effort="none")
+    provider.chat_completion(msg, model="m", reasoning_effort="high")
+    assert len(wire_server.requests) == 2  # no silent retry
+    assert wire_server.requests[1].json["reasoning_effort"] == "high"

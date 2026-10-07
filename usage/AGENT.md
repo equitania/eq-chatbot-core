@@ -84,7 +84,7 @@ Requires the local server already running. `lm_studio`/`ollama` carry built-in d
 eq-chatbot image -p openai -k "$KEY" -m your-image-model --prompt "A sunset over the ocean" -o sunset.png
 eq-chatbot image -p openai -k "$KEY" -m your-image-model --prompt-file prompt.txt --size 1024x1536 --fit 512x512:cover
 ```
-Providers limited to `openai` and `openrouter`; the image model comes from `-m` or the config file. Default output `output.png`. `--fit WxH[:mode]` (cover/contain/stretch) requires the `[image]` extra.
+Providers limited to `openai` and `openrouter`; the image model comes from `-m` or `image_model` in the config file (never from the chat `model`). Default output `output.png`. `--fit WxH[:mode]` (cover/contain/stretch) requires the `[image]` extra.
 
 ### Batch-generate listing assets from a recipe
 ```bash

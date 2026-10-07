@@ -69,6 +69,10 @@ def rejected_parameter(error: BaseException) -> str | None:
         param = body.get("param")
         code = body.get("code")
         if param:
+            # For reasoning_effort, "unsupported_value" refuses one value (e.g. "none"),
+            # not the parameter: learning it would silently drop every later setting.
+            if param == "reasoning_effort" and code != "unsupported_parameter":
+                return None
             return param if param in LEARNABLE and code in _REJECTION_CODES else None
         message = str(body.get("message") or "")
     else:

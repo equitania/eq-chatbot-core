@@ -16,6 +16,7 @@
 #   api_key   : --api-key  >  <PROVIDER>_API_KEY env  >  LLM_API_KEY env  >  this file
 #   base_url  : --base-url  >  this file  >  provider built-in default
 #   model     : --model     >  this file  >  error (no built-in default)
+#   image_model (image, listing-assets): --model  >  recipe  >  this file  >  error
 #   provider  : --provider  >  default_provider below
 # Remove or comment out anything you do not need — every field is optional.
 
@@ -31,12 +32,14 @@
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Per-provider settings. For each provider: api_key (required for cloud providers),
-# optional base_url (override the built-in endpoint), model (used when --model is not given — there is no built-in default).
+# optional base_url (override the built-in endpoint), model (used when --model is not given — there is no built-in default),
+# image_model (openai, openrouter: used by `image` and `listing-assets`; kept apart from the chat model).
 # ─────────────────────────────────────────────────────────────────────────────
 
 [providers.openai]
 # api_key  = "sk-..."
 # model    = "your-model-id"
+# image_model = "your-image-model"
 # base_url = "https://api.openai.com/v1"
 
 [providers.anthropic]
@@ -52,6 +55,7 @@
 [providers.openrouter]
 # api_key  = "sk-or-..."
 # model    = "your-model-id"
+# image_model = "vendor/your-image-model"
 # base_url = "https://openrouter.ai/api/v1"
 
 [providers.mammouth]
