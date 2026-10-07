@@ -97,6 +97,10 @@ class TestOpenAIImageGeneration:
         call_kwargs = mock_client.images.generate.call_args[1]
         assert "response_format" not in call_kwargs
 
+    @pytest.mark.xfail(
+        reason="stage 2: no name-based response_format guess; ported to test_no_name_lists_wire.py::test_openai_image_without_b64_is_a_clear_error",
+        strict=False,
+    )
     def test_generate_image_sends_response_format_for_dalle3(self, provider):
         """dall-e-3 should receive response_format='b64_json'."""
         p, mock_client = provider

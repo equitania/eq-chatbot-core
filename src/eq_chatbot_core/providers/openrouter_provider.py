@@ -42,13 +42,6 @@ class OpenRouterProvider(OpenAICompatibleProvider):
     # Image generation is supported via chat/completions with image modality.
     supports_image_generation: bool = True
 
-    # Reasoning models that don't support temperature
-    REASONING_MODEL_PREFIXES = (
-        "openai/o1",
-        "openai/o3",
-        "openai/o4",
-    )
-
     def __init__(
         self,
         api_key: str,
@@ -85,11 +78,6 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         if self.site_name:
             headers["X-Title"] = self.site_name
         return headers
-
-    def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model (O1, O3, O4)."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix.lower()) for prefix in self.REASONING_MODEL_PREFIXES)
 
     def list_models(self) -> list[dict[str, Any]]:
         """List models with the metadata OpenRouter reports; seeds parameter learning.

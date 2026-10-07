@@ -196,10 +196,9 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             "messages": messages,
         }
 
-        # Clamp temperature per model constraints (skip for reasoning models)
-        clamped = clamp_temperature(model, temperature)
-        if clamped is not None:
-            params["temperature"] = clamped
+        # Provider-level range only. A model that takes no temperature rejects
+        # it once and is remembered (see _create / param_learning).
+        params["temperature"] = clamp_temperature(temperature)
 
         if max_tokens:
             params[self._token_param(model)] = max_tokens

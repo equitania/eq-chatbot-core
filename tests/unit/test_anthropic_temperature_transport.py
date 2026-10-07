@@ -12,6 +12,13 @@ import pytest
 
 from eq_chatbot_core.providers.temperature_constraints import apply_anthropic_temperature
 
+pytestmark = [
+    pytest.mark.xfail(
+        reason="stage 2: temperature support is learned, not looked up by model name; ported to test_no_name_lists_wire.py and test_anthropic_wire.py",
+        strict=False,
+    )
+]
+
 
 @pytest.mark.unit
 class TestApplyAnthropicTemperature:

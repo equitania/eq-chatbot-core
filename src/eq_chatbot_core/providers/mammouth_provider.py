@@ -13,12 +13,6 @@ from typing import Any
 from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.base import ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
-from eq_chatbot_core.providers.temperature_constraints import (
-    clamp_temperature as _shared_clamp_temperature,
-)
-from eq_chatbot_core.providers.temperature_constraints import (
-    get_temperature_constraints as _shared_get_temperature_constraints,
-)
 
 _logger = logging.getLogger(__name__)
 
@@ -35,9 +29,6 @@ class MammouthProvider(OpenAICompatibleProvider):
     DEFAULT_BASE_URL = "https://api.mammouth.ai/v1"
     MODELS_URL = "https://api.mammouth.ai/public/models"
     _validate_default_url = False
-
-    # Reasoning models that don't support temperature parameter
-    REASONING_MODEL_PREFIXES = ("o1", "o3", "o4")
 
     def __init__(
         self,
@@ -58,19 +49,6 @@ class MammouthProvider(OpenAICompatibleProvider):
             model: Model used when a call passes none
         """
         super().__init__(api_key, base_url, timeout, max_retries, model)
-
-    def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model (O1, O3, O4)."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODEL_PREFIXES)
-
-    def _get_temperature_constraints(self, model: str) -> dict[str, Any]:
-        """Get temperature constraints for a specific model. Delegates to shared module."""
-        return _shared_get_temperature_constraints(model)
-
-    def _clamp_temperature(self, model: str, temperature: float) -> float | None:
-        """Clamp temperature to valid range for the model. Delegates to shared module."""
-        return _shared_clamp_temperature(model, temperature)
 
     def list_models(self) -> list[dict[str, Any]]:
         """

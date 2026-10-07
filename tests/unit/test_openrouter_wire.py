@@ -126,10 +126,12 @@ def test_custom_base_url_is_ssrf_checked():
         ("meta/llama", False),
     ],
 )
+@pytest.mark.xfail(reason="stage 2: no reasoning-model prefix list; ported to test_no_name_lists_wire.py", strict=False)
 def test_reasoning_model_detection(model, expected):
     assert OpenRouterProvider(api_key="k")._is_reasoning_model(model) is expected
 
 
+@pytest.mark.xfail(reason="stage 2: no reasoning-model prefix list; ported to test_no_name_lists_wire.py", strict=False)
 def test_reasoning_model_gets_no_temperature(wire_server):
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body()))
     _provider(wire_server).chat_completion(MSG, model="openai/o3", temperature=0.7, max_tokens=50)

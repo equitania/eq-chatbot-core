@@ -27,7 +27,13 @@ import pytest
 
 from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
 
-pytestmark = pytest.mark.unit
+pytestmark = [
+    pytest.mark.unit,
+    pytest.mark.xfail(
+        reason="stage 2: temperature support is learned, not looked up by model name; ported to test_no_name_lists_wire.py and test_anthropic_wire.py",
+        strict=False,
+    ),
+]
 
 
 @pytest.mark.parametrize(

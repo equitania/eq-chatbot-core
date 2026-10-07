@@ -259,6 +259,10 @@ class TestLangDockBackendURLs:
 class TestLangDockReasoningModels:
     """Test reasoning model detection."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o1_is_reasoning_model(self):
         """Test o1 is detected as reasoning model."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -269,6 +273,10 @@ class TestLangDockReasoningModels:
             assert provider._is_reasoning_model("o1-preview") is True
             assert provider._is_reasoning_model("o1-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o3_is_reasoning_model(self):
         """Test o3 is detected as reasoning model."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -278,6 +286,10 @@ class TestLangDockReasoningModels:
             assert provider._is_reasoning_model("o3") is True
             assert provider._is_reasoning_model("o3-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o4_is_reasoning_model(self):
         """Test o4 is detected as reasoning model."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -286,6 +298,10 @@ class TestLangDockReasoningModels:
             provider = LangDockProvider(api_key="test-key")
             assert provider._is_reasoning_model("o4-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_gpt_not_reasoning_model(self):
         """Test GPT models are not reasoning models."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -295,6 +311,10 @@ class TestLangDockReasoningModels:
             assert provider._is_reasoning_model("gpt-4o") is False
             assert provider._is_reasoning_model("gpt-4-turbo") is False
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_claude_not_reasoning_model(self):
         """Test Claude models are not reasoning models."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -313,6 +333,10 @@ class TestLangDockReasoningModels:
 class TestLangDockTokenAPI:
     """Test new token API detection for models."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_gpt4o_uses_new_api(self):
         """Test gpt-4o uses new token API."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -322,6 +346,10 @@ class TestLangDockTokenAPI:
             assert provider._uses_new_token_api("gpt-4o") is True
             assert provider._uses_new_token_api("gpt-4o-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_gpt5_uses_new_api(self):
         """Test gpt-5 and higher use new token API."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -330,6 +358,10 @@ class TestLangDockTokenAPI:
             provider = LangDockProvider(api_key="test-key")
             assert provider._uses_new_token_api("gpt-5") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_reasoning_models_use_new_api(self):
         """Test reasoning models use new token API."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -339,6 +371,10 @@ class TestLangDockTokenAPI:
             assert provider._uses_new_token_api("o1") is True
             assert provider._uses_new_token_api("o3-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_gpt4_turbo_uses_legacy_api(self):
         """Test gpt-4-turbo uses legacy token API."""
         with patch.dict("sys.modules", {"openai": MagicMock(), "anthropic": MagicMock()}):
@@ -398,6 +434,10 @@ class TestLangDockOpenAIChatCompletion:
             call_kwargs = mock_client.chat.completions.create.call_args.kwargs
             assert call_kwargs.get("temperature") == 0.7
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_completion_without_temperature_for_reasoning(self, mock_openai_response):
         """Test reasoning models don't receive temperature."""
         mock_openai_module = MagicMock()

@@ -308,8 +308,7 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Clamp temperature per model constraints
-        apply_anthropic_temperature(params, model, temperature)
+        apply_anthropic_temperature(params, temperature)
 
         if system_prompt:
             params["system"] = system_prompt
@@ -401,8 +400,7 @@ class AnthropicProvider(BaseLLMProvider):
             "max_tokens": max_tokens or 4096,
         }
 
-        # Clamp temperature per model constraints
-        apply_anthropic_temperature(params, model, temperature)
+        apply_anthropic_temperature(params, temperature)
 
         if system_prompt:
             params["system"] = system_prompt

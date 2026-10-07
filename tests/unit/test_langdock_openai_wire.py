@@ -24,6 +24,10 @@ def test_chat_goes_to_backend_path(wire_server):
     assert _provider(wire_server).chat_completion(MSG, model="gpt-6-luna").content == "hallo"
 
 
+@pytest.mark.xfail(
+    reason="stage 2: reasoning_effort is sent for every model and learned away; ported to test_no_name_lists_wire.py::test_langdock_constructor_reasoning_effort_sent_for_any_model_and_learned_away",
+    strict=False,
+)
 def test_reasoning_effort_only_for_reasoning_models(wire_server):
     wire_server.expect(*CHAT, Reply(body=chat_body()))
     provider = _provider(wire_server, reasoning_effort="high")

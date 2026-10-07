@@ -95,6 +95,10 @@ def test_list_models_constraints_and_sorting(wire_server):
     assert by_id["gpt-4.1"]["context_length"] == 1048576
 
 
+@pytest.mark.xfail(
+    reason="stage 2: temperature is no longer withheld by model name; ported to test_no_name_lists_wire.py::test_temperature_is_sent_whatever_the_model_name",
+    strict=False,
+)
 def test_reasoning_model_gets_no_temperature(wire_server):
     wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body()))
     _provider(wire_server).chat_completion(MSG, model="o1", temperature=0.7)

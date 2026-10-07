@@ -5,13 +5,21 @@ Tests cover constraint lookup, clamping logic, prefix matching,
 and provider prefix stripping.
 """
 
+# Stage 2 removed get_temperature_constraints and DEFAULT_TEMP_CONSTRAINTS; every test that
+# still names them is xfailed (_TABLE_REMOVED) and listed for deletion.
+# ruff: noqa: F821
+
 import pytest
 
 from eq_chatbot_core.providers.temperature_constraints import (
-    DEFAULT_TEMP_CONSTRAINTS,
     clamp_temperature,
-    get_temperature_constraints,
     strip_provider_prefix,
+)
+
+_TABLE_REMOVED = pytest.mark.xfail(
+    reason="stage 2: the per-model temperature table was removed; provider-level clamp tested in "
+    "test_no_name_lists_wire.py",
+    strict=False,
 )
 
 # =============================================================================
@@ -20,6 +28,7 @@ from eq_chatbot_core.providers.temperature_constraints import (
 
 
 @pytest.mark.unit
+@_TABLE_REMOVED
 class TestGetTemperatureConstraints:
     """Test temperature constraint lookup."""
 
@@ -181,6 +190,7 @@ class TestGetTemperatureConstraints:
 
 
 @pytest.mark.unit
+@_TABLE_REMOVED
 class TestClampTemperature:
     """Test temperature clamping logic."""
 
@@ -272,6 +282,7 @@ class TestStripProviderPrefix:
 
 
 @pytest.mark.unit
+@_TABLE_REMOVED
 class TestClampWithPrefixStrip:
     """Test clamping combined with prefix stripping (OpenRouter workflow)."""
 

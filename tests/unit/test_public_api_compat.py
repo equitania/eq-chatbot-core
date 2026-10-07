@@ -21,11 +21,17 @@ _ALLOWED_DRIFT = {"client"}
 # removes this mapping again.
 _STAGE2_CHANGES: dict[str, set[str]] = {
     "providers.__all__": {"ModelNotSpecifiedError"},
-    "OpenAIProvider": {"__init__", "DEFAULT_IMAGE_MODEL", "CHAT_MODEL_PREFIXES", "MODEL_CONTEXT_LENGTHS"},
-    "OpenRouterProvider": {"__init__", "DEFAULT_IMAGE_MODEL"},
-    "MammouthProvider": {"__init__"},
+    "OpenAIProvider": {
+        "__init__",
+        "DEFAULT_IMAGE_MODEL",
+        "CHAT_MODEL_PREFIXES",
+        "MODEL_CONTEXT_LENGTHS",
+        "NEW_API_MODELS",
+    },
+    "OpenRouterProvider": {"__init__", "DEFAULT_IMAGE_MODEL", "REASONING_MODEL_PREFIXES"},
+    "MammouthProvider": {"__init__", "REASONING_MODEL_PREFIXES"},
     "LocalLLMProvider": {"__init__"},
-    "LangDockProvider": {"__init__", "MODEL_CONTEXT_LENGTHS"},
+    "LangDockProvider": {"__init__", "MODEL_CONTEXT_LENGTHS", "REASONING_MODELS"},
     "LangDockAgentManager": {"create_agent"},
     "IonosProvider": {"DEFAULT_MODEL"},
     "MeliousProvider": {"DEFAULT_MODEL"},

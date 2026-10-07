@@ -5,7 +5,7 @@ OpenAI provider implementation.
 from typing import Any
 
 from eq_chatbot_core.providers import param_learning
-from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError
+from eq_chatbot_core.providers.base import ImageResult, ModelNotSpecifiedError, ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 
@@ -28,23 +28,6 @@ class OpenAIProvider(OpenAICompatibleProvider):
     # Image generation is supported via the /images/generations endpoint.
     supports_image_generation: bool = True
 
-    # Models that require max_completion_tokens instead of max_tokens
-    # All GPT-4o, GPT-5.x, O1, and O3 models use the new API
-    NEW_API_MODELS = (
-        "gpt-4o",
-        "gpt-4o-mini",
-        "gpt-5",
-        "gpt-5.1",
-        "gpt-5.2",
-        "o1",
-        "o1-mini",
-        "o1-preview",
-        "o3",
-        "o3-mini",
-        "o4",
-        "o4-mini",
-    )
-
     def __init__(
         self,
         api_key: str,
@@ -63,12 +46,8 @@ class OpenAIProvider(OpenAICompatibleProvider):
         return {"organization": self.organization} if self.organization else {}
 
     def _token_param(self, model: str) -> str:
-        return "max_completion_tokens" if self._uses_new_token_api(model) else "max_tokens"
-
-    def _uses_new_token_api(self, model: str) -> bool:
-        """Check if model uses max_completion_tokens instead of max_tokens."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix) for prefix in self.NEW_API_MODELS)
+        """The OpenAI API takes ``max_completion_tokens`` for every current model."""
+        return "max_completion_tokens"
 
     def list_models(self) -> list[dict[str, Any]]:
         """
@@ -111,9 +90,7 @@ class OpenAIProvider(OpenAICompatibleProvider):
         Args:
             prompt: Text description of the image to generate
             model: Image model; falls back to the constructor's ``image_model``.
-            size: Image dimensions. Valid for gpt-image-1: 1024x1024, 1024x1536,
-                  1536x1024, auto. DALL-E 3: 1024x1024, 1792x1024, 1024x1792.
-                  Unknown sizes are passed through to the API.
+            size: Image dimensions, passed through to the API (valid sizes depend on the model).
             **kwargs: Additional provider-specific parameters
 
         Returns:
@@ -133,23 +110,19 @@ class OpenAIProvider(OpenAICompatibleProvider):
                 "model": model,
                 "prompt": prompt,
                 "n": 1,
+                "size": size,
             }
-
-            # gpt-image-1 always returns b64_json implicitly — adding response_format
-            # causes a parameter error. Only set it explicitly for dall-e-* models.
-            model_lower = model.lower()
-            if model_lower.startswith("dall-e"):
-                params["response_format"] = "b64_json"
-
-            if size != "1024x1024":
-                params["size"] = size
-            else:
-                params["size"] = size
-
             params.update(kwargs)
 
             resp = self.client.images.generate(**params)
-            image_bytes = base64.b64decode(resp.data[0].b64_json)
+            b64 = resp.data[0].b64_json
+            if not b64:
+                raise ProviderError(
+                    f"Image model {model} returned no base64 image data. "
+                    'Pass response_format="b64_json" for models that answer with a URL.',
+                    provider=self.provider_name,
+                )
+            image_bytes = base64.b64decode(b64)
 
             return ImageResult(
                 data=image_bytes,

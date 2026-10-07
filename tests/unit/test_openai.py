@@ -257,6 +257,10 @@ class TestOpenAIChatCompletion:
 
         assert "temperature" not in mock_client.chat.completions.create.call_args.kwargs
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_completion_with_max_tokens_legacy(self, mock_openai_response):
         """Test completion with max_tokens for legacy models."""
         mock_client = MagicMock()
@@ -352,6 +356,10 @@ class TestOpenAIChatCompletion:
         assert call_args.kwargs.get("top_p") == 0.9
         assert call_args.kwargs.get("presence_penalty") == 0.1
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_completion_reasoning_model_no_temperature(self, mock_openai_response):
         """Test reasoning models (o1/o3/o4) don't receive temperature in API call."""
         mock_client = MagicMock()
@@ -534,6 +542,10 @@ class TestOpenAIListModels:
 class TestOpenAIModelAPIDetection:
     """Test detection of model API versions."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_new_api_models_detected(self):
         """Test that new API models are correctly detected."""
         provider = OpenAIProvider(api_key="sk-test", model="test-model")
@@ -546,6 +558,10 @@ class TestOpenAIModelAPIDetection:
         assert provider._uses_new_token_api("o3-mini") is True
         assert provider._uses_new_token_api("gpt-5") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_legacy_api_models_detected(self):
         """Test that legacy API models are correctly detected."""
         provider = OpenAIProvider(api_key="sk-test", model="test-model")
@@ -554,6 +570,10 @@ class TestOpenAIModelAPIDetection:
         assert provider._uses_new_token_api("gpt-4") is False
         assert provider._uses_new_token_api("gpt-3.5-turbo") is False
 
+    @pytest.mark.xfail(
+        reason="stage 2: output-limit name list removed; OpenAI always sends max_completion_tokens, others max_tokens plus learning (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_case_insensitive_detection(self):
         """Test case insensitivity in model detection."""
         provider = OpenAIProvider(api_key="sk-test", model="test-model")
@@ -678,6 +698,10 @@ class TestOpenAIProviderProperties:
         assert "o1" in OpenAIProvider.CHAT_MODEL_PREFIXES
         assert "o3" in OpenAIProvider.CHAT_MODEL_PREFIXES
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_reasoning_model_no_temperature(self):
         """Test reasoning models skip temperature via shared constraints module."""
         from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
@@ -686,6 +710,10 @@ class TestOpenAIProviderProperties:
         assert clamp_temperature("o3", 0.5) is None
         assert clamp_temperature("o4-mini", 0.3) is None
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_gpt41_temperature_passthrough(self):
         """Test GPT-4.1 models pass through temperature (min=0.0)."""
         from eq_chatbot_core.providers.temperature_constraints import clamp_temperature

@@ -150,9 +150,6 @@ class _LangDockOpenAIBackend(OpenAICompatibleProvider):
         self._owner = owner
         super().__init__(owner.api_key, owner._get_backend_url(), owner.timeout, owner.max_retries)
 
-    def _token_param(self, model: str) -> str:
-        return "max_completion_tokens" if self._owner._uses_new_token_api(model) else "max_tokens"
-
     def _build_params(
         self,
         messages: list[dict[str, Any]],
@@ -164,7 +161,7 @@ class _LangDockOpenAIBackend(OpenAICompatibleProvider):
     ) -> dict[str, Any]:
         effort = kwargs.pop("reasoning_effort", None) or self._owner.reasoning_effort
         params = super()._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
-        if effort and self._owner._is_reasoning_model(model):
+        if effort:
             params["reasoning_effort"] = effort
         return params
 
@@ -185,7 +182,7 @@ class LangDockProvider(BaseLLMProvider):
     Features:
     - EU/US region selection (GDPR compliance)
     - Unified API key for all providers
-    - Reasoning effort control for O1/O3/O4 models
+    - Reasoning effort, sent with every openai-backend request when set
     - Agent integration with knowledge folders
     """
 
@@ -200,9 +197,6 @@ class LangDockProvider(BaseLLMProvider):
         "codestral": "/mistral/{region}/v1",
         "agent": "/agent/v1",
     }
-
-    # Models that don't support temperature (reasoning models)
-    REASONING_MODELS = ("o1", "o1-mini", "o1-preview", "o3", "o3-mini", "o4", "o4-mini")
 
     def __init__(
         self,
@@ -226,7 +220,8 @@ class LangDockProvider(BaseLLMProvider):
             max_retries: Number of retries on transient failures
             region: API region - 'eu' or 'us' (default: eu for GDPR)
             backend: LangDock backend - 'openai', 'anthropic', 'google', 'codestral', 'agent'
-            reasoning_effort: For O1/O3/O4 models - 'low', 'medium', 'high'
+            reasoning_effort: 'low', 'medium' or 'high'; sent with every openai-backend request when set.
+                A model that rejects it is learned and the parameter dropped.
             agent_id: LangDock Agent ID (required for backend='agent')
             model: Model used when a call passes none (not used by the agent
                 backend, whose model is configured in LangDock)
@@ -341,11 +336,6 @@ class LangDockProvider(BaseLLMProvider):
             )
         return self._anthropic_client
 
-    def _is_reasoning_model(self, model: str) -> bool:
-        """Check if model is a reasoning model that doesn't support temperature."""
-        model_lower = model.lower()
-        return any(model_lower.startswith(prefix) for prefix in self.REASONING_MODELS)
-
     def _extract_system_prompt(self, messages: list[dict[str, Any]]) -> tuple[str | None, list[dict[str, Any]]]:
         """Extract system prompt for Anthropic backend."""
         system_prompt = None
@@ -416,18 +406,6 @@ class LangDockProvider(BaseLLMProvider):
         return self._get_openai_backend().chat_completion(
             messages, model=model, temperature=temperature, max_tokens=max_tokens, tools=tools, **extra
         )
-
-    def _uses_new_token_api(self, model: str) -> bool:
-        """Check if model uses max_completion_tokens instead of max_tokens."""
-        model_lower = model.lower()
-        new_api_prefixes = (
-            "gpt-4o",
-            "gpt-5",
-            "o1",
-            "o3",
-            "o4",
-        )
-        return any(model_lower.startswith(prefix) for prefix in new_api_prefixes)
 
     def _filter_agent_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Filter messages for Agent API compatibility.
@@ -640,8 +618,7 @@ class LangDockProvider(BaseLLMProvider):
                 "max_tokens": max_tokens or 4096,
             }
 
-            # Clamp temperature per model constraints
-            apply_anthropic_temperature(params, model, temperature)
+            apply_anthropic_temperature(params, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -743,13 +720,10 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
-            # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": clamped if clamped is not None else temperature,
+                    "temperature": clamp_temperature(temperature),
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }
@@ -1039,8 +1013,7 @@ class LangDockProvider(BaseLLMProvider):
                 "max_tokens": max_tokens or 4096,
             }
 
-            # Clamp temperature per model constraints
-            apply_anthropic_temperature(params, model, temperature)
+            apply_anthropic_temperature(params, temperature)
 
             if system_prompt:
                 params["system"] = system_prompt
@@ -1263,13 +1236,10 @@ class LangDockProvider(BaseLLMProvider):
                     parts = self._convert_to_gemini_parts(content)
                     contents.append({"role": "user", "parts": parts})
 
-            # Clamp temperature per model constraints
-            clamped = clamp_temperature(model, temperature)
-
             payload = {
                 "contents": contents,
                 "generationConfig": {
-                    "temperature": clamped if clamped is not None else temperature,
+                    "temperature": clamp_temperature(temperature),
                     "maxOutputTokens": max_tokens or 8192,
                 },
             }

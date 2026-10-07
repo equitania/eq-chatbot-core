@@ -148,6 +148,10 @@ class TestMammouthProviderProperties:
 class TestMammouthTemperatureConstraints:
     """Test temperature constraint handling - critical for newer OpenAI models."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_reasoning_model_no_temperature(self):
         """Test reasoning models (o1, o3, o4) return None for temperature."""
         with nullcontext():
@@ -159,6 +163,10 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("o3", 0.5) is None
             assert provider._clamp_temperature("o4-mini", 0.3) is None
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_gpt5_temperature_is_generation_specific(self):
         """GPT-5 support for `temperature` is NOT uniform across the family.
 
@@ -177,6 +185,10 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("gpt-5-mini", 0.0) is None
             assert provider._clamp_temperature("gpt-5.6-luna", 0.7) is None
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_gpt41_temperature_passthrough(self):
         """Test GPT-4.1 models pass through temperature (min=0.0)."""
         with nullcontext():
@@ -188,6 +200,10 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("gpt-4.1-mini", 0.7) == 0.7
             assert provider._clamp_temperature("gpt-4.1-nano", 0.0) == 0.0
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_gpt41_valid_temperature_passes_through(self):
         """Test GPT-4.1 models pass through valid temperatures."""
         with nullcontext():
@@ -199,6 +215,10 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("gpt-4.1", 1.5) == 1.5
             assert provider._clamp_temperature("gpt-4.1", 2.0) == 2.0
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_legacy_model_passthrough(self):
         """Test legacy models (gpt-4o) pass through any valid temperature."""
         with nullcontext():
@@ -210,6 +230,10 @@ class TestMammouthTemperatureConstraints:
             assert provider._clamp_temperature("gpt-4o", 0.7) == 0.7
             assert provider._clamp_temperature("gpt-4o", 2.0) == 2.0
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_claude_max_temperature_clamped(self):
         """Test Claude models clamp temperature to max 1.0."""
         with nullcontext():
@@ -222,6 +246,10 @@ class TestMammouthTemperatureConstraints:
             # Valid range should pass through
             assert provider._clamp_temperature("claude-sonnet-4-5", 0.5) == 0.5
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_unknown_model_uses_defaults(self):
         """Test unknown models use default constraints (0.0-2.0)."""
         with nullcontext():
@@ -243,6 +271,10 @@ class TestMammouthTemperatureConstraints:
 class TestMammouthReasoningModels:
     """Test reasoning model detection."""
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o1_is_reasoning_model(self):
         """Test o1 models are detected as reasoning."""
         with nullcontext():
@@ -253,6 +285,10 @@ class TestMammouthReasoningModels:
             assert provider._is_reasoning_model("o1-mini") is True
             assert provider._is_reasoning_model("o1-preview") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o3_is_reasoning_model(self):
         """Test o3 models are detected as reasoning."""
         with nullcontext():
@@ -262,6 +298,10 @@ class TestMammouthReasoningModels:
             assert provider._is_reasoning_model("o3") is True
             assert provider._is_reasoning_model("o3-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_o4_is_reasoning_model(self):
         """Test o4 models are detected as reasoning."""
         with nullcontext():
@@ -270,6 +310,10 @@ class TestMammouthReasoningModels:
             provider = MammouthProvider(api_key="mm-test-key")
             assert provider._is_reasoning_model("o4-mini") is True
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_gpt_not_reasoning_model(self):
         """Test GPT models are not reasoning models."""
         with nullcontext():
@@ -280,6 +324,10 @@ class TestMammouthReasoningModels:
             assert provider._is_reasoning_model("gpt-4.1") is False
             assert provider._is_reasoning_model("gpt-5.2-chat") is False
 
+    @pytest.mark.xfail(
+        reason="stage 2: reasoning-model name list removed; reasoning_effort is sent for every model and learned away (test_no_name_lists_wire.py)",
+        strict=False,
+    )
     def test_claude_not_reasoning_model(self):
         """Test Claude models are not reasoning models."""
         with nullcontext():

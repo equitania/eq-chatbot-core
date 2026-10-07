@@ -900,6 +900,10 @@ class TestAnthropicProviderProperties:
         """Test default base URL constant."""
         assert AnthropicProvider.DEFAULT_BASE_URL == "https://api.anthropic.com"
 
+    @pytest.mark.xfail(
+        reason="stage 2: per-model temperature table removed; provider-level clamp and learning tested in test_no_name_lists_wire.py",
+        strict=False,
+    )
     def test_claude_temperature_clamped_to_max(self):
         """Test Claude models clamp temperature to max 1.0 via shared constraints module."""
         from eq_chatbot_core.providers.temperature_constraints import clamp_temperature
