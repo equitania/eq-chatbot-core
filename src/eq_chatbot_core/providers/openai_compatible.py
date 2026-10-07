@@ -158,7 +158,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 api_key=self.api_key,
                 base_url=self.base_url,
                 timeout=self.timeout,
-                max_retries=self.max_retries,
+                max_retries=self._sdk_max_retries(),
                 default_headers=self._default_headers() or None,
                 http_client=httpx2.Client(
                     transport=build_pinned_transport_for_url(
@@ -170,6 +170,10 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 **self._client_kwargs(),
             )
         return self._client
+
+    def _sdk_max_retries(self) -> int:
+        """Retry count handed to the OpenAI SDK (it retries 429/5xx, timeouts and connection errors)."""
+        return self.max_retries
 
     def _default_headers(self) -> dict[str, str]:
         """Extra HTTP headers for every request (e.g. OpenRouter attribution)."""
@@ -271,8 +275,14 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                 # body instead of choices, e.g. on context overflow.
                 error = (getattr(response, "model_extra", None) or {}).get("error")
                 if error:
-                    message = error.get("message") if isinstance(error, dict) else str(error)
-                    raise self._error_from_message(scrub_secrets(str(message)))
+                    message = error.get("message") if isinstance(error, dict) else None
+                    if message is None:
+                        message = str(error)
+                    message = scrub_secrets(str(message))
+                    body_dict = error if isinstance(error, dict) else {}
+                    if _is_context_overflow(body_dict, message):
+                        raise ContextLengthError(message, self.provider_name)
+                    raise self._error_from_message(message)
                 raise ProviderError(message="Response contained no choices", provider=self.provider_name)
 
             choice = response.choices[0]
@@ -474,6 +484,12 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         if self._client is not None:
             self._client.close()
             self._client = None
+
+    def __del__(self) -> None:
+        try:
+            self.close()
+        except (OSError, RuntimeError):
+            pass  # interpreter shutdown
 
     def __enter__(self: _Self) -> _Self:
         return self

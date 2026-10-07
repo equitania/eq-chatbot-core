@@ -58,3 +58,17 @@ def test_list_models_filters_to_supported_prefixes(wire_server):
     wire_server.expect("GET", "/openai/eu/v1/models", Reply(body=body))
     ids = {m["id"] for m in _provider(wire_server).list_models()}
     assert ids == {"gpt-4o", "o3-mini"}
+
+
+def test_unbuildable_delegate_is_provider_error_not_value_error(wire_server):
+    """A DNS/validation failure while building the openai delegate must reach callers as ProviderError."""
+    provider = _provider(wire_server)
+    provider.base_url = "http://does-not-exist.invalid"
+    with pytest.raises(ProviderError) as caught:
+        provider.chat_completion(MSG, model="gpt-6-luna")
+    assert caught.value.provider == "langdock"
+    with pytest.raises(ProviderError):
+        list(provider.stream_completion(MSG, model="gpt-6-luna"))
+    with pytest.raises(ProviderError):
+        provider.list_models()
+    assert provider._openai_backend is None

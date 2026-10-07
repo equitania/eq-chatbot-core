@@ -343,7 +343,14 @@ class LangDockProvider(BaseLLMProvider):
 
     def _get_openai_backend(self) -> _LangDockOpenAIBackend:
         if self._openai_backend is None:
-            self._openai_backend = _LangDockOpenAIBackend(self)
+            try:
+                self._openai_backend = _LangDockOpenAIBackend(self)
+            except ValueError as e:
+                # The delegate re-validates the backend URL (DNS lookup); callers
+                # catch ProviderError, so a failed build must not surface raw.
+                raise ProviderError(
+                    f"LangDock OpenAI backend unavailable: {_scrub(str(e))}", provider="langdock"
+                ) from e
         return self._openai_backend
 
     @property

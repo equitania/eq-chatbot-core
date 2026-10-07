@@ -157,3 +157,13 @@ def test_list_models_passes_context_length(wire_server):
     wire_server.expect("GET", "/v1/models", Reply(body=body))
     (model,) = _provider(wire_server).list_models()
     assert model["context_length"] == 32768
+
+
+def test_timeout_is_not_retried_by_the_sdk(wire_server):
+    """The pre-3.4 provider never retried; a timed-out generation must not be re-sent."""
+    wire_server.expect("POST", "/v1/chat/completions", Reply(body=chat_body(), delay=1.5))
+    provider = LocalLLMProvider(base_url=wire_server.base_url, timeout=0.3, max_retries=2)
+    with pytest.raises(ProviderError, match="Request timed out after"):
+        provider.chat_completion(MSG, model="qwen")
+    assert provider.max_retries == 2
+    assert len([r for r in wire_server.requests if r.path == "/v1/chat/completions"]) == 1

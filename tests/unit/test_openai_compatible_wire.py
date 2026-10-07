@@ -165,6 +165,13 @@ def test_error_in_200_body_raises_typed_error(wire_server):
         _provider(wire_server).chat_completion(MSG, model="m")
 
 
+def test_context_overflow_in_200_body(wire_server):
+    body = {"error": {"message": "maximum context length exceeded", "code": "context_length_exceeded"}}
+    wire_server.expect(*CHAT, Reply(200, body))
+    with pytest.raises(ContextLengthError):
+        _provider(wire_server).chat_completion(MSG, model="m")
+
+
 def test_stream_error_event_mid_stream(wire_server):
     events = stream_events(["Hal"])[:1] + [{"error": {"message": "upstream died"}}]
     wire_server.expect(*CHAT, Reply(sse=events))

@@ -99,6 +99,11 @@ class LocalLLMProvider(OpenAICompatibleProvider):
             return err.get("message") or str(err)
         return str(err)
 
+    def _sdk_max_retries(self) -> int:
+        """Never let the SDK retry: the pre-3.4 LocalLLMProvider accepted max_retries but never
+        retried, and a timed-out local generation must not be re-sent."""
+        return 0
+
     def _error_from_message(self, message: str) -> ProviderError:
         """LM Studio/Ollama signal context overflow in the body, without a status."""
         lowered = message.lower()
