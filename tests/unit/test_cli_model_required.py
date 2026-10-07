@@ -77,3 +77,21 @@ def test_flag_beats_config_file(wire_server, tmp_path, monkeypatch):
     result = CliRunner().invoke(main, ["test-provider", "-p", "mammouth", "-k", "mm-test", "-m", "flag-model"])
     assert result.exit_code == 0, result.output
     assert wire_server.requests[0].json["model"] == "flag-model"
+
+
+def test_listing_assets_dry_run_needs_no_model(tmp_path):
+    """A dry run makes no API call, so it must not demand a model."""
+    recipe = tmp_path / "recipe.json"
+    recipe.write_text(
+        json.dumps(
+            {
+                "schema": "eq-listing-assets/1",
+                "defaults": {"provider": "openai"},
+                "assets": [{"id": "a", "out": "a.png", "prompt": "p"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    result = CliRunner().invoke(main, ["listing-assets", "--recipe", str(recipe), "--dry-run"])
+    assert result.exit_code == 0, result.output
+    assert "1 asset(s) would be generated." in result.output

@@ -63,7 +63,7 @@ class TestChatCommand:
 
             assert result.exit_code == 0
             call_kwargs = mock_provider.chat_completion.call_args
-            assert call_kwargs.kwargs.get("model") or call_kwargs[1].get("model") == "gpt-4o"
+            assert call_kwargs.kwargs["model"] == "gpt-4o"
 
     def test_missing_api_key(self, runner, valid_input, monkeypatch):
         """Cloud provider without API key returns JSON error."""
