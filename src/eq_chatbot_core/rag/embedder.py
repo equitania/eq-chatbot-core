@@ -34,6 +34,8 @@ class BaseEmbedder(ABC):
 class OpenAIEmbedder(BaseEmbedder):
     """OpenAI text-embedding models."""
 
+    DEFAULT_BASE_URL = "https://api.openai.com/v1"
+
     # Values are mixed int/float, so spell the type out rather than let the
     # literal infer dict[str, float] and make `dimensions` a float.
     MODELS: dict[str, dict[str, Any]] = {
@@ -83,16 +85,28 @@ class OpenAIEmbedder(BaseEmbedder):
 
     @property
     def client(self) -> Any:
-        """Lazy initialization of OpenAI client."""
+        """Lazy initialization of OpenAI client.
+
+        Built on the same pinned httpx2 client as the chat providers: the SDK's
+        default client follows redirects and re-resolves DNS on every connect,
+        so a URL that passed validation could still be steered to an internal
+        address.
+        """
         if self._client is None:
             try:
                 from openai import OpenAI
             except ImportError as e:
                 raise ImportError("OpenAI package not installed. Install with: pip install openai") from e
 
+            import httpx2
+
+            from eq_chatbot_core.utils.url_validation import build_pinned_transport_for_url
+
+            effective_url = self.base_url or self.DEFAULT_BASE_URL
             self._client = OpenAI(
                 api_key=self.api_key,
-                base_url=self.base_url,
+                base_url=effective_url,
+                http_client=httpx2.Client(transport=build_pinned_transport_for_url(effective_url)),
             )
         return self._client
 

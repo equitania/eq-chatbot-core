@@ -214,6 +214,40 @@ class TestMCPClientSSEEventHandling:
         assert client._message_endpoint is None
         assert not client._connected.is_set()
 
+    @pytest.mark.parametrize(
+        "endpoint",
+        [
+            "https://attacker.example/x",  # foreign host
+            "http://127.0.0.1:8000/message",  # same machine, different host name
+            "http://localhost:9000/message",  # foreign port
+            "https://localhost:8000/message",  # foreign scheme
+            "http://localhost:notaport/message",  # unparseable port
+        ],
+    )
+    def test_handle_endpoint_event_rejects_foreign_origin(self, endpoint):
+        """The bearer token is a default header on every POST, so an endpoint on
+        another origin would receive it. Rejected before any DNS lookup."""
+        from eq_chatbot_core.mcp.client import MCPClient
+
+        client = MCPClient(base_url="http://localhost:8000/sse", api_key="secret-token")
+        with patch("eq_chatbot_core.mcp.client._validate_url") as validate:
+            client._handle_sse_event("endpoint", endpoint)
+
+        validate.assert_not_called()
+        assert client._message_endpoint is None
+        assert not client._connected.is_set()
+
+    def test_handle_endpoint_event_accepts_explicit_default_port(self):
+        """``https://host`` and ``https://host:443`` are the same origin."""
+        from eq_chatbot_core.mcp.client import MCPClient
+
+        with patch("eq_chatbot_core.mcp.client._validate_url", return_value=frozenset({"93.184.216.34"})):
+            client = MCPClient(base_url="https://mcp.example.com/sse")
+            client._handle_sse_event("endpoint", "https://MCP.example.com:443/messages?session_id=abc")
+
+        assert client._message_endpoint == "https://MCP.example.com:443/messages?session_id=abc"
+        assert client._connected.is_set()
+
 
 @pytest.mark.unit
 class TestMCPClientRequests:
@@ -1428,15 +1462,15 @@ class TestDNSRebindingProtection:
             assert client._pinned_ips["localhost"] & {"127.0.0.1", "::1"}
 
     def test_mcpclient_pins_endpoint_from_sse_event(self):
-        """When the server emits a redirect endpoint, its hostname must be
-        added to _pinned_ips."""
-        mock_module = MagicMock()
-        mock_module.Timeout = MagicMock(return_value=MagicMock())
-        with patch.dict("sys.modules", {"httpx": mock_module}):
-            from eq_chatbot_core.mcp.client import MCPClient
+        """Addresses the endpoint's hostname resolves to when the event arrives
+        are added to the pinned set, so a later legitimate rotation still passes
+        the rebinding check."""
+        from eq_chatbot_core.mcp.client import MCPClient
 
-            client = MCPClient(base_url="http://localhost:8000/sse")
-            client._handle_sse_event("endpoint", "http://127.0.0.1:8000/message")
+        with patch("eq_chatbot_core.mcp.client._validate_url", return_value=frozenset({"93.184.216.34"})):
+            client = MCPClient(base_url="https://mcp.example.com/sse")
+        with patch("eq_chatbot_core.mcp.client._validate_url", return_value=frozenset({"93.184.216.99"})):
+            client._handle_sse_event("endpoint", "https://mcp.example.com/message")
 
-            assert client._message_endpoint == "http://127.0.0.1:8000/message"
-            assert "127.0.0.1" in client._pinned_ips
+        assert client._message_endpoint == "https://mcp.example.com/message"
+        assert client._pinned_ips["mcp.example.com"] == {"93.184.216.34", "93.184.216.99"}

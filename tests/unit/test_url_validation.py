@@ -368,3 +368,72 @@ class TestClientLibraryChoice:
 
         http_client = mock_anthropic.Anthropic.call_args[1]["http_client"]
         assert isinstance(http_client, httpx2.Client)
+
+
+@pytest.mark.unit
+class TestNonGlobalAndMetadataTargets:
+    """Targets Python classifies as neither private nor reserved, and metadata
+    services that sit outside 169.254.0.0/16.
+
+    ``is_private``/``is_reserved`` alone admitted CGNAT and Alibaba's metadata
+    address in strict mode, and LAN mode admitted the AWS IPv6 and Oracle
+    metadata endpoints because Python counts them as private.
+    """
+
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "100.64.1.1",  # CGNAT / Tailscale
+            "100.100.100.200",  # Alibaba Cloud metadata
+            "168.63.129.16",  # Azure WireServer, a public address
+            "224.0.0.1",  # multicast counts as is_global
+            "192.0.0.192",  # Oracle Cloud metadata
+            "fd00:ec2::254",  # AWS IMDS over IPv6
+        ],
+    )
+    def test_blocked_in_strict_mode(self, ip):
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo(ip)):
+            with pytest.raises(ValueError):
+                validate_url("https://api.example.com/v1")
+
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "100.100.100.200",
+            "168.63.129.16",
+            "192.0.0.192",
+            "fd00:ec2::254",
+            "2002:a9fe:a9fe::1",  # 6to4 wrapping 169.254.169.254
+            "2001:0:4136:e378:8000:63bf:5601:5601",  # Teredo, client 169.254.169.254
+        ],
+    )
+    def test_metadata_blocked_in_lan_mode(self, ip):
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo(ip)):
+            with pytest.raises(ValueError, match="disallowed"):
+                validate_url("http://llm.intra.example.com:8080/v1", allow_private_ranges=True)
+
+    @pytest.mark.parametrize(
+        "ip",
+        [
+            "192.168.1.10",
+            "100.64.1.1",  # Tailscale node — a legitimate on-prem target
+            "fd00::1",  # unique-local IPv6
+            "2002:a00:1::1",  # 6to4 wrapping 10.0.0.1
+        ],
+    )
+    def test_lan_targets_still_allowed_in_lan_mode(self, ip):
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo(ip)):
+            assert validate_url("http://llm.intra.example.com:8080/v1", allow_private_ranges=True) == {ip}
+
+    def test_explicit_localhost_still_allowed_in_strict_mode(self):
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("127.0.0.1", "::1")):
+            assert validate_url("http://localhost:1234/v1") == {"127.0.0.1", "::1"}
+
+    def test_rebinding_to_alibaba_metadata_is_blocked(self):
+        import httpx2
+
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("93.184.216.34")):
+            transport = build_pinned_transport_for_url("https://api.example.com/v1")
+        with patch.object(socket, "getaddrinfo", return_value=_addrinfo("100.100.100.200")):
+            with pytest.raises(httpx2.ConnectError, match="cloud-metadata"):
+                transport.handle_request(httpx2.Request("GET", "https://api.example.com/v1/models"))

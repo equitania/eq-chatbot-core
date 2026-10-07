@@ -27,6 +27,21 @@ _LOCALHOST_NAMES = ("localhost", "127.0.0.1", "::1")
 # for IPv4-only hosts. Network-specific prefixes are not detectable from here.
 _NAT64_WELL_KNOWN_PREFIX = ipaddress.ip_network("64:ff9b::/96")
 
+# Cloud instance-metadata services outside 169.254.0.0/16. Blocked in both modes:
+# Python classifies some as private (so LAN mode would admit them) and some as
+# neither private nor reserved (so even strict mode used to admit them).
+# 169.254.169.254 (AWS, GCP, Azure, OpenStack) is link-local and already
+# blocked in both modes by that test.
+_METADATA_NETWORKS = tuple(
+    ipaddress.ip_network(net)
+    for net in (
+        "100.100.100.200/32",  # Alibaba Cloud
+        "192.0.0.192/32",  # Oracle Cloud
+        "168.63.129.16/32",  # Azure WireServer (a public address)
+        "fd00:ec2::254/128",  # AWS IMDS over IPv6
+    )
+)
+
 
 def _effective_address(
     ip: ipaddress.IPv4Address | ipaddress.IPv6Address,
@@ -51,6 +66,22 @@ def _effective_address(
     return ip
 
 
+def _tunnelled_ipv4(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    """Return the IPv4 target embedded in a 6to4 or Teredo address, if any.
+
+    Both prefixes are private to Python, so strict mode rejects them anyway. LAN
+    mode admits private ranges, though, and would otherwise accept
+    ``2002:a9fe:a9fe::`` — a 6to4 wrapper around 169.254.169.254.
+    """
+    if not isinstance(ip, ipaddress.IPv6Address):
+        return None
+    if ip.sixtofour is not None:
+        return ip.sixtofour
+    if ip.teredo is not None:
+        return ip.teredo[1]  # (server, client) — the client is the destination
+    return None
+
+
 def _assert_ip_allowed(ip_str: str, *, allow_private_ranges: bool, is_localhost_name: bool) -> None:
     """Raise ValueError if a resolved address is not an allowed connect target.
 
@@ -71,6 +102,18 @@ def _assert_ip_allowed(ip_str: str, *, allow_private_ranges: bool, is_localhost_
     ip = _effective_address(ipaddress.ip_address(ip_str))
     shown = ip_str if str(ip) == ip_str else f"{ip_str} (embeds {ip})"
 
+    tunnelled = _tunnelled_ipv4(ip)
+    if tunnelled is not None:
+        # The wrapper must pass and so must the IPv4 host it tunnels to.
+        _assert_ip_allowed(
+            str(tunnelled),
+            allow_private_ranges=allow_private_ranges,
+            is_localhost_name=False,
+        )
+
+    if any(ip in net for net in _METADATA_NETWORKS if net.version == ip.version):
+        raise ValueError(f"URL resolves to disallowed IP {shown} (cloud-metadata endpoint).")
+
     if allow_private_ranges:
         # LAN mode: loopback and private ranges are legitimate for local model
         # servers; still block link-local (cloud-metadata 169.254.x), multicast,
@@ -81,7 +124,9 @@ def _assert_ip_allowed(ip_str: str, *, allow_private_ranges: bool, is_localhost_
             raise ValueError(f"URL resolves to disallowed IP {shown} (cloud-metadata / reserved range).")
         return
 
-    if ip.is_private or ip.is_reserved or ip.is_loopback or ip.is_link_local:
+    # ``not is_global`` also covers ranges that are neither private nor reserved,
+    # such as CGNAT 100.64.0.0/10; multicast counts as global and needs its own test.
+    if not ip.is_global or ip.is_multicast or ip.is_reserved or ip.is_loopback or ip.is_link_local:
         # Allow localhost explicitly for local development.
         if is_localhost_name:
             return
@@ -103,11 +148,13 @@ def validate_url(url: str, *, allow_private_ranges: bool = False) -> frozenset[s
     Args:
         url: URL to validate.
         allow_private_ranges: When False (default, strict / cloud-facing), any
-            private, reserved, loopback, or link-local target is rejected unless
-            the hostname is an explicit localhost name. When True (LAN mode for
-            local LLM servers), private and loopback ranges are permitted, but
-            link-local (e.g. the 169.254.169.254 cloud-metadata endpoint),
-            reserved, multicast, and unspecified addresses remain blocked.
+            target that is not globally routable (private, CGNAT, reserved,
+            loopback, link-local) or is multicast is rejected unless the hostname
+            is an explicit localhost name. When True (LAN mode for local LLM
+            servers), private and loopback ranges are permitted, but link-local,
+            reserved, multicast, and unspecified addresses remain blocked. The
+            cloud-metadata endpoints (``_METADATA_NETWORKS``) and 6to4/Teredo
+            wrappers around a blocked IPv4 target are rejected in both modes.
 
     Returns:
         Frozenset of resolved IP address strings (may be empty if unresolvable).

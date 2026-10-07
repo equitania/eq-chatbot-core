@@ -76,6 +76,23 @@ _DANGEROUS_ENV_KEYS = frozenset(
     }
 )
 
+_DEFAULT_PORTS = {"http": 80, "https": 443}
+
+
+def _url_origin(url: str) -> tuple[str, str, int] | None:
+    """Return ``(scheme, host, port)`` with the default port filled in.
+
+    ``None`` for a URL whose port does not parse, so it never equals a real
+    origin.
+    """
+    parsed = urlparse(url)
+    scheme = parsed.scheme.lower()
+    try:
+        port = parsed.port or _DEFAULT_PORTS.get(scheme, 0)
+    except ValueError:
+        return None
+    return scheme, parsed.hostname or "", port
+
 
 def _validate_stdio_env(env: dict[str, str] | None) -> None:
     """Reject caller-supplied env vars that enable subprocess code injection.
@@ -357,6 +374,14 @@ class MCPClient:
                 logger.error(f"Rejecting malformed MCP endpoint: {data[:100]!r}")
                 return
 
+            # The client sends the API key as a default header on every POST, so
+            # an endpoint on another origin would hand the key to that host.
+            # The official MCP SDKs enforce the same rule.
+            candidate_origin = _url_origin(candidate)
+            if candidate_origin is None or candidate_origin != _url_origin(self.base_url):
+                logger.error(f"Rejecting MCP endpoint on a foreign origin: {_scrub(candidate[:100])!r}")
+                return
+
             # SSRF protection: validate the server-supplied endpoint URL.
             # A hostile MCP server could otherwise redirect POST traffic to
             # an internal address (which the initial base_url check would block).
@@ -375,7 +400,7 @@ class MCPClient:
                     self._pinned_ips[endpoint_host] = existing | endpoint_ips if existing else endpoint_ips
 
             self._message_endpoint = candidate
-            logger.info(f"MCP message endpoint: {self._message_endpoint}")
+            logger.info(f"MCP message endpoint: {_scrub(self._message_endpoint)}")
             self._connected.set()
 
         elif event_type == "message":

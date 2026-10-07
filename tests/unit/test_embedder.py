@@ -5,7 +5,8 @@ The OpenAI SDK is never hit: the lazily-initialized client is injected as a
 mock where an actual ``embed()`` call is exercised.
 """
 
-from unittest.mock import MagicMock
+import socket
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
@@ -98,3 +99,56 @@ class TestMeliousEmbedder:
         assert isinstance(result, np.ndarray)
         assert result.shape == (1, 3)
         mock_client.embeddings.create.assert_called_once_with(model="m", input=["hello world"])
+
+
+@pytest.mark.unit
+class TestEmbedderTransport:
+    """Embedders must use the pinned httpx2 client like the chat providers.
+
+    The OpenAI SDK's own client follows redirects and re-resolves DNS on every
+    connect, so a base_url that passed validation could be steered to the
+    cloud-metadata endpoint by a 307 or a rebinding DNS answer.
+    """
+
+    @staticmethod
+    def _addrinfo(ip: str) -> list[tuple]:
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", (ip, 0))]
+
+    def _http_client(self, emb):
+        """Build emb.client against a stand-in SDK and return the http_client it got."""
+        mock_openai = MagicMock()
+        with (
+            patch.dict("sys.modules", {"openai": mock_openai}),
+            patch.object(socket, "getaddrinfo", return_value=self._addrinfo("93.184.216.34")),
+        ):
+            _ = emb.client
+        kwargs = mock_openai.OpenAI.call_args[1]
+        return kwargs["base_url"], kwargs["http_client"]
+
+    @pytest.mark.parametrize(
+        ("factory", "expected_url"),
+        [
+            (lambda: OpenAIEmbedder(api_key="k"), "https://api.openai.com/v1"),
+            (lambda: LangDockEmbedder(api_key="k"), "https://api.langdock.com/openai/eu/v1"),
+            (lambda: MeliousEmbedder(api_key="k", model="m"), "https://api.melious.ai/v1"),
+        ],
+    )
+    def test_client_gets_pinned_http_client(self, factory, expected_url):
+        import httpx2
+
+        base_url, http_client = self._http_client(factory())
+
+        assert base_url == expected_url
+        assert isinstance(http_client, httpx2.Client)
+        assert http_client.follow_redirects is False
+
+    def test_rebinding_to_metadata_is_blocked(self):
+        import httpx2
+
+        with patch.object(socket, "getaddrinfo", return_value=self._addrinfo("93.184.216.34")):
+            emb = MeliousEmbedder(api_key="k", model="m", base_url="https://embed.example.com/v1")
+        _, http_client = self._http_client(emb)
+
+        with patch.object(socket, "getaddrinfo", return_value=self._addrinfo("169.254.169.254")):
+            with pytest.raises(httpx2.ConnectError, match="rebinding"):
+                http_client.post("https://embed.example.com/v1/embeddings", json={})
