@@ -73,6 +73,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
     DEFAULT_BASE_URL: ClassVar[str | None] = None
     DEFAULT_MODEL: ClassVar[str] = ""
     ALLOW_PRIVATE_RANGES: ClassVar[bool] = False
+    # Ask for token usage in streams. Off for servers that reject the option.
+    STREAM_INCLUDE_USAGE: ClassVar[bool] = True
     MISSING_BASE_URL_MESSAGE: ClassVar[str] = (
         "This provider requires an explicit base_url; there is no default endpoint."
     )
@@ -325,7 +327,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         try:
             params = self._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
             params["stream"] = True
-            params["stream_options"] = {"include_usage": True}
+            if self.STREAM_INCLUDE_USAGE:
+                params["stream_options"] = {"include_usage": True}
 
             stream = self._create(params)
 
