@@ -181,6 +181,12 @@ class BaseLLMProvider(ABC):
         """
         return self._api_key
 
+    def _learning_scope(self, endpoint: str) -> str:
+        """Key under which ``param_learning`` remembers rejections: endpoint plus API-key fingerprint."""
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        return param_learning.scope(endpoint, getattr(self, "_api_key", None))
+
     @property
     @abstractmethod
     def provider_name(self) -> str:

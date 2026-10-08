@@ -1,5 +1,20 @@
 # Release Notes
 
+## Version 4.0.2 (08.10.2026)
+
+### [FIX]
+
+- **Gemerkt wird erst nach Erfolg.** Ein abgelehnter Parameter wurde schon bei der ersten Ablehnung gemerkt. Scheiterte die Wiederholung aus einem anderen Grund (401, 5xx, Timeout) oder wurde die Anpassung selbst abgelehnt, blieb der Parameter für Endpunkt und Modell bis zum Prozessende abgeschaltet. Jetzt wird er erst gemerkt, wenn die angepasste Anfrage durchging.
+- **Ablehnungen mitten im Stream.** OpenRouter und LiteLLM antworten mit HTTP 200 und melden die Ablehnung als Fehler-Event im Stream. Das SDK wirft dann ohne Statuscode, die 400-Prüfung griff nie, und jeder gestreamte Aufruf scheiterte. Der erste Stream-Abschnitt wird jetzt innerhalb der Wiederholungsschleife gelesen; bis dahin ist nichts ausgegeben, eine Wiederholung verdoppelt also keine Ausgabe.
+- **Mehr Ablehnungsformen erkannt:** HTTP 422 (manche Gateways), OpenRouters eingepackter Upstream-Text unter `metadata.raw` und Azures „Unrecognized request argument supplied: <param>“, das den Parameter ohne Anführungszeichen und mit `param: null` nennt. Ohne Letzteres scheiterte LangDocks `openai`-Backend bei gesetztem `reasoning_effort` an jedem Modell ohne Reasoning.
+- **Vollständige Modellliste:** `list_models()` von IONOS, Melious, LiteLLM, Privatemode, Local und Mammouth liefert jetzt alle Metadaten-Schlüssel (`None`, wenn unbekannt), wie in 4.0 zugesagt; bisher fehlten die meisten. Local und die gemeinsame Basisklasse melden jetzt auch eine gelernte Temperatur-Ablehnung.
+- **Anthropic-Modellliste blättert weiter** statt nach 100 Modellen abzubrechen (Anthropic und LangDocks `anthropic`-Backend).
+- **Fehlendes Modell beim Streamen** meldet `ModelNotSpecifiedError` sofort beim Aufruf, nicht erst beim ersten Abschnitt.
+
+### [CHG]
+
+- **Gedächtnis je API-Key.** Gelernt wird je Endpunkt *und* API-Key; gespeichert wird nur ein kurzer SHA-256-Fingerabdruck, nie der Schlüssel. Ein gemeinsames Gateway kann denselben Modellnamen je virtuellem Key an ein anderes Backend leiten — die Ablehnung eines Keys gilt nicht mehr für alle anderen.
+
 ## Version 4.0.1 (07.10.2026)
 
 ### [FIX]

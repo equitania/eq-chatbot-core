@@ -319,7 +319,11 @@ class AnthropicProvider(BaseLLMProvider):
         for attempt in range(self.OVERLOAD_MAX_RETRIES + 1):
             try:
                 response = create_message(
-                    self.client, params, base_url=self._endpoint(), provider=self.provider_name, logger=logger
+                    self.client,
+                    params,
+                    base_url=self._learning_scope(self._endpoint()),
+                    provider=self.provider_name,
+                    logger=logger,
                 )
 
                 # Extract text content
@@ -424,7 +428,7 @@ class AnthropicProvider(BaseLLMProvider):
                         stack,
                         self.client,
                         params,
-                        base_url=self._endpoint(),
+                        base_url=self._learning_scope(self._endpoint()),
                         provider=self.provider_name,
                         logger=logger,
                     )
@@ -540,7 +544,7 @@ class AnthropicProvider(BaseLLMProvider):
         ``supports_temperature`` is ``False`` once a rejection was learned.
         """
         try:
-            return list_anthropic_models(self.client, self._endpoint(), self.provider_name)
+            return list_anthropic_models(self.client, self._learning_scope(self._endpoint()), self.provider_name)
 
         except Exception as e:
             raise self._handle_error(e) from e

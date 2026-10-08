@@ -267,7 +267,8 @@ Whether a model accepts `temperature`, wants `max_completion_tokens` instead of 
 - If the endpoint rejects `temperature` as unsupported (Anthropic says "deprecated"), the request is repeated once without it.
 - If it rejects `max_tokens`, the request is repeated once with `max_completion_tokens`. OpenAI itself always gets `max_completion_tokens`.
 - If it rejects `reasoning_effort` (passed per call, or LangDock's constructor setting), the request is repeated once without it.
-- Each parameter is retried at most once. The answer is remembered per endpoint and model for the rest of the process, so the cost is one extra request the first time a model is used.
+- Each parameter is retried at most once. The answer is remembered per endpoint, API key and model for the rest of the process, so the cost is one extra request the first time a model is used. It is remembered only once the adjusted request succeeded: a retry that fails for another reason (401, 5xx, timeout) teaches nothing.
+- Recognised rejections: HTTP 400 and 422, and an error event at the start of a stream (OpenRouter and LiteLLM answer HTTP 200 and report the rejection inside the stream). The parameter may be named in the structured `param` field, quoted in the message, after "argument supplied:" (Azure) or inside OpenRouter's wrapped upstream body (`metadata.raw`).
 - A range error ("temperature: range: 0..1") is not a rejection: it reaches the caller.
 - On OpenRouter, `list_models()` pre-seeds "temperature unsupported" for models whose metadata does not offer `temperature`; a learned rejection always wins over the list.
 
@@ -569,7 +570,8 @@ Ob ein Modell `temperature` annimmt, statt `max_tokens` lieber `max_completion_t
 - Lehnt der Endpunkt `temperature` als nicht unterstützt ab (Anthropic schreibt „deprecated“), wird die Anfrage einmal ohne wiederholt.
 - Lehnt er `max_tokens` ab, wird sie einmal mit `max_completion_tokens` wiederholt. OpenAI selbst bekommt immer `max_completion_tokens`.
 - Lehnt er `reasoning_effort` ab (pro Aufruf oder als LangDock-Konstruktorwert), wird sie einmal ohne wiederholt.
-- Jeder Parameter wird höchstens einmal wiederholt. Das Ergebnis gilt je Endpunkt und Modell für den Rest des Prozesses — es kostet also eine zusätzliche Anfrage beim ersten Einsatz eines Modells.
+- Jeder Parameter wird höchstens einmal wiederholt. Das Ergebnis gilt je Endpunkt, API-Key und Modell für den Rest des Prozesses — es kostet also eine zusätzliche Anfrage beim ersten Einsatz eines Modells. Gemerkt wird es erst, wenn die angepasste Anfrage erfolgreich war: Scheitert die Wiederholung aus einem anderen Grund (401, 5xx, Timeout), wird nichts gelernt.
+- Erkannte Ablehnungen: HTTP 400 und 422 sowie ein Fehler-Event am Anfang eines Streams (OpenRouter und LiteLLM antworten mit HTTP 200 und melden die Ablehnung im Stream). Der Parameter kann im strukturierten Feld `param` stehen, in der Meldung zitiert sein, nach „argument supplied:“ folgen (Azure) oder in OpenRouters eingepacktem Upstream-Text stecken (`metadata.raw`).
 - Ein Bereichsfehler („temperature: range: 0..1“) ist keine Ablehnung: Er erreicht den Aufrufer.
 - Bei OpenRouter setzt `list_models()` „temperature nicht unterstützt“ vorab für Modelle, deren Metadaten `temperature` nicht anbieten; eine gelernte Ablehnung hat immer Vorrang vor der Liste.
 

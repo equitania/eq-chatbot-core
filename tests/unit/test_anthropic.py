@@ -98,6 +98,8 @@ def mock_models_list():
         MagicMock(id="claude-3-5-haiku-20241022", display_name="Claude 3.5 Haiku", created_at="2024-10-22"),
         MagicMock(id="claude-3-opus-20240229", display_name="Claude 3 Opus", created_at="2024-02-29"),
     ]
+    # The SDK page is iterated (that follows pagination), not read via `.data`.
+    models.__iter__.side_effect = lambda: iter(models.data)
     return models
 
 

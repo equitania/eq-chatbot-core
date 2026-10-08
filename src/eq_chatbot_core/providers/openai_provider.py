@@ -62,7 +62,7 @@ class OpenAIProvider(OpenAICompatibleProvider):
                     "created": getattr(model, "created", None),
                     "owned_by": getattr(model, "owned_by", None),
                     "provider": self.provider_name,
-                    **param_learning.model_metadata(self._effective_base_url, model.id),
+                    **param_learning.model_metadata(self._learning_scope(self._effective_base_url), model.id),
                 }
                 for model in models.data
             ]

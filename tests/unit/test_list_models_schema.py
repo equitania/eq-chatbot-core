@@ -26,9 +26,8 @@ from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 
 # Keys the Odoo integration reads off a list_models() entry. `id` and `name`
 # are load-bearing (a model cannot be selected without them); the rest are
-# enrichment that consumers must treat as optional.
+# enrichment that consumers must treat as optional (see param_learning.METADATA_KEYS).
 REQUIRED_KEYS = {"id", "name"}
-CAPABILITY_KEYS = {"supports_tools", "supports_vision", "supports_reasoning", "context_length"}
 
 # Providers reaching the network through the shared OpenAI-compatible listing.
 # The endpoint is a plain /v1/models list that carries no capability metadata,
@@ -57,11 +56,13 @@ def test_openai_compatible_providers_share_one_listing():
 def test_openai_compatible_listing_reports_no_capabilities(provider_name, monkeypatch):
     """Document the gap: these entries carry identity only, never capabilities.
 
-    A consumer seeing no ``supports_tools`` must treat it as unknown. This test
-    fails the day the upstream listing grows capability data — at which point
-    the consumers' fallbacks should be revisited, not left in place.
+    Since 4.0.2 every ``METADATA_KEYS`` key is present (the 4.0 contract) and
+    ``None``, i.e. unknown; ``supports_tools`` is not a metadata key and stays
+    absent. A consumer must treat both as unknown. This test fails the day the
+    upstream listing grows capability data — at which point the consumers'
+    fallbacks should be revisited, not left in place.
     """
-    from eq_chatbot_core.providers import get_provider
+    from eq_chatbot_core.providers import get_provider, param_learning
 
     class _FakeModel:
         id = "some-model"
@@ -86,7 +87,9 @@ def test_openai_compatible_listing_reports_no_capabilities(provider_name, monkey
     for entry in entries:
         missing = REQUIRED_KEYS - entry.keys()
         assert not missing, f"{provider_name}: listing lost a required key: {missing}"
-        reported = CAPABILITY_KEYS & entry.keys()
+        assert "supports_tools" not in entry
+        reported = {key for key in param_learning.METADATA_KEYS if entry.get(key) is not None}
+        assert set(param_learning.METADATA_KEYS) <= entry.keys(), f"{provider_name}: metadata keys missing"
         assert not reported, (
             f"{provider_name} now reports {sorted(reported)}. That is an improvement — "
             f"update this test and review the consumer-side defaults that exist "

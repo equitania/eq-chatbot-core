@@ -130,13 +130,10 @@ def test_mammouth_reports_its_limits_and_nothing_else(wire_server):
         "id": "b-model",
         "name": "b-model",
         "provider": "mammouth",
+        "supports_streaming": True,
+        **dict.fromkeys(param_learning.METADATA_KEYS),
         "context_length": 1000,
         "max_output_tokens": 100,
-        "supports_temperature": None,
-        "min_temperature": None,
-        "max_temperature": None,
-        "supports_reasoning": None,
-        "supports_streaming": True,
     }
 
 
@@ -201,12 +198,11 @@ def test_local_does_not_guess_tools_or_vision(wire_server):
         "id": "m",
         "name": "m",
         "provider": "local",
-        "context_length": None,
         "supports_streaming": True,
         "supports_tools": None,
-        "supports_vision": None,
         "owned_by": "test",
         "created": 0,
+        **dict.fromkeys(param_learning.METADATA_KEYS),
     }
 
 

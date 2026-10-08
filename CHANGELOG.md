@@ -5,6 +5,22 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.2] - 2026-10-08
+
+### Fixed
+
+- Parameter learning remembers a rejection only after the adjusted request succeeded. Before, it was marked on the first rejection: when the retry then failed for an unrelated reason (401, 5xx, timeout) or the adjustment was itself refused, the parameter stayed switched off for that endpoint and model for the life of the process.
+- A rejection sent as an error event at the start of a stream is now retried and learned. OpenRouter and LiteLLM answer HTTP 200 and report the rejection inside the stream; the SDK raises without a status, so the 400 check never matched and every streamed call failed. The first chunk is now read inside the retry loop (`openai_compatible._prime_stream`); nothing has been yielded at that point, so output is never duplicated.
+- Recognised rejection shapes widened: HTTP 422 (some gateways), OpenRouter's wrapped upstream body under `metadata.raw`, and Azure's "Unrecognized request argument supplied: <param>", which names the parameter unquoted and with `param: null`. Without the last one, LangDock's `openai` backend failed hard on every non-reasoning model once `reasoning_effort` was set.
+- `list_models()` of IONOS, Melious, LiteLLM, Privatemode, Local and Mammouth now carries every `METADATA_KEYS` key (value `None` when unknown), as the 4.0 contract promised; before, most keys were missing. Local and the shared base class now also report a learned temperature rejection.
+- The Anthropic model list (Anthropic and LangDock's `anthropic` backend) follows pagination instead of returning only the first 100 models.
+- `stream_completion()` of the OpenAI-wire providers raises `ModelNotSpecifiedError` at the call, not on the first `next()`.
+
+### Changed
+
+- The learning memory is keyed per endpoint **and API key** (`param_learning.scope()`; a 16-hex-digit SHA-256 fingerprint, never the key itself). A shared gateway can route one model name to different backends per virtual key; one key's rejection no longer applies to all others. Providers pass the scope via `BaseLLMProvider._learning_scope()`.
+- `param_learning.learn_from_rejection()` no longer marks the parameter itself; `call_with_learning()` does, after `send()` returned.
+
 ## [4.0.1] - 2026-10-07
 
 ### Fixed

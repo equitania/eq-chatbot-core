@@ -78,14 +78,14 @@ class MammouthProvider(OpenAICompatibleProvider):
                     "id": model_id,
                     "name": model_data.get("name", model_id),
                     "provider": self.provider_name,
-                    "context_length": model_data.get("max_input_tokens"),
-                    "max_output_tokens": model_data.get("max_output_tokens"),
-                    # Mammouth's list says nothing about temperature or reasoning.
-                    "supports_temperature": param_learning.temperature_support(self._effective_base_url, model_id),
-                    "min_temperature": None,
-                    "max_temperature": None,
-                    "supports_reasoning": None,
                     "supports_streaming": True,
+                    # Mammouth's list says nothing about temperature or reasoning.
+                    **param_learning.model_metadata(
+                        self._learning_scope(self._effective_base_url),
+                        model_id,
+                        context_length=model_data.get("max_input_tokens"),
+                        max_output_tokens=model_data.get("max_output_tokens"),
+                    ),
                 }
             )
 

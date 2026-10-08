@@ -17,6 +17,7 @@ Example:
         DEFAULT_BASE_URL = "https://api.example.com/v1"
 """
 
+import itertools
 import logging
 from collections.abc import Iterator
 from typing import Any, ClassVar, TypeVar
@@ -41,6 +42,25 @@ from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 _logger = logging.getLogger(__name__)
 
 _Self = TypeVar("_Self", bound="OpenAICompatibleProvider")
+
+
+def _prime_stream(stream: Any) -> Iterator[Any]:
+    """Read the first chunk now, so an error event at the start of a stream raises here.
+
+    Returns an iterator over that chunk and the rest. The stream is closed when
+    the first read fails, so a retry does not leave a connection open.
+    """
+    iterator = iter(stream)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return iter(())
+    except BaseException:
+        close = getattr(stream, "close", None)
+        if close is not None:
+            close()
+        raise
+    return itertools.chain((first,), iterator)
 
 
 class OpenAICompatibleProvider(BaseLLMProvider):
@@ -212,15 +232,23 @@ class OpenAICompatibleProvider(BaseLLMProvider):
     def _create(self, params: dict[str, Any]) -> Any:
         """``chat.completions.create`` that learns unsupported parameters.
 
-        A 400 naming ``temperature``, ``max_tokens`` or ``reasoning_effort`` as unsupported is retried
+        A rejection naming ``temperature``, ``max_tokens`` or ``reasoning_effort`` as unsupported is retried
         with that parameter adjusted — at most once per parameter — and the fact
-        is remembered for this endpoint and model (see ``param_learning``). For
-        streaming the rejection arrives before the first chunk, so no output is
-        ever duplicated.
+        is remembered for this endpoint and model (see ``param_learning``).
+
+        For streaming, the first chunk is read inside the retry loop: gateways
+        such as OpenRouter and LiteLLM answer HTTP 200 and report the rejection as
+        an error event in the stream. Nothing has been yielded at that point, so
+        a retry never duplicates output.
         """
+
+        def send() -> Any:
+            response = self.client.chat.completions.create(**params)
+            return _prime_stream(response) if params.get("stream") else response
+
         return param_learning.call_with_learning(
-            lambda: self.client.chat.completions.create(**params),
-            self._effective_base_url,
+            send,
+            self._learning_scope(self._effective_base_url),
             params,
             provider=self.provider_name,
             logger=_logger,
@@ -306,12 +334,27 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
-        """Stream a chat completion response from the gateway."""
+        """Stream a chat completion response from the gateway.
+
+        Not a generator itself: a missing model raises ``ModelNotSpecifiedError``
+        at the call, not on the first ``next()``.
+        """
         model = self.resolve_model(model)
         # Accept ToolDefinition instances as the base class promises; the
         # request payload below needs plain OpenAI-format dicts.
         tools = normalize_tools(tools)
+        return self._stream(messages, model, temperature, max_tokens, tools, **kwargs)
 
+    def _stream(
+        self,
+        messages: list[dict[str, Any]],
+        model: str,
+        temperature: float,
+        max_tokens: int | None,
+        tools: list[dict[str, Any]] | None,
+        **kwargs: Any,
+    ) -> Iterator[StreamChunk]:
+        """The streaming generator behind ``stream_completion``."""
         try:
             params = self._build_params(messages, model, temperature, max_tokens, tools, **kwargs)
             params["stream"] = True
@@ -390,7 +433,9 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         List models advertised by the gateway.
 
         Returns all models from the OpenAI-compatible ``/v1/models`` endpoint
-        without provider-specific name filtering.
+        without provider-specific name filtering. The endpoint reports no
+        capabilities, so every ``METADATA_KEYS`` value is ``None`` (unknown) unless
+        a rejection was learned.
         """
         try:
             models = self.client.models.list()
@@ -404,6 +449,7 @@ class OpenAICompatibleProvider(BaseLLMProvider):
                         "created": getattr(model, "created", None),
                         "owned_by": getattr(model, "owned_by", None),
                         "provider": self.provider_name,
+                        **param_learning.model_metadata(self._learning_scope(self._effective_base_url), model.id),
                     }
                 )
 

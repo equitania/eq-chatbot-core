@@ -642,7 +642,11 @@ class LangDockProvider(BaseLLMProvider):
             params.update(kwargs)
 
             response = create_message(
-                self.anthropic_client, params, base_url=self._get_backend_url(), provider="langdock", logger=_logger
+                self.anthropic_client,
+                params,
+                base_url=self._learning_scope(self._get_backend_url()),
+                provider="langdock",
+                logger=_logger,
             )
 
             # Extract text content
@@ -1049,7 +1053,7 @@ class LangDockProvider(BaseLLMProvider):
                     stack,
                     self.anthropic_client,
                     params,
-                    base_url=self._get_backend_url(),
+                    base_url=self._learning_scope(self._get_backend_url()),
                     provider="langdock",
                     logger=_logger,
                 )
@@ -1352,7 +1356,7 @@ class LangDockProvider(BaseLLMProvider):
     def _list_openai_models(self) -> list[dict[str, Any]]:
         """Every model LangDock's OpenAI endpoint lists for this workspace."""
         models = self.openai_client.models.list()
-        base = self._get_backend_url()
+        base = self._learning_scope(self._get_backend_url())
         result = [
             {
                 "id": model.id,
@@ -1374,7 +1378,7 @@ class LangDockProvider(BaseLLMProvider):
         try:
             return list_anthropic_models(
                 self.anthropic_client,
-                self._get_backend_url(),
+                self._learning_scope(self._get_backend_url()),
                 self.provider_name,
                 backend=self.backend,
                 region=self.region,
@@ -1411,7 +1415,7 @@ class LangDockProvider(BaseLLMProvider):
                     "backend": self.backend,
                     "region": self.region,
                     **param_learning.model_metadata(
-                        self._get_backend_url(),
+                        self._learning_scope(self._get_backend_url()),
                         model_id,
                         context_length=model.get("inputTokenLimit"),
                         max_output_tokens=model.get("outputTokenLimit"),
@@ -1451,7 +1455,7 @@ class LangDockProvider(BaseLLMProvider):
                     "name": model.get("name", model_id),
                     "provider": self.provider_name,
                     "backend": self.backend,
-                    **param_learning.model_metadata(self._get_backend_url(), model_id),
+                    **param_learning.model_metadata(self._learning_scope(self._get_backend_url()), model_id),
                 }
             )
         return result

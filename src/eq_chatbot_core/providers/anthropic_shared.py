@@ -68,7 +68,8 @@ def list_anthropic_models(client: Any, base_url: str, provider: str, **extra: An
     every entry.
     """
     entries = []
-    for model in client.models.list(limit=100).data:
+    # Iterating the page (not `.data`) follows the API's pagination past the first 100.
+    for model in client.models.list(limit=100):
         capabilities = getattr(model, "capabilities", None)
         entries.append(
             {

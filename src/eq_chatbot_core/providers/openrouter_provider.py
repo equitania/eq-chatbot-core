@@ -88,8 +88,8 @@ class OpenRouterProvider(OpenAICompatibleProvider):
             model_id = model_data.get("id", "")
             constraints = self._get_model_constraints(model_data)
             if constraints["supports_temperature"] is False:
-                param_learning.seed_temperature_support(self._effective_base_url, model_id, False)
-            if param_learning.temperature_support(self._effective_base_url, model_id) is False:
+                param_learning.seed_temperature_support(self._learning_scope(self._effective_base_url), model_id, False)
+            if param_learning.temperature_support(self._learning_scope(self._effective_base_url), model_id) is False:
                 constraints["supports_temperature"] = False
             models.append(
                 {

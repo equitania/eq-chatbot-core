@@ -157,7 +157,8 @@ def test_learn_from_rejection_retries_each_parameter_once(wire_server, caplog):
         )
     assert params == {"model": "m"} and adjusted == {"temperature"}
     assert "p: model m rejected 'temperature'" in caplog.text
-    assert param_learning.temperature_support("http://a/v1", "m") is False
+    # Not remembered yet: call_with_learning marks only after the retry succeeded.
+    assert param_learning.temperature_support("http://a/v1", "m") is None
     # Same rejection again in this call: no second retry.
     assert not param_learning.learn_from_rejection(
         error, "http://a/v1", "m", params, adjusted, provider="p", logger=logger

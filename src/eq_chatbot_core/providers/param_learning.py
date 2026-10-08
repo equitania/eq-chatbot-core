@@ -10,10 +10,14 @@ first time.
 
 The memory is process-wide (consumers such as the Odoo module build a provider
 per request), thread-safe, holds three flags per key, and is never persisted.
+A key is the endpoint plus a fingerprint of the API key (see ``scope()``): a
+shared gateway may route one model name to different backends per virtual key.
+A rejection is remembered only once the adjusted request has succeeded.
 """
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import re
 import threading
@@ -39,9 +43,15 @@ METADATA_KEYS: tuple[str, ...] = (
 # Codes that mean "this model does not take this parameter" — as opposed to
 # "invalid_value" (out of range), which must reach the caller unchanged.
 _REJECTION_CODES = frozenset({"unsupported_parameter", "unsupported_value"})
-# "deprecated" is Anthropic's wording ("`temperature` is deprecated for this model.").
-_REJECTION_WORDS = ("unsupported", "not supported", "deprecated")
+# "deprecated" is Anthropic's wording ("`temperature` is deprecated for this model.");
+# "unrecognized" is Azure's ("Unrecognized request argument supplied: reasoning_effort").
+_REJECTION_WORDS = ("unsupported", "not supported", "deprecated", "unrecognized")
 _QUOTED_PARAM = re.compile(r"""['"`](temperature|max_tokens|reasoning_effort)['"`]""")
+_SUPPLIED_PARAM = re.compile(r"argument supplied:\s*(temperature|max_tokens|reasoning_effort)\b", re.IGNORECASE)
+# HTTP statuses that can carry an unsupported-parameter rejection. ``None`` is an
+# error event inside an SSE stream (HTTP 200 already sent; the SDK raises without
+# a status). 422 is what some gateways answer instead of 400.
+_REJECTION_STATUSES = frozenset({400, 422, None})
 
 _lock = threading.Lock()
 _MEMORY: dict[str, set[tuple[str, str]]] = {parameter: set() for parameter in LEARNABLE}
@@ -51,16 +61,43 @@ def _key(base_url: str, model: str) -> tuple[str, str]:
     return base_url.rstrip("/"), model
 
 
-def rejected_parameter(error: BaseException) -> str | None:
-    """Return the learnable parameter a 400 response rejected, or ``None``.
+def scope(base_url: str, api_key: str | None = None) -> str:
+    """The memory scope for one endpoint and API key.
 
+    Providers pass this wherever a function here takes ``base_url``. The key is
+    reduced to a short SHA-256 fingerprint, so the memory never holds a secret.
+    """
+    base = base_url.rstrip("/")
+    if not api_key:
+        return base
+    return f"{base}#{hashlib.sha256(api_key.encode()).hexdigest()[:16]}"
+
+
+def _error_message(body: dict[str, Any]) -> str:
+    """The message of an error body, including OpenRouter's wrapped upstream text.
+
+    OpenRouter answers "Provider returned error" and puts the upstream body, as a
+    string, under ``metadata.raw``.
+    """
+    message = str(body.get("message") or "")
+    metadata = body.get("metadata")
+    if isinstance(metadata, dict) and metadata.get("raw"):
+        message = f"{message} {metadata['raw']}"
+    return message
+
+
+def rejected_parameter(error: BaseException) -> str | None:
+    """Return the learnable parameter a request rejection names, or ``None``.
+
+    Considered: HTTP 400 and 422, and an error event inside a stream (no status).
     Structured form first: ``error.param`` names the parameter and ``code`` is an
     unsupported-* code (OpenAI). Fallback for bodies without ``param`` (gateways,
-    Anthropic): the message quotes the parameter name and says "unsupported",
-    "not supported" or "deprecated". Anthropic wraps its error in an envelope
-    (``{"type": "error", "error": {...}}``), which is unwrapped first.
+    Anthropic, OpenRouter's ``metadata.raw``): the message names the parameter —
+    quoted, or after "argument supplied:" — and says "unsupported", "not
+    supported", "deprecated" or "unrecognized". Anthropic wraps its error in an
+    envelope (``{"type": "error", "error": {...}}``), which is unwrapped first.
     """
-    if getattr(error, "status_code", None) != 400:
+    if getattr(error, "status_code", None) not in _REJECTION_STATUSES:
         return None
     body = getattr(error, "body", None)
     if isinstance(body, dict) and isinstance(body.get("error"), dict):
@@ -74,13 +111,13 @@ def rejected_parameter(error: BaseException) -> str | None:
             if param == "reasoning_effort" and code != "unsupported_parameter":
                 return None
             return param if param in LEARNABLE and code in _REJECTION_CODES else None
-        message = str(body.get("message") or "")
+        message = _error_message(body)
     else:
         message = str(error)
     lowered = message.lower()
     if not any(word in lowered for word in _REJECTION_WORDS):
         return None
-    match = _QUOTED_PARAM.search(message)
+    match = _QUOTED_PARAM.search(message) or _SUPPLIED_PARAM.search(message)
     if not match:
         return None
     # Same rule as the structured branch: one refused reasoning_effort *value* is not
@@ -150,16 +187,18 @@ def learn_from_rejection(
     """Handle one failed request. True means ``params`` was adjusted: send it again.
 
     At most one retry per parameter and call (``adjusted`` collects them); a
-    parameter rejected again after its adjustment propagates. Logged at INFO on
-    the caller's logger so each provider module reports its own retries.
+    parameter rejected again after its adjustment propagates. Nothing is
+    remembered here — ``call_with_learning`` marks ``adjusted`` only once the
+    adjusted request succeeded, so a retry that fails for another reason (401,
+    5xx, timeout) teaches nothing. Logged at INFO on the caller's logger so each
+    provider module reports its own retries.
     """
     parameter = rejected_parameter(error)
     if parameter is None or parameter not in only or parameter in adjusted or not adjust(params, parameter):
         return False
     adjusted.add(parameter)
-    mark_unsupported(base_url, model, parameter)
     logger.info(
-        "%s: model %s rejected '%s'; retrying adjusted and remembering it for this endpoint",
+        "%s: model %s rejected '%s'; retrying adjusted",
         provider,
         model,
         parameter,
@@ -180,19 +219,31 @@ def call_with_learning(
 
     ``send`` must read ``params`` when it is called (it is the one retry-and-learn
     loop, shared by every provider). Anything else, or a second rejection of the
-    same parameter, propagates.
+    same parameter, propagates. The adjustments are remembered for
+    (``base_url``, model) only after ``send()`` returned.
     """
     model = params["model"]
     apply(base_url, model, params, only=only)
     adjusted: set[str] = set()
     while True:
         try:
-            return send()
+            result = send()
         except Exception as error:
             if not learn_from_rejection(
                 error, base_url, model, params, adjusted, provider=provider, logger=logger, only=only
             ):
                 raise
+        else:
+            for parameter in adjusted:
+                mark_unsupported(base_url, model, parameter)
+            if adjusted:
+                logger.info(
+                    "%s: remembering for model %s on this endpoint: %s not supported",
+                    provider,
+                    model,
+                    ", ".join(sorted(adjusted)),
+                )
+            return result
 
 
 def seed_temperature_support(base_url: str, model: str, supported: bool) -> None:

@@ -12,6 +12,7 @@ making them interchangeable via the base_url parameter.
 import logging
 from typing import Any
 
+from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.base import AuthenticationError, ContextLengthError, ProviderError
 from eq_chatbot_core.providers.openai_compatible import OpenAICompatibleProvider
 from eq_chatbot_core.utils.secret_scrub import scrub_secrets
@@ -154,12 +155,15 @@ class LocalLLMProvider(OpenAICompatibleProvider):
                     "id": model_id,
                     "name": model_id,
                     "provider": self.provider_name,
-                    "context_length": model_data.get("context_length"),
                     "supports_streaming": True,
                     "supports_tools": None,
-                    "supports_vision": None,
                     "owned_by": model_data.get("owned_by", "local"),
                     "created": model_data.get("created"),
+                    **param_learning.model_metadata(
+                        self._learning_scope(self._effective_base_url),
+                        model_id,
+                        context_length=model_data.get("context_length"),
+                    ),
                 }
             )
         return models
