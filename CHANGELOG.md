@@ -5,6 +5,12 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.3] - 2026-10-09
+
+### Changed
+
+- Dependency floors raised to the current release, per the project policy that floors track the locked version: `openai>=3.26.1` (3.26.1 only fixes custom voice creation parameters), `anthropic>=1.12.1` (1.12.0 adds model lifecycle fields, a `line` field and new capabilities to `/v1/models` — additive; no request parameter removed), `pydantic>=2.14.0`, `fastapi>=0.143.0` (`[server]`). Ceilings unchanged. No code change; unit suite, mypy `--strict`, ruff and pip-audit green against the new versions.
+
 ## [4.0.2] - 2026-10-08
 
 ### Fixed

@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 4.0.3 (09.10.2026)
+
+### [CHG]
+
+- **Untergrenzen der Abhängigkeiten auf den aktuellen Stand gehoben**, wie es die Projektregel verlangt: `openai>=3.26.1`, `anthropic>=1.12.1`, `pydantic>=2.14.0` und `fastapi>=0.143.0` (Extra `[server]`). Die Obergrenzen bleiben. Die Release Notes der beiden SDKs enthalten keine entfernten Request-Parameter; anthropic 1.12.0 ergänzt nur Felder in der Modellliste. Kein Code geändert; Unit-Tests, mypy `--strict`, ruff und pip-audit sind gegen die neuen Versionen grün.
+
 ## Version 4.0.2 (08.10.2026)
 
 ### [FIX]
