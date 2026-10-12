@@ -20,7 +20,12 @@ from typing import Any
 import httpx2
 
 from eq_chatbot_core.providers import param_learning
-from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
+from eq_chatbot_core.providers.anthropic_shared import (
+    convert_messages,
+    create_message,
+    list_anthropic_models,
+    open_message_stream,
+)
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -630,7 +635,7 @@ class LangDockProvider(BaseLLMProvider):
 
             params: dict[str, Any] = {
                 "model": model,
-                "messages": filtered_messages,
+                "messages": convert_messages(filtered_messages),
                 "max_tokens": max_tokens or 4096,
             }
 
@@ -1029,7 +1034,7 @@ class LangDockProvider(BaseLLMProvider):
 
             params: dict[str, Any] = {
                 "model": model,
-                "messages": filtered_messages,
+                "messages": convert_messages(filtered_messages),
                 "max_tokens": max_tokens or 4096,
             }
 

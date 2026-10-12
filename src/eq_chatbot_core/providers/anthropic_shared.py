@@ -9,6 +9,7 @@ learnable: ``reasoning_effort`` is not sent on these paths.
 
 from __future__ import annotations
 
+import json
 import logging
 from contextlib import ExitStack
 from typing import Any
@@ -16,6 +17,89 @@ from typing import Any
 from eq_chatbot_core.providers import param_learning
 
 ANTHROPIC_LEARNABLE: tuple[str, ...] = ("temperature",)
+
+
+def convert_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Convert OpenAI-style messages to the Messages API format.
+
+    - assistant messages with tool_calls -> content with tool_use blocks
+    - tool messages -> user messages with tool_result content blocks
+
+    Callers keep one OpenAI-shaped history for every provider; this is where it
+    becomes Anthropic's. Without it a second turn after a tool call is refused
+    (``content`` is null, ``role`` "tool" does not exist in this API).
+    """
+    converted = []
+
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content", "")
+
+        if role == "assistant" and msg.get("tool_calls"):
+            # Convert assistant message with tool_calls to Anthropic format
+            content_blocks = []
+
+            # Add text content if present
+            if content:
+                content_blocks.append({"type": "text", "text": content})
+
+            # Add tool_use blocks for each tool call
+            for tool_call in msg.get("tool_calls", []):
+                func = tool_call.get("function", {})
+                arguments = func.get("arguments", "{}")
+
+                # Parse arguments - could be string or dict
+                if isinstance(arguments, str):
+                    try:
+                        parsed_args = json.loads(arguments)
+                    except json.JSONDecodeError:
+                        parsed_args = {"raw": arguments}
+                else:
+                    parsed_args = arguments
+
+                content_blocks.append(
+                    {
+                        "type": "tool_use",
+                        "id": tool_call.get("id", ""),
+                        "name": func.get("name", ""),
+                        "input": parsed_args,
+                    }
+                )
+
+            converted.append(
+                {
+                    "role": "assistant",
+                    "content": content_blocks,
+                }
+            )
+
+        elif role == "tool":
+            # Convert tool message to user message with tool_result block
+            tool_call_id = msg.get("tool_call_id", "")
+
+            # Handle content that might be JSON or plain text
+            result_content = content
+            if isinstance(content, dict):
+                result_content = json.dumps(content)
+
+            converted.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_call_id,
+                            "content": result_content,
+                        }
+                    ],
+                }
+            )
+
+        else:
+            # Pass through user/assistant messages as-is
+            converted.append(msg)
+
+    return converted
 
 
 def create_message(client: Any, params: dict[str, Any], *, base_url: str, provider: str, logger: logging.Logger) -> Any:

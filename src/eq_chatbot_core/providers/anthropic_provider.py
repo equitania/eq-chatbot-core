@@ -12,6 +12,7 @@ from typing import Any
 from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.anthropic_shared import (
     ANTHROPIC_LEARNABLE,
+    convert_messages,
     create_message,
     list_anthropic_models,
     open_message_stream,
@@ -186,84 +187,8 @@ class AnthropicProvider(BaseLLMProvider):
         return blocks, filtered_messages
 
     def _convert_messages(self, messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """
-        Convert OpenAI-style messages to Anthropic format.
-
-        Key conversions:
-        - assistant messages with tool_calls -> content with tool_use blocks
-        - tool messages -> user messages with tool_result content blocks
-        """
-        converted = []
-
-        for msg in messages:
-            role = msg.get("role")
-            content = msg.get("content", "")
-
-            if role == "assistant" and msg.get("tool_calls"):
-                # Convert assistant message with tool_calls to Anthropic format
-                content_blocks = []
-
-                # Add text content if present
-                if content:
-                    content_blocks.append({"type": "text", "text": content})
-
-                # Add tool_use blocks for each tool call
-                for tool_call in msg.get("tool_calls", []):
-                    func = tool_call.get("function", {})
-                    arguments = func.get("arguments", "{}")
-
-                    # Parse arguments - could be string or dict
-                    if isinstance(arguments, str):
-                        try:
-                            parsed_args = json.loads(arguments)
-                        except json.JSONDecodeError:
-                            parsed_args = {"raw": arguments}
-                    else:
-                        parsed_args = arguments
-
-                    content_blocks.append(
-                        {
-                            "type": "tool_use",
-                            "id": tool_call.get("id", ""),
-                            "name": func.get("name", ""),
-                            "input": parsed_args,
-                        }
-                    )
-
-                converted.append(
-                    {
-                        "role": "assistant",
-                        "content": content_blocks,
-                    }
-                )
-
-            elif role == "tool":
-                # Convert tool message to user message with tool_result block
-                tool_call_id = msg.get("tool_call_id", "")
-
-                # Handle content that might be JSON or plain text
-                result_content = content
-                if isinstance(content, dict):
-                    result_content = json.dumps(content)
-
-                converted.append(
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": tool_call_id,
-                                "content": result_content,
-                            }
-                        ],
-                    }
-                )
-
-            else:
-                # Pass through user/assistant messages as-is
-                converted.append(msg)
-
-        return converted
+        """Convert OpenAI-style messages to Anthropic format (see ``anthropic_shared.convert_messages``)."""
+        return convert_messages(messages)
 
     def _convert_tools_to_anthropic(self, tools: list[dict[str, Any]] | None) -> list[dict[str, Any]] | None:
         """Convert OpenAI-style tools to Anthropic format."""

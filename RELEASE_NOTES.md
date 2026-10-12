@@ -1,5 +1,11 @@
 # Release Notes
 
+## Version 4.2.1 (12.10.2026)
+
+### [FIX]
+
+- **Claude über LangDock mit Werkzeugen.** Der LangDock-Weg zu Anthropic-Modellen gab den Gesprächsverlauf unverändert im OpenAI-Format weiter. Sobald das Modell ein Werkzeug benutzt hatte, lehnte LangDock jede weitere Anfrage mit HTTP 400 ab („expected string or array, received null“). Der Verlauf wird jetzt wie bei der direkten Anthropic-Anbindung umgewandelt: Werkzeugaufrufe werden zu `tool_use`-Blöcken, Werkzeugergebnisse zu `tool_result`-Blöcken. Live geprüft am 12.10.2026 mit claude-haiku-5-5 über LangDock.
+
 ## Version 4.2.0 (12.10.2026)
 
 ### [ADD]

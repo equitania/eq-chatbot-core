@@ -5,6 +5,12 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.1] - 2026-10-12
+
+### Fixed
+
+- LangDock's `anthropic` backend now converts a tool call history to the Messages API format, as `AnthropicProvider` always did: an assistant message with `tool_calls` becomes `tool_use` blocks, a `tool` message becomes a user message with a `tool_result` block. Before, the history was passed through unchanged, so every request after the model's first tool call was refused with HTTP 400 (`messages[n].content`: expected string or array, received null). A chat with a Claude model through LangDock failed as soon as the model used a tool. The conversion moved to `anthropic_shared.convert_messages`; `AnthropicProvider._convert_messages` keeps its name and delegates. Verified live 12.10.2026 against LangDock with claude-haiku-5-5.
+
 ## [4.2.0] - 2026-10-12
 
 ### Added
