@@ -254,6 +254,47 @@ class OpenAICompatibleProvider(BaseLLMProvider):
             logger=_logger,
         )
 
+    def _limit_scope(self) -> str | None:
+        return self._learning_scope(self._effective_base_url)
+
+    def probe_output_limit(self, model: str | None = None) -> int | None:
+        """Ask for the output limit with an oversized streaming request (see the base class).
+
+        Streaming, so that a provider which accepts the request is cut off after
+        the first chunk instead of generating up to ``PROBE_MAX_TOKENS``.
+        """
+        model = self.resolve_model(model)
+        known = super().probe_output_limit(model)
+        if known:
+            return known
+        params = self._build_params([{"role": "user", "content": "OK"}], model, 0.7, self.PROBE_MAX_TOKENS, None)
+        params["stream"] = True
+        opened: list[Any] = []
+
+        def send() -> Any:
+            response = self.client.chat.completions.create(**params)
+            opened.append(response)
+            return _prime_stream(response)
+
+        try:
+            param_learning.call_with_learning(
+                send,
+                self._limit_scope() or "",
+                params,
+                provider=self.provider_name,
+                logger=_logger,
+                cap=False,
+            )
+        except Exception as error:
+            return self._probe_outcome(model, error)
+        finally:
+            for response in opened:
+                close = getattr(response, "close", None)
+                if close is not None:
+                    close()
+        _logger.info("%s: model %s accepted the probe's output limit; limit stays unknown", self.provider_name, model)
+        return None
+
     def chat_completion(
         self,
         messages: list[dict[str, Any]],

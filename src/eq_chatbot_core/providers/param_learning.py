@@ -9,10 +9,18 @@ parameter adjusted, and record the fact here so later requests are right the
 first time.
 
 The memory is process-wide (consumers such as the Odoo module build a provider
-per request), thread-safe, holds three flags per key, and is never persisted.
+per request), thread-safe, holds three flags and up to two limits per key, and is never persisted.
 A key is the endpoint plus a fingerprint of the API key (see ``scope()``): a
 shared gateway may route one model name to different backends per virtual key.
 A rejection is remembered only once the adjusted request has succeeded.
+
+Since 4.1.0 the same memory holds numeric limits — the output limit and the
+context length — that a provider *states* in a rejection ("This model supports
+at most 16384 completion tokens", "max_tokens: N > 128000, which is the maximum
+allowed number of output tokens", "maximum context length is 128000 tokens").
+A stated limit is remembered at once: the provider named the number, no retry
+has to prove it. A request whose output limit is too large is retried once,
+capped to the stated value, and later requests are capped before they are sent.
 """
 
 from __future__ import annotations
@@ -53,8 +61,29 @@ _SUPPLIED_PARAM = re.compile(r"argument supplied:\s*(temperature|max_tokens|reas
 # a status). 422 is what some gateways answer instead of 400.
 _REJECTION_STATUSES = frozenset({400, 422, None})
 
+# Numeric limits a rejection can state, and the patterns that read them.
+LIMIT_KEYS: tuple[str, ...] = ("max_output_tokens", "context_length")
+_OUTPUT_LIMIT_PATTERNS = (
+    # OpenAI: "This model supports at most 16384 completion tokens, whereas you provided ..."
+    re.compile(r"supports at most (\d+) (?:completion|output) tokens", re.IGNORECASE),
+    # Anthropic: "max_tokens: 10000000 > 128000, which is the maximum allowed number of output tokens"
+    re.compile(r"> (\d+), which is the maximum allowed number of output tokens", re.IGNORECASE),
+)
+_CONTEXT_PATTERNS = (
+    # OpenAI, vLLM, LiteLLM: "This model's maximum context length is 128000 tokens."
+    re.compile(r"maximum context length is (\d+) tokens", re.IGNORECASE),
+    # Anthropic: "prompt is too long: 210000 tokens > 200000 maximum"
+    re.compile(r"prompt is too long: \d+ tokens > (\d+) maximum", re.IGNORECASE),
+)
+# The input side of a context rejection that blames the output limit (vLLM: "your
+# request has 20 input tokens"; older OpenAI: "(100 in the messages, 9000 in the completion)").
+_INPUT_TOKENS = re.compile(r"your request has (\d+) input tokens|\((\d+) in the messages", re.IGNORECASE)
+# The request parameters that carry the output limit on the wire.
+_OUTPUT_PARAMS: tuple[str, ...] = ("max_tokens", "max_completion_tokens")
+
 _lock = threading.Lock()
 _MEMORY: dict[str, set[tuple[str, str]]] = {parameter: set() for parameter in LEARNABLE}
+_LIMITS: dict[tuple[str, str], dict[str, int]] = {}
 
 
 def _key(base_url: str, model: str) -> tuple[str, str]:
@@ -84,6 +113,88 @@ def _error_message(body: dict[str, Any]) -> str:
     if isinstance(metadata, dict) and metadata.get("raw"):
         message = f"{message} {metadata['raw']}"
     return message
+
+
+def _rejection_message(error: BaseException) -> str | None:
+    """The message of a 400/422/stream-event error, or ``None`` for any other error."""
+    if getattr(error, "status_code", None) not in _REJECTION_STATUSES:
+        return None
+    body = getattr(error, "body", None)
+    if isinstance(body, dict) and isinstance(body.get("error"), dict):
+        body = body["error"]
+    return _error_message(body) if isinstance(body, dict) else str(error)
+
+
+def _first_number(patterns: tuple[re.Pattern[str], ...], message: str) -> int | None:
+    for pattern in patterns:
+        match = pattern.search(message)
+        if match:
+            value = int(match.group(1))
+            return value if value > 0 else None
+    return None
+
+
+def stated_limits(error: BaseException) -> dict[str, int]:
+    """The limits a rejection states, keyed by ``LIMIT_KEYS``; empty when it states none.
+
+    Read from the message only — the numbers are not in any structured field.
+    """
+    message = _rejection_message(error)
+    if not message:
+        return {}
+    limits: dict[str, int] = {}
+    output = _first_number(_OUTPUT_LIMIT_PATTERNS, message)
+    if output:
+        limits["max_output_tokens"] = output
+    context = _first_number(_CONTEXT_PATTERNS, message)
+    if context:
+        limits["context_length"] = context
+    return limits
+
+
+def allowed_output(error: BaseException) -> int | None:
+    """The largest output limit the rejected request could have sent, or ``None``.
+
+    Either the model's stated output limit, or — for a context rejection that
+    names the request's input tokens — the room the context leaves for output.
+    A context rejection without that number is about the input itself and
+    cannot be fixed by a smaller output limit.
+    """
+    limits = stated_limits(error)
+    if "max_output_tokens" in limits:
+        return limits["max_output_tokens"]
+    message = _rejection_message(error) or ""
+    match = _INPUT_TOKENS.search(message)
+    if "context_length" not in limits or not match:
+        return None
+    room = limits["context_length"] - int(match.group(1) or match.group(2))
+    return room if room > 0 else None
+
+
+def cap_output(params: dict[str, Any], limit: int) -> bool:
+    """Lower the output-limit parameter in ``params`` to ``limit``. True if it was above."""
+    capped = False
+    for name in _OUTPUT_PARAMS:
+        value = params.get(name)
+        if isinstance(value, int) and value > limit:
+            params[name] = limit
+            capped = True
+    return capped
+
+
+def remember_limits(base_url: str, model: str, limits: dict[str, int]) -> None:
+    """Record limits for (base_url, model); unknown keys and non-positive values are ignored."""
+    known = {key: value for key, value in limits.items() if key in LIMIT_KEYS and isinstance(value, int) and value > 0}
+    if not known:
+        return
+    with _lock:
+        _LIMITS.setdefault(_key(base_url, model), {}).update(known)
+
+
+def learned_limits(base_url: str, model: str) -> dict[str, int]:
+    """The limits remembered for (base_url, model), keyed by ``LIMIT_KEYS``."""
+    with _lock:
+        return dict(_LIMITS.get(_key(base_url, model), {}))
 
 
 def rejected_parameter(error: BaseException) -> str | None:
@@ -206,6 +317,33 @@ def learn_from_rejection(
     return True
 
 
+def _cap_to_stated_limit(
+    error: BaseException,
+    base_url: str,
+    model: str,
+    params: dict[str, Any],
+    *,
+    provider: str,
+    logger: logging.Logger,
+    cap: bool,
+) -> bool:
+    """Remember the limits ``error`` states; True if ``params`` was capped and should be resent."""
+    limits = stated_limits(error)
+    if limits:
+        remember_limits(base_url, model, limits)
+        logger.info(
+            "%s: model %s states %s; remembered for this endpoint",
+            provider,
+            model,
+            ", ".join(f"{key}={value}" for key, value in sorted(limits.items())),
+        )
+    allowed = allowed_output(error) if cap else None
+    if not allowed or not cap_output(params, allowed):
+        return False
+    logger.info("%s: model %s rejected the output limit; retrying with %s", provider, model, allowed)
+    return True
+
+
 def call_with_learning(
     send: Callable[[], Any],
     base_url: str,
@@ -214,6 +352,7 @@ def call_with_learning(
     provider: str,
     logger: logging.Logger,
     only: tuple[str, ...] = LEARNABLE,
+    cap: bool = True,
 ) -> Any:
     """Apply what is learned to ``params``, then ``send()``; on a recognised rejection adjust and resend.
 
@@ -221,18 +360,34 @@ def call_with_learning(
     loop, shared by every provider). Anything else, or a second rejection of the
     same parameter, propagates. The adjustments are remembered for
     (``base_url``, model) only after ``send()`` returned.
+
+    Limits a rejection states are remembered at once. With ``cap`` (the default)
+    the output limit is lowered to a remembered limit before sending, and a
+    request rejected for its output limit is resent once, capped. ``cap=False``
+    is for ``probe_output_limit``, whose oversized request must reach the provider.
     """
     model = params["model"]
     apply(base_url, model, params, only=only)
+    if cap:
+        known = learned_limits(base_url, model).get("max_output_tokens")
+        if known and cap_output(params, known):
+            logger.debug("%s: output limit capped to %s for model %s", provider, known, model)
     adjusted: set[str] = set()
+    capped = False
     while True:
         try:
             result = send()
         except Exception as error:
-            if not learn_from_rejection(
+            if learn_from_rejection(
                 error, base_url, model, params, adjusted, provider=provider, logger=logger, only=only
             ):
-                raise
+                continue
+            if not capped and _cap_to_stated_limit(
+                error, base_url, model, params, provider=provider, logger=logger, cap=cap
+            ):
+                capped = True
+                continue
+            raise
         else:
             for parameter in adjusted:
                 mark_unsupported(base_url, model, parameter)
@@ -267,12 +422,16 @@ def model_metadata(base_url: str, model: str, **reported: Any) -> dict[str, Any]
 
     ``reported`` holds what the provider's API said; every other key is ``None``.
     A learned temperature rejection makes ``supports_temperature`` ``False``
-    whatever the API reported.
+    whatever the API reported. A limit the API does not report is filled from a
+    limit a rejection stated (see ``learned_limits``); a reported one is kept.
     """
     meta: dict[str, Any] = dict.fromkeys(METADATA_KEYS)
     meta.update(reported)
     if temperature_support(base_url, model) is False:
         meta["supports_temperature"] = False
+    for key, value in learned_limits(base_url, model).items():
+        if not meta.get(key):
+            meta[key] = value
     return meta
 
 
@@ -280,3 +439,4 @@ def clear() -> None:
     with _lock:
         for memory in _MEMORY.values():
             memory.clear()
+        _LIMITS.clear()

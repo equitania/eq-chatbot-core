@@ -9,7 +9,13 @@ from collections.abc import Iterator
 from contextlib import ExitStack
 from typing import Any
 
-from eq_chatbot_core.providers.anthropic_shared import create_message, list_anthropic_models, open_message_stream
+from eq_chatbot_core.providers import param_learning
+from eq_chatbot_core.providers.anthropic_shared import (
+    ANTHROPIC_LEARNABLE,
+    create_message,
+    list_anthropic_models,
+    open_message_stream,
+)
 from eq_chatbot_core.providers.base import (
     AuthenticationError,
     BaseLLMProvider,
@@ -535,6 +541,40 @@ class AnthropicProvider(BaseLLMProvider):
         # Should not reach here, but just in case
         if last_error:
             raise self._handle_error(last_error) from last_error
+
+    def _limit_scope(self) -> str | None:
+        return self._learning_scope(self._endpoint())
+
+    def probe_output_limit(self, model: str | None = None) -> int | None:
+        """Ask for the output limit with an oversized streaming request (see the base class).
+
+        The Models API reports the limit too (``list_models``); the probe covers
+        endpoints that do not serve it.
+        """
+        model = self.resolve_model(model)
+        known = super().probe_output_limit(model)
+        if known:
+            return known
+        params: dict[str, Any] = {
+            "model": model,
+            "messages": [{"role": "user", "content": "OK"}],
+            "max_tokens": self.PROBE_MAX_TOKENS,
+        }
+        try:
+            with ExitStack() as stack:
+                param_learning.call_with_learning(
+                    lambda: stack.enter_context(self.client.messages.stream(**params)),
+                    self._limit_scope() or "",
+                    params,
+                    provider=self.provider_name,
+                    logger=logger,
+                    only=ANTHROPIC_LEARNABLE,
+                    cap=False,
+                )
+        except Exception as error:
+            return self._probe_outcome(model, error)
+        logger.info("%s: model %s accepted the probe's output limit; limit stays unknown", self.provider_name, model)
+        return None
 
     def list_models(self) -> list[dict[str, Any]]:
         """

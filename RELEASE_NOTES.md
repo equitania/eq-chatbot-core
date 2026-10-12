@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 4.1.0 (12.10.2026)
+
+### [ADD]
+
+- **Ausgabegrenze beim Anbieter abfragen:** `probe_output_limit(model)` schickt eine Anfrage mit einer Ausgabegrenze weit über jeder echten (10 Millionen Tokens). Der Anbieter lehnt sie ab und nennt dabei die echte Grenze. Das kostet nichts, und die Grenze wird gemerkt. Nimmt der Anbieter die Anfrage doch an, wird der Stream nach dem ersten Abschnitt geschlossen. Nennt er keine Zahl (Melious), bleibt die Grenze unbekannt. Live geprüft am 12.10.2026: OpenAI gpt-4o 16384, gpt-4.1-mini 32768, gpt-6-luna 128000; Anthropic claude-haiku-5-5 128000.
+- **`learned_limits(model)`** liefert, was eine Ablehnung oder Abfrage für Endpunkt und API-Key genannt hat (`max_output_tokens`, `context_length`). Das Gedächtnis lebt nur im Prozess; wer die Werte behalten will, speichert sie selbst.
+
+### [CHG]
+
+- **Zu große Ausgabegrenze wird gekürzt statt abgelehnt.** Lehnt der Anbieter eine Anfrage wegen der Ausgabegrenze ab, geht sie einmal mit der genannten Grenze erneut raus, und die Grenze wird gemerkt; spätere Anfragen werden vorab gekürzt. Nennt eine Kontext-Ablehnung die Eingabe-Tokens (vLLM, ältere OpenAI-Fassung), geht die Anfrage mit dem verbleibenden Platz erneut raus. Eine Kontext-Ablehnung wegen zu langer Eingabe bleibt ein `ContextLengthError`; die genannte Kontextlänge wird gemerkt.
+- **Modellliste ergänzt gelernte Grenzen**, wo der Endpunkt keine meldet; gemeldete Werte bleiben.
+
 ## Version 4.0.3 (09.10.2026)
 
 ### [CHG]

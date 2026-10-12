@@ -22,7 +22,7 @@ Originally extracted from an Odoo 18 chatbot integration; works standalone witho
 
 - **Multi-Provider Support** — OpenAI, Anthropic, LangDock, OpenRouter, Mammouth AI, LiteLLM gateway, IONOS AI Model Hub (EU-hosted), Melious.ai (sovereign EU), Privatemode.ai (end-to-end encrypted, EU), Local (LM Studio/Ollama)
 - **Unified API** — same interface regardless of provider
-- **No built-in model IDs** (v4.0.0) — the model is always the caller's; whether a model accepts `temperature`, `max_completion_tokens` or `reasoning_effort` is learned from the provider at runtime
+- **No built-in model IDs** (v4.0.0) — the model is always the caller's; whether a model accepts `temperature`, `max_completion_tokens` or `reasoning_effort` is learned from the provider at runtime; output limits are read from the provider's own rejection (`probe_output_limit()`, v4.1.0) and requests are capped to them
 - **Security** — Fernet encryption, prompt-injection detection (direct user input + indirect tool/RAG content), file-upload validation, race-free token-bucket rate limiting
 - **RAG Pipeline** — chunking, embeddings (incl. Melious.ai and IONOS embedders), Qdrant-backed retrieval, context-window management
 - **MCP Client** — Streamable HTTP, legacy HTTP/SSE and stdio transports, hardened against DNS rebinding, SSRF, and subprocess env injection; LAN mode for servers on the intranet

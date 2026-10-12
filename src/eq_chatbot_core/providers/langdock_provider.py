@@ -272,6 +272,16 @@ class LangDockProvider(BaseLLMProvider):
             return f"{self.base_url}{pattern.format(region=self.region)}"
         return f"{self.base_url}{pattern}"
 
+    def _limit_scope(self) -> str | None:
+        # The agent backend's model is configured in LangDock; nothing is learned there.
+        return None if self.backend == "agent" else self._learning_scope(self._get_backend_url())
+
+    def probe_output_limit(self, model: str | None = None) -> int | None:
+        """Probe on the openai backend (see the base class); other backends return what was learned."""
+        if self.backend == "openai":
+            return self._get_openai_backend().probe_output_limit(model)
+        return super().probe_output_limit(model)
+
     @property
     def http_client(self) -> httpx2.Client:
         """Get or create HTTP client for direct API calls."""

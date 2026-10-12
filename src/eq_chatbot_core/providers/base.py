@@ -315,6 +315,62 @@ class BaseLLMProvider(ABC):
             provider=self.provider_name,
         )
 
+    # Output limit sent by probe_output_limit(): above every model's real limit, so
+    # the provider rejects the request and names the limit instead of generating.
+    PROBE_MAX_TOKENS: int = 10_000_000
+
+    def _limit_scope(self) -> str | None:
+        """The ``param_learning`` scope that holds this provider's learned limits.
+
+        ``None`` for providers that learn nothing at runtime.
+        """
+        return None
+
+    def learned_limits(self, model: str | None = None) -> dict[str, int]:
+        """Limits a rejection stated for ``model`` on this endpoint and API key.
+
+        Keys are ``max_output_tokens`` and ``context_length``; a key is present
+        only when the provider named the number (in a rejection or a probe). The
+        memory lives in this process only — persist the values to keep them.
+        """
+        scope = self._limit_scope()
+        if scope is None:
+            return {}
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        return param_learning.learned_limits(scope, self.resolve_model(model))
+
+    def probe_output_limit(self, model: str | None = None) -> int | None:
+        """The model's output limit, asked from the provider without generating text.
+
+        Providers that support it send one request with an output limit far above
+        any real one (``PROBE_MAX_TOKENS``); the provider rejects it and names the
+        limit, which costs nothing and is remembered like a learned limit. Returns
+        ``None`` when the provider accepts the request (it is closed at once) or
+        rejects it without naming a number. A limit learned earlier is returned
+        without a request. The base implementation sends nothing.
+
+        Raises:
+            ProviderError: On errors other than the rejection (authentication,
+                rate limit, network).
+        """
+        return self.learned_limits(model).get("max_output_tokens")
+
+    def _probe_outcome(self, model: str, error: Exception) -> int | None:
+        """Result of a probe request that raised ``error``: the stated limit, ``None``, or a raise."""
+        limit = self.learned_limits(model).get("max_output_tokens")
+        if limit:
+            return limit
+        status = getattr(error, "status_code", None)
+        # A rejection without a number: HTTP 400/422, or an error event inside the
+        # stream (no status, but a body — unlike a connection error).
+        if status in (400, 422) or (status is None and getattr(error, "body", None) is not None):
+            return None
+        handle_error = getattr(self, "_handle_error", None)
+        if isinstance(error, ProviderError) or handle_error is None:
+            raise error
+        raise handle_error(error) from error
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(provider={self.provider_name})"
 

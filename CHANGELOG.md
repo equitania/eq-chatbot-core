@@ -5,6 +5,20 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-10-12
+
+### Added
+
+- `BaseLLMProvider.probe_output_limit(model)` asks the provider for a model's output limit without generating text: one streaming request with an output limit far above any real one (`PROBE_MAX_TOKENS`, 10,000,000). The provider rejects it and names the limit ("This model supports at most 16384 completion tokens", "max_tokens: N > 128000, which is the maximum allowed number of output tokens"), which costs nothing. Returns `None` when the provider accepts the request (the stream is closed after the first chunk) or rejects it without a number (Melious); raises `ProviderError` on authentication, rate-limit and network errors. Implemented for every OpenAI-wire provider, Anthropic, and LangDock's `openai` backend; other backends return what was learned. Verified live 12.10.2026: OpenAI gpt-4o 16384, gpt-4.1-mini 32768, gpt-6-luna 128000; Anthropic claude-haiku-5-5 128000.
+- `BaseLLMProvider.learned_limits(model)` returns the limits a rejection or probe stated for this endpoint and API key (`max_output_tokens`, `context_length`). The memory is process-wide and never persisted — callers that want to keep the values store them.
+- `param_learning.stated_limits()`, `allowed_output()`, `cap_output()`, `remember_limits()`, `learned_limits()` and `LIMIT_KEYS`.
+
+### Changed
+
+- A request rejected because its output limit is too large is resent once, capped to the limit the rejection states, and the limit is remembered: later requests to that model are capped before they are sent. A context rejection that names the request's input tokens (vLLM, older OpenAI wording) is resent with the room the context leaves; that room is not remembered as the model's output limit. A context rejection about the input itself still raises `ContextLengthError`, and the stated context length is remembered.
+- `list_models()` fills `max_output_tokens` / `context_length` from learned limits where the endpoint reports none; a reported value is kept.
+- `param_learning.call_with_learning()` takes `cap` (default `True`); `cap=False` is for the probe, whose oversized request must reach the provider.
+
 ## [4.0.3] - 2026-10-09
 
 ### Changed
