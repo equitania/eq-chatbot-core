@@ -323,6 +323,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to the gateway."""
@@ -394,6 +396,8 @@ class OpenAICompatibleProvider(BaseLLMProvider):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from the gateway.

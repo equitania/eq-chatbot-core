@@ -13,6 +13,7 @@ Documentation: https://docs.langdock.com/api-endpoints/api-introduction
 
 import json
 import logging
+import re
 from collections.abc import Iterable, Iterator
 from contextlib import ExitStack
 from typing import Any
@@ -21,6 +22,7 @@ import httpx2
 
 from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.anthropic_shared import (
+    add_web_search,
     convert_messages,
     create_message,
     list_anthropic_models,
@@ -112,6 +114,60 @@ def _iter_sse_data(lines: Iterable[str]) -> Iterator[dict[str, Any]]:
                 continue
             if isinstance(event, dict):
                 yield event
+
+
+# Source markers an agent leaves in its text after a search, e.g.
+# "75173 【toolu_vrtx_01LU…-0】" (LangDock, 12.10.2026) or OpenAI's "【4:0†source】".
+# They point into the agent's own tool results, which the caller never sees.
+_SOURCE_MARKER = re.compile(r"[ \t]?【[^】\n]{0,200}?(?:toolu_|†|:\d)[^】\n]{0,200}】")
+_MARKER_HOLD = 300
+
+
+class _AgentText:
+    """The user-visible text of an agent's event stream.
+
+    Removes source markers, also when one is split across deltas, and starts a
+    new paragraph when the agent writes again after a tool step — LangDock sends
+    "…belegt sind." and "Impressum und…" from two steps with nothing between.
+    """
+
+    def __init__(self) -> None:
+        self._held = ""
+        self._wrote = False
+        self._new_step = False
+
+    def feed(self, event: dict[str, Any]) -> str:
+        kind = event.get("type")
+        if kind == "start-step" and self._wrote:
+            self._new_step = True
+            return ""
+        if kind != "text-delta":
+            return ""
+        delta = event.get("delta") or ""
+        if not delta:
+            return ""
+        if self._new_step:
+            self._new_step = False
+            delta = "\n\n" + delta.lstrip()
+        return self._release(self._held + delta)
+
+    def flush(self) -> str:
+        text, self._held = _SOURCE_MARKER.sub("", self._held), ""
+        return text
+
+    def _release(self, text: str) -> str:
+        text = _SOURCE_MARKER.sub("", text)
+        start = text.rfind("【")
+        if start > 0 and text[start - 1] in " \t":
+            start -= 1  # the space before a marker goes with it
+        if start != -1 and "】" not in text[start:] and len(text) - start < _MARKER_HOLD:
+            # Possibly the beginning of a marker: hold it until it closes.
+            text, self._held = text[:start], text[start:]
+        else:
+            self._held = ""
+        if text:
+            self._wrote = True
+        return text
 
 
 def _agent_error_message(status_code: int, detail: str) -> str:
@@ -281,6 +337,50 @@ class LangDockProvider(BaseLLMProvider):
         # The agent backend's model is configured in LangDock; nothing is learned there.
         return None if self.backend == "agent" else self._learning_scope(self._get_backend_url())
 
+    def agent_info(self) -> dict[str, Any]:
+        """What the configured agent can do, from LangDock's Agent Get API.
+
+        Returns ``name``, ``model`` (the model ID set in LangDock, ``None`` on
+        "Auto"), ``web_search``, ``image_generation``, ``extended_thinking``,
+        ``canvas``, ``knowledge`` (knowledge folders attached) and ``actions``
+        (number of LangDock actions). Instructions, description and owner are
+        left out on purpose. Raises ``ProviderError`` when the agent cannot be
+        read (no access, wrong workspace, network).
+        """
+        if self.backend != "agent" or not self.agent_id:
+            raise ProviderError("agent_info needs the agent backend and an agent ID", provider="langdock")
+        try:
+            response = self.http_client.get("/get", params={"agentId": self.agent_id}, timeout=30.0)
+        except httpx2.HTTPError as e:
+            raise ProviderError(f"Agent HTTP error: {_scrub(str(e))}", provider="langdock") from e
+        if response.status_code != 200:
+            detail = _safe_detail(response.text)
+            raise ProviderError(
+                _agent_error_message(response.status_code, detail),
+                provider="langdock",
+                status_code=response.status_code,
+            )
+        agent = (response.json() or {}).get("agent") or {}
+        return {
+            "name": agent.get("name") or "",
+            "model": agent.get("model"),
+            "web_search": bool(agent.get("webSearchEnabled")),
+            "image_generation": bool(agent.get("imageGenerationEnabled")),
+            "extended_thinking": bool(agent.get("extendedThinking")),
+            "canvas": bool(agent.get("canvasEnabled")),
+            "knowledge": bool(agent.get("knowledgeFolderIds")),
+            "actions": len(agent.get("actions") or []),
+        }
+
+    def supports_native_web_search(self) -> bool:
+        """The anthropic backend passes Anthropic's server-side web search through.
+
+        LangDock's openai endpoints refuse hosted tools ("Only function tools are
+        allowed", checked 12.10.2026); an agent searches if it is set up to in
+        LangDock (``agent_info``).
+        """
+        return self.backend == "anthropic"
+
     def _check_image_part(self, png_base64: str) -> dict[str, Any]:
         """The anthropic backend takes the Messages API's image block, the others OpenAI's."""
         if self.backend == "anthropic":
@@ -383,6 +483,7 @@ class LangDockProvider(BaseLLMProvider):
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
         *,
         reasoning_effort: str | None = None,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
         """
@@ -402,7 +503,9 @@ class LangDockProvider(BaseLLMProvider):
                 messages, model, temperature, max_tokens, tools, reasoning_effort, **kwargs
             )
         elif self.backend == "anthropic":
-            return self._anthropic_chat_completion(messages, model, temperature, max_tokens, tools, **kwargs)
+            return self._anthropic_chat_completion(
+                messages, model, temperature, max_tokens, tools, web_search=web_search, **kwargs
+            )
         elif self.backend == "google":
             return self._google_chat_completion(messages, model, temperature, max_tokens, **kwargs)
         elif self.backend == "codestral":
@@ -581,16 +684,16 @@ class LangDockProvider(BaseLLMProvider):
             content_parts: list[str] = []
             model_name = ""
             metadata: dict[str, Any] = {}
+            text = _AgentText()
 
             for event in self._agent_request_events(agent_messages):
-                kind = event.get("type")
-                if kind == "text-delta":
-                    delta = event.get("delta") or ""
-                    if delta:
-                        content_parts.append(delta)
-                elif kind == "start":
+                if event.get("type") == "start":
                     metadata = event.get("messageMetadata") or {}
                     model_name = metadata.get("modelName") or ""
+                piece = text.feed(event)
+                if piece:
+                    content_parts.append(piece)
+            content_parts.append(text.flush())
 
             content = "".join(content_parts)
             if not content:
@@ -627,6 +730,8 @@ class LangDockProvider(BaseLLMProvider):
         temperature: float,
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
         """Anthropic-compatible chat completion."""
@@ -659,6 +764,7 @@ class LangDockProvider(BaseLLMProvider):
                         )
                 if anthropic_tools:
                     params["tools"] = anthropic_tools
+            add_web_search(params, web_search)
 
             params.update(kwargs)
 
@@ -879,6 +985,7 @@ class LangDockProvider(BaseLLMProvider):
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
         *,
         reasoning_effort: str | None = None,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """
@@ -898,7 +1005,9 @@ class LangDockProvider(BaseLLMProvider):
                 messages, model, temperature, max_tokens, tools, reasoning_effort, **kwargs
             )
         elif self.backend == "anthropic":
-            yield from self._anthropic_stream_completion(messages, model, temperature, max_tokens, tools, **kwargs)
+            yield from self._anthropic_stream_completion(
+                messages, model, temperature, max_tokens, tools, web_search=web_search, **kwargs
+            )
         elif self.backend == "google":
             yield from self._google_stream_completion(messages, model, temperature, max_tokens, **kwargs)
         elif self.backend == "codestral":
@@ -974,27 +1083,31 @@ class LangDockProvider(BaseLLMProvider):
             kwargs.pop("max_tokens", None)
 
             emitted = 0
+            text = _AgentText()
             for event in self._agent_request_events(agent_messages):
                 kind = event.get("type")
-
-                if kind == "text-delta":
-                    delta = event.get("delta") or ""
-                    if delta:
-                        emitted += 1
-                        yield StreamChunk(
-                            content=delta,
-                            is_final=False,
-                            finish_reason=None,
-                            input_tokens=0,
-                            output_tokens=0,
-                        )
-                elif kind == "start":
+                piece = text.feed(event)
+                if piece:
+                    emitted += 1
+                    yield StreamChunk(
+                        content=piece,
+                        is_final=False,
+                        finish_reason=None,
+                        input_tokens=0,
+                        output_tokens=0,
+                    )
+                if kind == "start":
                     model_name = (event.get("messageMetadata") or {}).get("modelName")
                     if model_name:
                         _logger.info(f"Agent stream: answering with {model_name}")
                 # reasoning-*, text-start/-end, start-step, finish-step, tool-*
                 # and data-* carry no user-visible text; ignoring unknown types
                 # keeps a protocol addition from breaking us.
+
+            rest = text.flush()
+            if rest:
+                emitted += 1
+                yield StreamChunk(content=rest, is_final=False, finish_reason=None, input_tokens=0, output_tokens=0)
 
             if not emitted:
                 _logger.warning("Agent stream: no text-delta events in the response")
@@ -1026,6 +1139,8 @@ class LangDockProvider(BaseLLMProvider):
         temperature: float,
         max_tokens: int | None,
         tools: list[dict[str, Any]] | None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Anthropic-compatible streaming."""
@@ -1057,6 +1172,7 @@ class LangDockProvider(BaseLLMProvider):
                         )
                 if anthropic_tools:
                     params["tools"] = anthropic_tools
+            add_web_search(params, web_search)
 
             params.update(kwargs)
 

@@ -12,6 +12,7 @@ from typing import Any
 from eq_chatbot_core.providers import param_learning
 from eq_chatbot_core.providers.anthropic_shared import (
     ANTHROPIC_LEARNABLE,
+    add_web_search,
     convert_messages,
     create_message,
     list_anthropic_models,
@@ -216,6 +217,8 @@ class AnthropicProvider(BaseLLMProvider):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> LLMResponse:
         """Send a chat completion request to Anthropic with retry on overload."""
@@ -242,6 +245,7 @@ class AnthropicProvider(BaseLLMProvider):
 
         if anthropic_tools:
             params["tools"] = anthropic_tools
+        add_web_search(params, web_search)
 
         params.update(kwargs)
 
@@ -312,6 +316,8 @@ class AnthropicProvider(BaseLLMProvider):
         temperature: float = 0.7,
         max_tokens: int | None = None,
         tools: "list[ToolDefinition] | list[dict[str, Any]] | None" = None,
+        *,
+        web_search: bool = False,
         **kwargs: Any,
     ) -> Iterator[StreamChunk]:
         """Stream a chat completion response from Anthropic with retry on overload."""
@@ -338,6 +344,7 @@ class AnthropicProvider(BaseLLMProvider):
 
         if anthropic_tools:
             params["tools"] = anthropic_tools
+        add_web_search(params, web_search)
 
         params.update(kwargs)
 
@@ -466,6 +473,10 @@ class AnthropicProvider(BaseLLMProvider):
         # Should not reach here, but just in case
         if last_error:
             raise self._handle_error(last_error) from last_error
+
+    def supports_native_web_search(self) -> bool:
+        """The Messages API's server-side web search (``anthropic_shared.WEB_SEARCH_TOOL``)."""
+        return True
 
     def _limit_scope(self) -> str | None:
         return self._learning_scope(self._endpoint())

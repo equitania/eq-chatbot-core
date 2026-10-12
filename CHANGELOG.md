@@ -5,6 +5,18 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-10-12
+
+### Added
+
+- Built-in web search: `web_search=True` on `chat_completion` / `stream_completion`. Anthropic and LangDock's `anthropic` backend add Anthropic's server-side search tool (`anthropic_shared.WEB_SEARCH_TOOL`, `web_search_20250305`, at most 5 searches per request); the provider runs and bills the search. Every other provider ignores the flag. `supports_native_web_search()` says which provider has one. Verified live 12.10.2026 with claude-haiku-5-5, directly and through LangDock.
+- `check_model(..., web_search=True)` and `ModelCheck.web_search`: where the provider has a built-in search, one more request with it switched on (the model is not asked to search). `"refused"` usually means the account has web search switched off.
+- `LangDockProvider.agent_info()`: the agent's name, model and switches (web search, image generation, extended thinking, canvas, knowledge, number of actions) from LangDock's Agent Get API; instructions, description and owner are left out.
+
+### Fixed
+
+- LangDock agent answers no longer contain source markers such as `【toolu_vrtx_…-0】`, also when a marker is split across deltas, and text written after a tool step starts a new paragraph instead of running into the previous sentence ("…belegt sind.Impressum und …").
+
 ## [4.2.1] - 2026-10-12
 
 ### Fixed

@@ -10,8 +10,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "default_model": "property",
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
@@ -22,7 +22,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "IonosProvider": {
@@ -37,8 +38,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -50,7 +51,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "LangDockAgentManager": {
@@ -88,10 +90,11 @@
     },
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, region: str = 'eu', backend: str = 'openai', reasoning_effort: str | None = None, agent_id: str | None = None, model: str | None = None)",
+      "agent_info": "(self) -> dict[str, typing.Any]",
       "anthropic_client": "property",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "default_model": "property",
       "generate_image": "(self, prompt: str, *, model: str | None = None, size: str = '1024x1024', **kwargs: Any) -> 'ImageResult'",
       "http_client": "property",
@@ -103,7 +106,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, reasoning_effort: str | None = None, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool",
       "upload_attachment": "(self, file_data: bytes, filename: str, mimetype: str) -> dict[str, typing.Any]"
     }
   },
@@ -119,8 +123,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None, *, tts_model: str | None = None, tts_voice: str | None = None, stt_model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -132,7 +136,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool",
       "text_to_speech": "(self, text: str, *, model: str | None = None, voice: str | None = None, response_format: str = 'wav', **kwargs: Any) -> bytes",
       "transcribe": "(self, audio: Any, *, model: str | None = None, **kwargs: Any) -> str"
     }
@@ -152,8 +157,8 @@
     "members": {
       "__init__": "(self, api_key: str = 'not-used', base_url: str | None = None, timeout: float | None = None, max_retries: int = 2, model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -166,7 +171,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "MammouthProvider": {
@@ -182,8 +188,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -195,7 +201,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "MeliousProvider": {
@@ -210,8 +217,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -223,7 +230,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "OpenAIProvider": {
@@ -238,8 +246,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, organization: str | None = None, model: str | None = None, image_model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -251,7 +259,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "OpenRouterProvider": {
@@ -266,8 +275,8 @@
     "members": {
       "__init__": "(self, api_key: str, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, site_url: str | None = None, site_name: str | None = None, model: str | None = None, image_model: str | None = None)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -279,7 +288,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "PrivatemodeProvider": {
@@ -295,8 +305,8 @@
     "members": {
       "__init__": "(self, api_key: str | None = None, base_url: str | None = None, timeout: float = 60.0, max_retries: int = 2, model: str | None = None, *, allow_insecure_transport: bool = False)",
       "api_key": "property",
-      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
-      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
+      "chat_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> eq_chatbot_core.providers.base.LLMResponse",
+      "check_model": "(self, model: str | None = None, *, temperature: float | None = 0.7, max_tokens: int | None = None, tools: bool = True, vision: bool = True, web_search: bool = True, probe_limit: bool = True, **kwargs: Any) -> eq_chatbot_core.providers.base.ModelCheck",
       "client": "property",
       "close": "(self) -> None",
       "default_model": "property",
@@ -308,7 +318,8 @@
       "provider_name": "property",
       "resolve_model": "(self, model: str | None = None) -> str",
       "seed_adjustments": "(self, model: str, adjustments: 'list[str] | tuple[str, ...]') -> None",
-      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]"
+      "stream_completion": "(self, messages: list[dict[str, typing.Any]], model: str | None = None, temperature: float = 0.7, max_tokens: int | None = None, tools: 'list[ToolDefinition] | list[dict[str, Any]] | None' = None, *, web_search: bool = False, **kwargs: Any) -> collections.abc.Iterator[eq_chatbot_core.providers.base.StreamChunk]",
+      "supports_native_web_search": "(self) -> bool"
     }
   },
   "providers.__all__": [

@@ -164,6 +164,10 @@ class ModelCheck:
     vision: str = "skipped"
     """The same with a small image."""
 
+    web_search: str = "skipped"
+    """The same with the provider's built-in web search switched on; ``"skipped"``
+    where the provider has none (``supports_native_web_search``)."""
+
     adjustments: list[str] = field(default_factory=list)
     """Request adjustments this model needs (``param_learning.LEARNABLE`` names).
     Persist them and hand them back with ``seed_adjustments`` after a restart."""
@@ -484,6 +488,7 @@ class BaseLLMProvider(ABC):
         max_tokens: int | None = None,
         tools: bool = True,
         vision: bool = True,
+        web_search: bool = True,
         probe_limit: bool = True,
         **kwargs: Any,
     ) -> ModelCheck:
@@ -492,8 +497,10 @@ class BaseLLMProvider(ABC):
         Steps, each a streamed request shaped like a chat turn (system and user
         message, the caller's ``temperature`` and extra ``kwargs``, an output limit
         of at most ``CHECK_MAX_TOKENS``): plain text, then with one function tool
-        (``tools``), then with a small image (``vision``). Tools and image are
-        only tried once plain text works. Finally the output limit is asked for
+        (``tools``), then with a small image (``vision``), then with the
+        provider's built-in web search switched on (``web_search``, only where
+        ``supports_native_web_search``; the model is not asked to search, so it
+        costs no search). These are only tried once plain text works. Finally the output limit is asked for
         (``probe_limit``, see ``probe_output_limit``).
 
         A rejection the library does not recognise is explored: the request is
@@ -518,9 +525,9 @@ class BaseLLMProvider(ABC):
         limit = min(max_tokens or CHECK_MAX_TOKENS, CHECK_MAX_TOKENS)
         system = {"role": "system", "content": CHECK_SYSTEM}
 
-        def step(name: str, user_content: Any, step_tools: list[dict[str, Any]] | None) -> str:
+        def step(name: str, user_content: Any, step_tools: list[dict[str, Any]] | None, **extra: Any) -> str:
             messages = [system, {"role": "user", "content": user_content}]
-            state, message = self._check_step(model, messages, temperature, limit, step_tools, kwargs)
+            state, message = self._check_step(model, messages, temperature, limit, step_tools, {**kwargs, **extra})
             setattr(result, name, state)
             if message:
                 result.messages[name] = message
@@ -532,6 +539,8 @@ class BaseLLMProvider(ABC):
             if vision:
                 image = self._check_image_part(check_image_png())
                 step("vision", [{"type": "text", "text": "Which colour is this image?"}, image], None)
+            if web_search and self.supports_native_web_search():
+                step("web_search", "Reply with OK.", None, web_search=True)
             if probe_limit:
                 try:
                     self.probe_output_limit(model)
@@ -573,6 +582,15 @@ class BaseLLMProvider(ABC):
         from eq_chatbot_core.utils.secret_scrub import scrub_secrets
 
         return scrub_secrets(str(error))[:500]
+
+    def supports_native_web_search(self) -> bool:
+        """Whether this provider offers a built-in web search (``web_search=True``).
+
+        The search runs at the provider, which also bills it. Whether a given
+        model and account may use it is found out by ``check_model``.
+        Providers without one ignore ``web_search``.
+        """
+        return False
 
     def _check_image_part(self, png_base64: str) -> dict[str, Any]:
         """The image of the vision step, in the message format this provider expects."""

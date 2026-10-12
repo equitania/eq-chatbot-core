@@ -1,5 +1,17 @@
 # Release Notes
 
+## Version 4.3.0 (12.10.2026)
+
+### [ADD]
+
+- **Eingebaute Websuche:** `web_search=True` bei `chat_completion` und `stream_completion`. Bei Anthropic und LangDocks `anthropic`-Backend wird Anthropics Suchwerkzeug angehängt (höchstens 5 Suchen je Anfrage). Der Anbieter sucht selbst und rechnet die Suchen ab. Alle anderen Anbieter ignorieren den Schalter, `supports_native_web_search()` sagt, wer ihn kennt. Live geprüft am 12.10.2026 mit claude-haiku-5-5, direkt und über LangDock.
+- **Die Modellprüfung prüft die Websuche mit:** Wo es eine eingebaute Suche gibt, schickt `check_model` eine weitere Anfrage mit eingeschalteter Suche. Das Modell wird nicht zum Suchen aufgefordert. Ergebnis in `ModelCheck.web_search`; „abgelehnt“ heißt meist, dass die Websuche im Konto abgeschaltet ist.
+- **`LangDockProvider.agent_info()`** liest Name, Modell und Schalter eines Agenten aus LangDock: Websuche, Bilderzeugung, erweitertes Nachdenken, Canvas, Wissensordner, Anzahl der Aktionen. Anweisungen, Beschreibung und Besitzer bleiben draußen.
+
+### [FIX]
+
+- **Agenten-Antworten ohne Quellenmarken:** Marken wie `【toolu_vrtx_…-0】` werden entfernt, auch wenn sie über mehrere Abschnitte verteilt ankommen. Schreibt der Agent nach einem Werkzeugschritt weiter, beginnt ein neuer Absatz, statt dass der Text am vorigen Satz klebt („…belegt sind.Impressum und …“).
+
 ## Version 4.2.1 (12.10.2026)
 
 ### [FIX]

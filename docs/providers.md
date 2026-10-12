@@ -293,6 +293,29 @@ provider.seed_adjustments("your-model-id", stored_adjustments)
 - `"refused"` means the provider rejected the request even after the adjustments it allows were tried. `"error"` is no verdict: authentication, rate limit, overload or network.
 - Inside the check, a rejection no rule recognises is explored: the unchanged request once more (if it then passes, nothing is learned), then each candidate adjustment alone. Candidates the error text names come first; without a name only harmless ones are tried — drop `temperature`, drop `stream_options`, `reasoning_effort="none"` with tools. A conversation is never explored.
 - Adjustments learned earlier are forgotten when a check starts, so a re-check notices a model the provider has changed.
+- `check.web_search` (4.3.0): where the provider has a built-in web search (`supports_native_web_search()`), one more request is sent with it switched on. The model is not asked to search, so the step costs no search. `"refused"` usually means the account has web search switched off.
+
+### Built-in web search (4.3.0)
+
+```python
+provider.supports_native_web_search()   # True for Anthropic and LangDock's anthropic backend
+provider.stream_completion(messages, model="your-model-id", tools=odoo_tools, web_search=True)
+```
+
+- Anthropic and LangDock's `anthropic` backend add Anthropic's server-side search tool (`web_search_20250305`, at most 5 searches per request). The provider runs the search, bills it per search and returns the answer with the results worked in; nothing is executed by the caller, and the search blocks never appear as tool calls.
+- Every other provider ignores `web_search`. LangDock's `openai` endpoints refuse hosted tools ("Only function tools are allowed", checked 12.10.2026).
+- Search results are outside content. A chat that can also write data should ask before it writes after a search.
+
+### LangDock agents (4.3.0)
+
+```python
+provider = LangDockProvider(api_key=key, backend="agent", agent_id="…")
+provider.agent_info()   # {"name", "model", "web_search", "image_generation", "extended_thinking",
+                        #  "canvas", "knowledge", "actions"}
+```
+
+- `agent_info()` reads the agent's settings from LangDock's Agent Get API; instructions, description and owner are left out. The agent's own tools (web search, actions, knowledge) are set in LangDock; the agent API takes no client tools.
+- The agent's text arrives without source markers such as `【toolu_…-0】`, and text written after a tool step starts a new paragraph.
 
 ### Temperature clamping
 
@@ -616,6 +639,29 @@ provider.seed_adjustments("ihre-modell-id", gespeicherte_anpassungen)
 - `"refused"` heißt: Der Anbieter hat abgelehnt, auch nachdem die zulässigen Anpassungen probiert waren. `"error"` ist kein Urteil: Anmeldung, Rate-Limit, Überlast oder Netz.
 - Innerhalb der Prüfung wird eine Ablehnung, die keine Regel kennt, erkundet: zuerst dieselbe Anfrage noch einmal (geht sie dann durch, wird nichts gelernt), danach jede mögliche Anpassung einzeln. Was die Meldung nennt, kommt zuerst; ohne Nennung nur Ungefährliches – `temperature` weglassen, `stream_options` weglassen, `reasoning_effort="none"` bei Werkzeugen. Ein Gespräch wird nie erkundet.
 - Zu Beginn einer Prüfung wird vorher Gelerntes vergessen, damit eine erneute Prüfung bemerkt, wenn der Anbieter ein Modell geändert hat.
+- `check.web_search` (4.3.0): Hat der Anbieter eine eingebaute Websuche (`supports_native_web_search()`), folgt eine weitere Anfrage mit eingeschalteter Suche. Das Modell wird nicht zum Suchen aufgefordert, der Schritt kostet also keine Suche. `"refused"` heißt meist, dass die Websuche im Konto abgeschaltet ist.
+
+### Eingebaute Websuche (4.3.0)
+
+```python
+provider.supports_native_web_search()   # True bei Anthropic und LangDocks anthropic-Backend
+provider.stream_completion(messages, model="ihre-modell-id", tools=odoo_werkzeuge, web_search=True)
+```
+
+- Anthropic und LangDocks `anthropic`-Backend hängen Anthropics serverseitiges Suchwerkzeug an (`web_search_20250305`, höchstens 5 Suchen je Anfrage). Der Anbieter sucht selbst, rechnet je Suche ab und liefert die Antwort mit eingearbeiteten Ergebnissen; beim Aufrufer wird nichts ausgeführt, die Suchblöcke erscheinen nie als Werkzeugaufrufe.
+- Alle anderen Anbieter ignorieren `web_search`. LangDocks `openai`-Endpunkte lehnen fremde Werkzeuge ab („Only function tools are allowed“, geprüft am 12.10.2026).
+- Suchergebnisse sind fremde Inhalte. Ein Chat, der auch Daten schreiben kann, sollte nach einer Suche vor dem Schreiben nachfragen.
+
+### LangDock-Agenten (4.3.0)
+
+```python
+provider = LangDockProvider(api_key=key, backend="agent", agent_id="…")
+provider.agent_info()   # {"name", "model", "web_search", "image_generation", "extended_thinking",
+                        #  "canvas", "knowledge", "actions"}
+```
+
+- `agent_info()` liest die Einstellungen des Agenten über LangDocks Agent-Get-API; Anweisungen, Beschreibung und Besitzer bleiben draußen. Die eigenen Werkzeuge des Agenten (Websuche, Aktionen, Wissen) werden in LangDock eingerichtet; die Agenten-Schnittstelle nimmt keine fremden Werkzeuge an.
+- Der Text des Agenten kommt ohne Quellenmarken wie `【toolu_…-0】`, und Text nach einem Werkzeugschritt beginnt einen neuen Absatz.
 
 ### Temperature-Clamping
 

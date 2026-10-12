@@ -18,6 +18,18 @@ from eq_chatbot_core.providers import param_learning
 
 ANTHROPIC_LEARNABLE: tuple[str, ...] = ("temperature",)
 
+# Anthropic's server-side web search. The model decides when to search; results
+# and citations stay inside the provider's answer, nothing is executed here.
+# Billed per search by the provider; ``max_uses`` caps one request. The newer
+# version tag (web_search_20260209) is refused by LangDock (checked 12.10.2026).
+WEB_SEARCH_TOOL: dict[str, Any] = {"type": "web_search_20250305", "name": "web_search", "max_uses": 5}
+
+
+def add_web_search(params: dict[str, Any], enabled: Any) -> None:
+    """Append the web search server tool to a Messages API request when ``enabled``."""
+    if enabled:
+        params["tools"] = [*params.get("tools", []), dict(WEB_SEARCH_TOOL)]
+
 
 def convert_messages(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Convert OpenAI-style messages to the Messages API format.
