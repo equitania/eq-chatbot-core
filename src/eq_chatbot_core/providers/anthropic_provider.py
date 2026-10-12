@@ -545,6 +545,10 @@ class AnthropicProvider(BaseLLMProvider):
     def _limit_scope(self) -> str | None:
         return self._learning_scope(self._endpoint())
 
+    def _check_image_part(self, png_base64: str) -> dict[str, Any]:
+        """The Messages API's own image block (``_convert_messages`` passes user content through)."""
+        return {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": png_base64}}
+
     def probe_output_limit(self, model: str | None = None) -> int | None:
         """Ask for the output limit with an oversized streaming request (see the base class).
 

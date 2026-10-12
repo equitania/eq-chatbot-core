@@ -1,5 +1,19 @@
 # Release Notes
 
+## Version 4.2.0 (12.10.2026)
+
+### [ADD]
+
+- **Modell vorab prüfen: `check_model(model)`.** Der Verbindungstest schickte bisher eine nackte Anfrage ohne Werkzeuge, der Chat schickt immer Werkzeuge mit – so lief der Test durch, während jede Chat-Nachricht scheiterte. `check_model` schickt dagegen einige kleine Anfragen in genau der Form des Chats: Text, dann mit einem Werkzeug, dann mit einem kleinen Bild, zuletzt die Abfrage der Ausgabegrenze. Jede Anfrage ist gestreamt, hat System- und Benutzernachricht und höchstens 256 Ausgabe-Tokens; abgelehnte Anfragen kosten nichts. Das Ergebnis (`ModelCheck`) sagt je Schritt „ok“, „abgelehnt“, „kein Urteil“ (Anmeldung, Rate-Limit, Netz) oder „übersprungen“, nennt die nötigen Anpassungen, die vom Anbieter genannten Grenzen und dessen Meldung. Vorher Gelerntes wird zuerst vergessen, damit eine erneute Prüfung bemerkt, wenn der Anbieter ein Modell geändert hat.
+- **Ausprobieren statt Fehlertexte deuten.** Erkennt keine Regel eine Ablehnung, sucht die Prüfung selbst: zuerst dieselbe Anfrage noch einmal (ein Gateway kann an ein gestörtes Backend geraten sein – geht sie dann durch, wird nichts gelernt), danach jede mögliche Anpassung einzeln. Was die Fehlermeldung nennt, kommt zuerst; ohne Nennung werden nur ungefährliche Anpassungen probiert (Temperatur weglassen, Nutzungsangaben im Stream weglassen, Reasoning bei Werkzeugen abschalten). Die Ausgabegrenze umbenennen oder ein eingestelltes Reasoning weglassen geschieht nur, wenn die Meldung es nennt. Bei Anmelde-, Rate-Limit-, Überlast- und Netzfehlern bricht die Suche sofort ab. Im Chat selbst wird nie gesucht. Live geprüft am 12.10.2026: Ohne die Regel aus 4.1.1 fand die Prüfung für gpt-6-luna die nötige Anpassung allein.
+- **Gelerntes speichern und zurückgeben:** `learned_adjustments(model)` und `seed_adjustments(model, namen)`. Wer die Liste speichert und nach einem Neustart zurückgibt, hat sofort die richtige erste Anfrage.
+- **`param_learning.is_rejection(error)`** sagt, ob der Anbieter die Anfrage so abgelehnt hat (HTTP 400/422 oder Fehlerereignis im Stream), auch durch einen `ProviderError` hindurch.
+- **Neue lernbare Anpassung `stream_usage`:** lässt `stream_options` weg, für Server, die im Stream keine Token-Nutzung melden wollen.
+
+### [FIX]
+
+- **Werkzeuge mit Modellen, die von sich aus „nachdenken“.** Manche OpenAI-Modelle arbeiten standardmäßig mit Reasoning und lehnen Werkzeuge ab, solange es aktiv ist. Jede `/chat/completions`-Anfrage mit Werkzeugen kam mit HTTP 400 zurück („Function tools with reasoning_effort are not supported … set reasoning_effort to 'none'“), auch ohne gesendetes `reasoning_effort`. Ein Chat, der immer Werkzeuge mitschickt, scheiterte daher bei jeder Nachricht, während der Verbindungstest ohne Werkzeuge durchlief. Jetzt wird die Anfrage einmal mit `reasoning_effort="none"` wiederholt und das nach Erfolg für Endpunkt und Modell gemerkt. Das gilt nur für Anfragen mit Werkzeugen; ohne Werkzeuge denkt das Modell weiter nach. Live geprüft am 12.10.2026.
+
 ## Version 4.1.0 (12.10.2026)
 
 ### [ADD]

@@ -274,6 +274,26 @@ Whether a model accepts `temperature`, wants `max_completion_tokens` instead of 
 
 Errors are mapped by HTTP status: 429 `RateLimitError` (with `retry_after`), 401/403 `AuthenticationError` (403 is new in this release), 503/529 `OverloadedError`, and 400 with code `context_length_exceeded` or a context-length phrase `ContextLengthError`. For LangDock this mapping applies to the `openai` backend only; the anthropic, google and agent backends keep their previous mapping.
 
+### Checking a model before use
+
+A connection test that sends a bare request proves little: a chat sends tools, streams, and has a system prompt. `check_model()` sends what a chat sends, in a few small requests, and reports what the model accepts.
+
+```python
+check = provider.check_model("your-model-id", temperature=0.7)
+check.text, check.tools, check.vision   # "ok" | "refused" | "error" | "skipped"
+check.adjustments                       # e.g. ["reasoning_with_tools"] - persist this
+check.limits                            # e.g. {"max_output_tokens": 128000}
+check.messages                          # the provider's message per failed step
+
+# After a restart, before the first chat:
+provider.seed_adjustments("your-model-id", stored_adjustments)
+```
+
+- Steps: plain text; the same with one function tool; the same with a 32x32 PNG; then `probe_output_limit()`. Tools and image are tried only when plain text works. Each request is streamed with an output limit of at most 256 tokens; refused requests are not generated at all.
+- `"refused"` means the provider rejected the request even after the adjustments it allows were tried. `"error"` is no verdict: authentication, rate limit, overload or network.
+- Inside the check, a rejection no rule recognises is explored: the unchanged request once more (if it then passes, nothing is learned), then each candidate adjustment alone. Candidates the error text names come first; without a name only harmless ones are tried — drop `temperature`, drop `stream_options`, `reasoning_effort="none"` with tools. A conversation is never explored.
+- Adjustments learned earlier are forgotten when a check starts, so a re-check notices a model the provider has changed.
+
 ### Temperature clamping
 
 Only provider-level ranges are applied; there is no per-model table.
@@ -576,6 +596,26 @@ Ob ein Modell `temperature` annimmt, statt `max_tokens` lieber `max_completion_t
 - Bei OpenRouter setzt `list_models()` „temperature nicht unterstützt“ vorab für Modelle, deren Metadaten `temperature` nicht anbieten; eine gelernte Ablehnung hat immer Vorrang vor der Liste.
 
 Fehler werden nach HTTP-Status abgebildet: 429 `RateLimitError` (mit `retry_after`), 401/403 `AuthenticationError` (403 neu in diesem Release), 503/529 `OverloadedError`, 400 mit Code `context_length_exceeded` oder einer Kontextlängen-Formulierung `ContextLengthError`. Bei LangDock gilt diese Abbildung nur für das `openai`-Backend; die Backends anthropic, google und agent behalten ihre bisherige Abbildung.
+
+### Modell vor dem Einsatz prüfen
+
+Ein Verbindungstest mit einer nackten Anfrage beweist wenig: Ein Chat schickt Werkzeuge, streamt und hat einen System-Prompt. `check_model()` schickt, was ein Chat schickt, in einigen kleinen Anfragen, und meldet, was das Modell annimmt.
+
+```python
+check = provider.check_model("ihre-modell-id", temperature=0.7)
+check.text, check.tools, check.vision   # "ok" | "refused" | "error" | "skipped"
+check.adjustments                       # z. B. ["reasoning_with_tools"] - speichern
+check.limits                            # z. B. {"max_output_tokens": 128000}
+check.messages                          # Meldung des Anbieters je gescheitertem Schritt
+
+# Nach einem Neustart, vor dem ersten Chat:
+provider.seed_adjustments("ihre-modell-id", gespeicherte_anpassungen)
+```
+
+- Schritte: Text; dasselbe mit einem Werkzeug; dasselbe mit einem 32×32-PNG; danach `probe_output_limit()`. Werkzeug und Bild werden nur geprüft, wenn Text funktioniert. Jede Anfrage ist gestreamt und auf höchstens 256 Ausgabe-Tokens begrenzt; abgelehnte Anfragen erzeugen nichts.
+- `"refused"` heißt: Der Anbieter hat abgelehnt, auch nachdem die zulässigen Anpassungen probiert waren. `"error"` ist kein Urteil: Anmeldung, Rate-Limit, Überlast oder Netz.
+- Innerhalb der Prüfung wird eine Ablehnung, die keine Regel kennt, erkundet: zuerst dieselbe Anfrage noch einmal (geht sie dann durch, wird nichts gelernt), danach jede mögliche Anpassung einzeln. Was die Meldung nennt, kommt zuerst; ohne Nennung nur Ungefährliches – `temperature` weglassen, `stream_options` weglassen, `reasoning_effort="none"` bei Werkzeugen. Ein Gespräch wird nie erkundet.
+- Zu Beginn einer Prüfung wird vorher Gelerntes vergessen, damit eine erneute Prüfung bemerkt, wenn der Anbieter ein Modell geändert hat.
 
 ### Temperature-Clamping
 

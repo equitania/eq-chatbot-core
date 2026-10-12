@@ -5,6 +5,24 @@ All notable changes to eq-chatbot-core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-10-12
+
+### Added
+
+- `BaseLLMProvider.check_model(model, *, temperature, max_tokens, tools, vision, probe_limit, **kwargs)` finds out what a model accepts before a chat needs it, with a few small streamed requests shaped like a chat turn (system and user message, the caller's temperature and extra arguments, an output limit of at most `CHECK_MAX_TOKENS` = 256): plain text, then with one function tool, then with a 32x32 PNG, then `probe_output_limit`. Returns a `ModelCheck` (per step `ok` / `refused` / `error` / `skipped`, the adjustments the model needs, the limits the provider named, and the provider's message per failed step, secrets scrubbed). Adjustments learned earlier are forgotten first, so a re-check notices a model the provider has changed. Never raises for a provider's answer. A connection test without tools passed while every chat turn with tools failed (12.10.2026); this check sends what the chat sends.
+- Exploring unrecognised rejections (`param_learning.exploring()`, active only inside `check_model`): a rejection no rule recognises is answered by a bounded search — the unchanged request once more (a gateway may have hit a bad upstream; nothing is learned when it then passes), then each candidate adjustment alone. Candidates the error text names come first; without a name only harmless ones are tried (drop `temperature`, drop `stream_options`, `reasoning_effort="none"` with tools). Renaming `max_tokens` or dropping a configured `reasoning_effort` needs the name. Authentication, rate-limit, overload, server and network errors stop the search at once. Never active for a conversation or for the output-limit probe. Verified live 12.10.2026: with the 4.1.1 rule removed, the check found `reasoning_with_tools` for gpt-6-luna on its own.
+- `learned_adjustments(model)` / `seed_adjustments(model, names)` on every provider, and `param_learning.learned_adjustments` / `seed_adjustments` / `forget_adjustments`: persist what was learned and restore it after a restart, so the first request is right.
+- `param_learning.is_rejection(error)`: whether an error is the provider refusing the request as sent (HTTP 400/422 or a stream error event), following a `ProviderError` to the SDK error it was raised from. Overload, rate-limit, context-length and server errors relayed in the body are not rejections.
+- Learnable `stream_usage`: drops `stream_options` for servers that refuse to report token usage in a stream.
+
+### Fixed
+
+- A model that reasons by default and refuses function tools while it does now works with tools. OpenAI answered every `/chat/completions` request with tools for such a model with HTTP 400 ("Function tools with reasoning_effort are not supported ... set reasoning_effort to 'none'") — even when no `reasoning_effort` was sent, so a chat that always sends tools failed on every turn while a connection test without tools succeeded. The rejection is now recognised (learnable `reasoning_with_tools`): the request is resent once with `reasoning_effort="none"`, and once that succeeded it is remembered for the endpoint and model. It applies to requests with tools only; without tools the model keeps reasoning. Verified live 12.10.2026. (Prepared as 4.1.1, never released; shipped with 4.2.0.)
+
+### Changed
+
+- While a model is checked, a stream is read on to the first chunk that carries an answer before it leaves the retry loop, so a refusal after an empty opening chunk can be explored too.
+
 ## [4.1.0] - 2026-10-12
 
 ### Added

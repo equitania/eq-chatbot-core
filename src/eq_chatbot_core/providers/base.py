@@ -140,6 +140,84 @@ def normalize_tools(
     return [tool.to_chat_tool() if isinstance(tool, ToolDefinition) else dict(tool) for tool in tools]
 
 
+# --- check_model -----------------------------------------------------------------
+
+CHECK_STATES = ("ok", "refused", "error", "skipped")
+
+
+@dataclass
+class ModelCheck:
+    """What ``check_model`` found out about one model on one endpoint.
+
+    Each step is ``"ok"`` (the provider accepted the request), ``"refused"`` (it
+    rejected the request even after the adjustments it allows were tried),
+    ``"error"`` (no verdict: authentication, rate limit, network) or ``"skipped"``.
+    """
+
+    model: str
+    text: str = "skipped"
+    """A plain streamed answer, sent the way a chat sends it."""
+
+    tools: str = "skipped"
+    """The same with one function tool."""
+
+    vision: str = "skipped"
+    """The same with a small image."""
+
+    adjustments: list[str] = field(default_factory=list)
+    """Request adjustments this model needs (``param_learning.LEARNABLE`` names).
+    Persist them and hand them back with ``seed_adjustments`` after a restart."""
+
+    limits: dict[str, int] = field(default_factory=dict)
+    """Token limits the provider named (``max_output_tokens``, ``context_length``)."""
+
+    messages: dict[str, str] = field(default_factory=dict)
+    """The provider's message per step that was not ``"ok"`` (secrets scrubbed)."""
+
+    @property
+    def ok(self) -> bool:
+        """The model answers at all."""
+        return self.text == "ok"
+
+
+# Output limit of a check request: enough for a reasoning model to finish a
+# one-word answer, small enough that a check costs next to nothing.
+CHECK_MAX_TOKENS = 256
+CHECK_SYSTEM = "This is an automated capability check. Answer in one word."
+CHECK_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "get_time",
+        "description": "Returns the current time in a time zone.",
+        "parameters": {
+            "type": "object",
+            "properties": {"timezone": {"type": "string", "description": "IANA time zone, e.g. Europe/Berlin"}},
+        },
+    },
+}
+
+
+def check_image_png() -> str:
+    """A 32x32 grey PNG, base64 — small, but not below the minimum size vision models accept."""
+    import base64
+    import struct
+    import zlib
+
+    width = height = 32
+    rows = b"".join(b"\x00" + b"\x80\x80\x80" * width for _ in range(height))
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+
+    png = (
+        b"\x89PNG\r\n\x1a\n"
+        + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+        + chunk(b"IDAT", zlib.compress(rows))
+        + chunk(b"IEND", b"")
+    )
+    return base64.b64encode(png).decode("ascii")
+
+
 class BaseLLMProvider(ABC):
     """
     Abstract base class for LLM providers.
@@ -371,6 +449,135 @@ class BaseLLMProvider(ABC):
             raise error
         raise handle_error(error) from error
 
+    # --- learned adjustments ------------------------------------------------------
+
+    def learned_adjustments(self, model: str | None = None) -> list[str]:
+        """Request adjustments learned for ``model`` on this endpoint and API key.
+
+        Names from ``param_learning.LEARNABLE``. The memory lives in this process
+        only — persist the list (``check_model`` returns it) and restore it with
+        ``seed_adjustments``.
+        """
+        scope = self._limit_scope()
+        if scope is None:
+            return []
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        return param_learning.learned_adjustments(scope, self.resolve_model(model))
+
+    def seed_adjustments(self, model: str, adjustments: "list[str] | tuple[str, ...]") -> None:
+        """Restore adjustments persisted from an earlier ``check_model`` or ``learned_adjustments``."""
+        scope = self._limit_scope()
+        if scope is None or not adjustments:
+            return
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        param_learning.seed_adjustments(scope, model, adjustments)
+
+    # --- check_model ----------------------------------------------------------------
+
+    def check_model(
+        self,
+        model: str | None = None,
+        *,
+        temperature: float | None = 0.7,
+        max_tokens: int | None = None,
+        tools: bool = True,
+        vision: bool = True,
+        probe_limit: bool = True,
+        **kwargs: Any,
+    ) -> ModelCheck:
+        """Find out what ``model`` accepts, with a few small requests, before a chat needs it.
+
+        Steps, each a streamed request shaped like a chat turn (system and user
+        message, the caller's ``temperature`` and extra ``kwargs``, an output limit
+        of at most ``CHECK_MAX_TOKENS``): plain text, then with one function tool
+        (``tools``), then with a small image (``vision``). Tools and image are
+        only tried once plain text works. Finally the output limit is asked for
+        (``probe_limit``, see ``probe_output_limit``).
+
+        A rejection the library does not recognise is explored: the request is
+        tried once more unchanged, then with each adjustment the error suggests
+        (see ``param_learning.exploring``). What works is remembered and returned
+        in ``ModelCheck.adjustments``. Adjustments learned earlier are forgotten
+        first, so a model the provider has changed is noticed.
+
+        Cost: the plain step and each accepted step generate at most a few
+        hundred tokens; refused requests are not generated at all.
+
+        Never raises for a provider's answer; a missing model raises
+        ``ModelNotSpecifiedError``.
+        """
+        model = self.resolve_model(model)
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        scope = self._limit_scope()
+        if scope is not None:
+            param_learning.forget_adjustments(scope, model)
+        result = ModelCheck(model=model)
+        limit = min(max_tokens or CHECK_MAX_TOKENS, CHECK_MAX_TOKENS)
+        system = {"role": "system", "content": CHECK_SYSTEM}
+
+        def step(name: str, user_content: Any, step_tools: list[dict[str, Any]] | None) -> str:
+            messages = [system, {"role": "user", "content": user_content}]
+            state, message = self._check_step(model, messages, temperature, limit, step_tools, kwargs)
+            setattr(result, name, state)
+            if message:
+                result.messages[name] = message
+            return state
+
+        if step("text", "Reply with OK.", None) == "ok":
+            if tools:
+                step("tools", "What time is it in Berlin? Use the tool if you can.", [CHECK_TOOL])
+            if vision:
+                image = self._check_image_part(check_image_png())
+                step("vision", [{"type": "text", "text": "Which colour is this image?"}, image], None)
+            if probe_limit:
+                try:
+                    self.probe_output_limit(model)
+                except Exception as error:  # noqa: BLE001 - the limit simply stays unknown
+                    result.messages["limit"] = self._check_message(error)
+        if scope is not None:
+            result.adjustments = param_learning.learned_adjustments(scope, model)
+            result.limits = param_learning.learned_limits(scope, model)
+        return result
+
+    def _check_step(
+        self,
+        model: str,
+        messages: list[dict[str, Any]],
+        temperature: float | None,
+        max_tokens: int,
+        tools: list[dict[str, Any]] | None,
+        kwargs: dict[str, Any],
+    ) -> tuple[str, str]:
+        """One check request, streamed to the end; ``(state, provider message)``."""
+        from eq_chatbot_core.providers import param_learning  # local: providers/__init__ imports this module
+
+        call_kwargs = dict(kwargs)
+        if temperature is not None:
+            call_kwargs["temperature"] = temperature
+        with param_learning.exploring():
+            try:
+                for _chunk in self.stream_completion(
+                    messages, model=model, max_tokens=max_tokens, tools=tools, **call_kwargs
+                ):
+                    pass
+            except Exception as error:  # noqa: BLE001 - the verdict is the result
+                state = "refused" if param_learning.is_rejection(error) else "error"
+                return state, self._check_message(error)
+        return "ok", ""
+
+    @staticmethod
+    def _check_message(error: BaseException) -> str:
+        from eq_chatbot_core.utils.secret_scrub import scrub_secrets
+
+        return scrub_secrets(str(error))[:500]
+
+    def _check_image_part(self, png_base64: str) -> dict[str, Any]:
+        """The image of the vision step, in the message format this provider expects."""
+        return {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{png_base64}"}}
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(provider={self.provider_name})"
 
@@ -470,6 +677,7 @@ __all__ = [
     "StreamChunk",
     "ToolDefinition",
     "ModelInfo",
+    "ModelCheck",
     "BaseLLMProvider",
     "ProviderError",
     "ModelNotSpecifiedError",

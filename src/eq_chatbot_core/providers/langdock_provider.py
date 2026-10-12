@@ -276,6 +276,12 @@ class LangDockProvider(BaseLLMProvider):
         # The agent backend's model is configured in LangDock; nothing is learned there.
         return None if self.backend == "agent" else self._learning_scope(self._get_backend_url())
 
+    def _check_image_part(self, png_base64: str) -> dict[str, Any]:
+        """The anthropic backend takes the Messages API's image block, the others OpenAI's."""
+        if self.backend == "anthropic":
+            return {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": png_base64}}
+        return super()._check_image_part(png_base64)
+
     def probe_output_limit(self, model: str | None = None) -> int | None:
         """Probe on the openai backend (see the base class); other backends return what was learned."""
         if self.backend == "openai":

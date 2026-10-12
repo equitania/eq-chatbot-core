@@ -51,16 +51,37 @@ def _prime_stream(stream: Any) -> Iterator[Any]:
     the first read fails, so a retry does not leave a connection open.
     """
     iterator = iter(stream)
+    read: list[Any] = []
     try:
-        first = next(iterator)
+        while True:
+            chunk = next(iterator)
+            read.append(chunk)
+            # While a model is checked (param_learning.exploring), read on to the
+            # first chunk that carries an answer: some gateways report a refusal
+            # after an empty opening chunk, and only a refusal inside the retry
+            # loop can be explored.
+            if not param_learning.is_exploring() or _carries_answer(chunk):
+                break
     except StopIteration:
-        return iter(())
+        pass
     except BaseException:
         close = getattr(stream, "close", None)
         if close is not None:
             close()
         raise
-    return itertools.chain((first,), iterator)
+    return itertools.chain(read, iterator)
+
+
+def _carries_answer(chunk: Any) -> bool:
+    for choice in getattr(chunk, "choices", None) or ():
+        delta = getattr(choice, "delta", None)
+        if (
+            getattr(choice, "finish_reason", None)
+            or getattr(delta, "content", None)
+            or getattr(delta, "tool_calls", None)
+        ):
+            return True
+    return False
 
 
 class OpenAICompatibleProvider(BaseLLMProvider):
